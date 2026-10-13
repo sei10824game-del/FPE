@@ -1,0 +1,23 @@
+{
+ "itemGroup.fpe": "FPE Monsters",
+ "entity.fpe.projectile": "FPE Projectile",
+ "entity.fpe.fx": "FPE Effect",
+ "entity.fpe.miss_circle": "Miss Circle",
+ "item.fpe.miss_circle_spawn_egg": "Miss Circle Spawn Egg",
+ "entity.fpe.miss_thavel": "Miss Thavel",
+ "item.fpe.miss_thavel_spawn_egg": "Miss Thavel Spawn Egg",
+ "entity.fpe.miss_bloomie": "Miss Bloomie",
+ "item.fpe.miss_bloomie_spawn_egg": "Miss Bloomie Spawn Egg",
+ "entity.fpe.alice": "Alice",
+ "item.fpe.alice_spawn_egg": "Alice Spawn Egg",
+ "entity.fpe.red_circle": "Red Circle (DANGER AU)",
+ "item.fpe.red_circle_spawn_egg": "Red Circle (DANGER AU) Spawn Egg",
+ "entity.fpe.danger_thavel": "Miss Thavel (DANGER AU)",
+ "item.fpe.danger_thavel_spawn_egg": "Miss Thavel (DANGER AU) Spawn Egg",
+ "entity.fpe.danger_bloomie": "Miss Bloomie (DANGER AU)",
+ "item.fpe.danger_bloomie_spawn_egg": "Miss Bloomie (DANGER AU) Spawn Egg",
+ "entity.fpe.fen": "Fen",
+ "item.fpe.fen_spawn_egg": "Fen Spawn Egg",
+ "entity.fpe.aiden": "Aiden",
+ "item.fpe.aiden_spawn_egg": "Aiden Spawn Egg"
+}

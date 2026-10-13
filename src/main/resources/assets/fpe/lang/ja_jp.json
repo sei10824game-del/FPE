@@ -1,0 +1,23 @@
+{
+ "itemGroup.fpe": "FPE モンスター",
+ "entity.fpe.projectile": "FPE 投射物",
+ "entity.fpe.fx": "FPE エフェクト",
+ "entity.fpe.miss_circle": "ミス・サークル",
+ "item.fpe.miss_circle_spawn_egg": "ミス・サークル スポーンエッグ",
+ "entity.fpe.miss_thavel": "ミス・タベル",
+ "item.fpe.miss_thavel_spawn_egg": "ミス・タベル スポーンエッグ",
+ "entity.fpe.miss_bloomie": "ミス・ブルーミー",
+ "item.fpe.miss_bloomie_spawn_egg": "ミス・ブルーミー スポーンエッグ",
+ "entity.fpe.alice": "アリス",
+ "item.fpe.alice_spawn_egg": "アリス スポーンエッグ",
+ "entity.fpe.red_circle": "レッド・サークル (DANGER AU)",
+ "item.fpe.red_circle_spawn_egg": "レッド・サークル (DANGER AU) スポーンエッグ",
+ "entity.fpe.danger_thavel": "ミス・タベル (DANGER AU)",
+ "item.fpe.danger_thavel_spawn_egg": "ミス・タベル (DANGER AU) スポーンエッグ",
+ "entity.fpe.danger_bloomie": "ミス・ブルーミー (DANGER AU)",
+ "item.fpe.danger_bloomie_spawn_egg": "ミス・ブルーミー (DANGER AU) スポーンエッグ",
+ "entity.fpe.fen": "フェン",
+ "item.fpe.fen_spawn_egg": "フェン スポーンエッグ",
+ "entity.fpe.aiden": "エイデン",
+ "item.fpe.aiden_spawn_egg": "エイデン スポーンエッグ"
+}
