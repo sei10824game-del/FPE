@@ -59,7 +59,7 @@ public final class Preview {
             "alice", Alice.class, "alice_boss", Alice.class, "red_circle", RedCircle.class,
             "danger_thavel", DangerThavel.class, "danger_bloomie", DangerBloomie.class,  "fen", Fen.class, "aiden", Aiden.class));
 
-    static { ENTITY.put("infected_bloomie", InfectedBloomie.class); }
+    static { ENTITY.put("infected_bloomie", InfectedBloomie.class); ENTITY.put("infected_zip", InfectedZip.class); }
 
     @SuppressWarnings("unchecked")
     private static List<Ability> abilitiesOf(Class<? extends FpeEntity> c) throws Exception {
