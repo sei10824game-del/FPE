@@ -20,7 +20,11 @@ import net.minecraft.world.phys.Vec3;
 public final class FpeUtil {
     private FpeUtil() {}
 
-    public static boolean isAlly(Entity a, Entity b) { return b instanceof FpeEntity || b == a; }
+    public static boolean isAlly(Entity a, Entity b) {
+        if (b == a) return true;
+        if (!(b instanceof FpeEntity fb)) return false;
+        return !(a instanceof FpeEntity fa) || !FpeEntity.hostile(fa.faction(), fb.faction());
+    }
 
     public static boolean canHurt(Entity attacker, Entity victim) {
         if (!(victim instanceof LivingEntity l) || !l.isAlive() || isAlly(attacker, victim)) return false;

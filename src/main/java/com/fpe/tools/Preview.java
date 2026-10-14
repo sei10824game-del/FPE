@@ -59,7 +59,7 @@ public final class Preview {
             "alice", Alice.class, "alice_boss", Alice.class, "red_circle", RedCircle.class,
             "danger_thavel", DangerThavel.class, "danger_bloomie", DangerBloomie.class,  "fen", Fen.class, "aiden", Aiden.class));
 
-    static { ENTITY.put("infected_bloomie", InfectedBloomie.class); ENTITY.put("infected_zip", InfectedZip.class); }
+    static { ENTITY.put("infected_bloomie", InfectedBloomie.class); ENTITY.put("infected_zip", InfectedZip.class); ENTITY.put("danger_alice", DangerAlice.class); }
 
     @SuppressWarnings("unchecked")
     private static List<Ability> abilitiesOf(Class<? extends FpeEntity> c) throws Exception {
@@ -107,7 +107,7 @@ public final class Preview {
         ModelParts parts = new ModelParts(root, s);
         Class<? extends FpeEntity> ec = ENTITY.get(s.name);
         List<Ability> abil = ec == null ? List.of() : abilitiesOf(ec);
-        int variant = s.name.equals("alice_boss") ? 1 : 0;
+        int variant = s.name.equals("alice_boss") || Integer.getInteger("fpe.variant", 0) == 1 ? 1 : 0;
 
         // framing from idle pose
         float[] bb = bounds(root, parts, s, 0, 0, null);

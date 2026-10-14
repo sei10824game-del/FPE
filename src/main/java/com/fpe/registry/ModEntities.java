@@ -36,6 +36,7 @@ public final class ModEntities {
     public static final RegistryObject<EntityType<DangerBloomie>> DANGER_BLOOMIE = chara("danger_bloomie", DangerBloomie::new, 0.7f, 2.0f);
     public static final RegistryObject<EntityType<InfectedBloomie>> INFECTED_BLOOMIE = chara("infected_bloomie", InfectedBloomie::new, 1.3f, 3.2f);
     public static final RegistryObject<EntityType<InfectedZip>> INFECTED_ZIP = chara("infected_zip", InfectedZip::new, 1.5f, 2.3f);
+    public static final RegistryObject<EntityType<DangerAlice>> DANGER_ALICE = chara("danger_alice", DangerAlice::new, 0.7f, 2.0f);
     public static final RegistryObject<EntityType<Fen>> FEN = chara("fen", Fen::new, 0.7f, 2.0f);
     public static final RegistryObject<EntityType<Aiden>> AIDEN = chara("aiden", Aiden::new, 0.6f, 1.7f);
 
@@ -47,7 +48,7 @@ public final class ModEntities {
     /** all character types (for eggs, spawns, attributes) */
     @SuppressWarnings("unchecked")
     public static java.util.List<RegistryObject<? extends EntityType<? extends FpeEntity>>> characters() {
-        return java.util.List.of(MISS_CIRCLE, MISS_THAVEL, MISS_BLOOMIE, ALICE, RED_CIRCLE, DANGER_THAVEL, DANGER_BLOOMIE, INFECTED_BLOOMIE, INFECTED_ZIP, FEN, AIDEN);
+        return java.util.List.of(MISS_CIRCLE, MISS_THAVEL, MISS_BLOOMIE, ALICE, RED_CIRCLE, DANGER_THAVEL, DANGER_BLOOMIE, INFECTED_BLOOMIE, INFECTED_ZIP, DANGER_ALICE, FEN, AIDEN);
     }
 
     public static final class Events {
@@ -62,6 +63,7 @@ public final class ModEntities {
             e.put(DANGER_BLOOMIE.get(), DangerBloomie.attributes().build());
             e.put(INFECTED_BLOOMIE.get(), InfectedBloomie.attributes().build());
             e.put(INFECTED_ZIP.get(), InfectedZip.attributes().build());
+            e.put(DANGER_ALICE.get(), DangerAlice.attributes().build());
             e.put(FEN.get(), Fen.attributes().build());
             e.put(AIDEN.get(), Aiden.attributes().build());
         }

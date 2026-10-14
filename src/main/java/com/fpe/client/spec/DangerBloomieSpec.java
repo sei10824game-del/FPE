@@ -1,5 +1,7 @@
 package com.fpe.client.spec;
 
+import static com.fpe.client.model.Anim.curve;
+
 import com.fpe.client.model.Anim;
 import com.fpe.client.model.AnimCtx;
 import com.fpe.client.model.ModelParts;
@@ -8,413 +10,393 @@ import com.fpe.client.model.ModelSpec.Face;
 import com.fpe.client.model.ModelSpec.Pattern;
 
 /**
- * Danger AU Bloomie: thin angular build, flat black bob with eye-hiding bangs and spiky flares, top-knot with a pale bow,
- * short black jacket with white buttons, grey A-line skirt, long black limbs, white claws (right), huge serrated
- * bandage-wrapped cleaver (left). Animation keyed to entity/characters/DangerBloomie.
+ * Danger AU Bloomie: long navy double-breasted coat, tall black pointed hat with horn spikes and a hazard '!' sign,
+ * two very long black/tan hazard-striped ribbons, pale-blue mask face, bandage-striped cuffs and an AK-47.
  */
 public final class DangerBloomieSpec {
     private DangerBloomieSpec() {}
 
-    static final int JACKET = 0x24212B, JACKET_HI = 0x36323F, LAPEL = 0x4A4655, BUTTON = 0xEEEEE8, SKIRT = 0xA6ADB0, SKIRT_LT = 0xD3D7D6,
-            SKIRT_DK = 0x8A9296, SKIN = 0xE6E3DC, HAIR = 0x1C1A23, HAIR_HI = 0x2C2934, BOW = 0xDADDDB, TIGHTS = 0x1F1C26,
-            CLAW = 0xF0F0EA, BLADE = 0xB9BEC2, BLADE_DK = 0x8D9398, EDGE = 0xE6EAEC, BANDAGE = 0xE4E1D6, BANDAGE_SH = 0xB9B5A8,
-            GRIP = 0x2B2522, MOUTH = 0x120D15, BLOOD = 0x7A1420;
+    static final int NAVY = 0x1A1A20, NAVY_D = 0x111116, NAVY_L = 0x2A2A33, BTN = 0xC8CCD4, FACE = 0xAFCADA;
+    static final int HAIR = 0x0F0F14, HAT = 0x15151D, HAT_L = 0x24242F, TAN = 0xDCC690, STRIPE_D = 0x16161C;
+    static final int GLOVE = 0x121218, WOOD = 0x8A4E24, WOOD_D = 0x5E3416, STEEL = 0x1F2026, STEEL_L = 0x34363F;
 
     public static final ModelSpec SPEC = build();
 
     private static ModelSpec build() {
         ModelSpec m = new ModelSpec("danger_bloomie");
         m.group("root", null, 0, 24, 0);
-        m.group("hips", "root", 0, 12.5f, 0);
+        m.group("spin", "root", 0, 12, 0);
 
-        // ---------------------------------------------------------------- long thin legs, pointed feet
+        // ---------------------------------------------------------------- legs
         for (int s = -1; s <= 1; s += 2) {
             String k = s < 0 ? "R" : "L";
-            float x = s * 1.25f;
-            m.part("leg" + k, "hips", x, 13, 0, -0.85f, 0, -0.85f, 1.7f, 6, 1.7f, TIGHTS);
-            m.part("shin" + k, "leg" + k, x, 19, 0, -0.75f, 0, -0.75f, 1.5f, 4.4f, 1.5f, TIGHTS);
-            m.part("foot" + k, "shin" + k, x, 23.2f, 0, -0.9f, -0.4f, -1.4f, 1.8f, 1.2f, 2.6f, 0x15131A);
-            m.part("toe" + k, "foot" + k, x, 23.6f, -1.4f, -0.5f, -0.4f, -2.2f, 1, 0.8f, 2.2f, 0x15131A).rot(-6, 0, 0);
+            float x = 2 * s;
+            m.part("leg" + k, "spin", x, 12, 0, -1.4f, 0, -1.4f, 2.8f, 7, 2.8f, NAVY_D);
+            m.part("shin" + k, "leg" + k, x, 19, 0, -1.5f, 0, -1.5f, 3, 5, 3, GLOVE).decor(Face.FRONT, 0, 0, 3, 1, TAN);
+            m.part("toe" + k, "shin" + k, x, 19, 0, -1.3f, 3.6f, -2.8f, 2.6f, 1.4f, 1.4f, GLOVE);
         }
 
-        // ---------------------------------------------------------------- A-line skirt (grey, lighter front panel)
-        m.part("skirtTop", "hips", 0, 11.8f, 0, -3, 0, -2, 6, 2.2f, 4, SKIRT).decor(Face.FRONT, 0, 0, 6, 1, SKIRT_DK);
-        m.part("skirtMid", "skirtTop", 0, 14, 0, -4, 0, -2.7f, 8, 2.6f, 5.4f, SKIRT).pattern(Pattern.STRIPE_V, SKIRT_DK, 2).grain(0.03f)
-                .decor(Face.FRONT, 3, 0, 3, 1, SKIRT_LT).decor(Face.FRONT, 2, 1, 5, 2, SKIRT_LT);
-        m.part("skirtHem", "skirtMid", 0, 16.6f, 0, -5.2f, 0, -3.4f, 10.4f, 2.6f, 6.8f, SKIRT).pattern(Pattern.STRIPE_V, SKIRT_DK, 2).grain(0.03f)
-                .decor(Face.FRONT, 1, 0, 8, 1, SKIRT_LT).decor(Face.FRONT, 0, 1, 10, 2, SKIRT_LT).decor(Face.BOTTOM, 0, 0, 11, 7, SKIRT_DK);
-        for (int s = -1; s <= 1; s += 2)   // angular corner flares
-            m.part("skirtTip" + (s < 0 ? "R" : "L"), "skirtHem", s * 5.2f, 18.6f, -3.4f, -0.6f, -0.6f, -0.6f, 1.2f, 1.2f, 1.2f, SKIRT_LT).rot(0, 0, 45);
+        // ---------------------------------------------------------------- hips + long coat skirt
+        m.group("hips", "spin", 0, 12, 0);
+        m.part("coatR", "hips", -2, 12, 0, -2.6f, 0, -2.7f, 4.8f, 11, 5.4f, NAVY).rot(0, 0, 4)
+                .decor(Face.FRONT, 4, 0, 1, 11, NAVY_D).decor(Face.FRONT, 0, 10, 5, 1, NAVY_D).decor(Face.RIGHT, 0, 10, 6, 1, NAVY_D)
+                .decor(Face.FRONT, 1, 2, 1, 1, BTN);
+        m.part("coatL", "hips", 2, 12, 0, -2.2f, 0, -2.7f, 4.8f, 11, 5.4f, NAVY).rot(0, 0, -4)
+                .decor(Face.FRONT, 0, 0, 1, 11, NAVY_L).decor(Face.FRONT, 0, 10, 5, 1, NAVY_D).decor(Face.LEFT, 0, 10, 6, 1, NAVY_D)
+                .decor(Face.FRONT, 3, 2, 1, 1, BTN);
+        m.part("coatBack", "hips", 0, 12, 2.3f, -4.6f, 0, -0.5f, 9.2f, 11.4f, 1.2f, NAVY).rot(7, 0, 0)
+                .decor(Face.BACK, 4, 2, 1, 9, NAVY_D).decor(Face.BACK, 0, 10, 10, 2, NAVY_D);
 
-        // ---------------------------------------------------------------- jacket
-        m.group("torso", "hips", 0, 12, 0);
-        m.part("chest", "torso", 0, 12, 0, -2.6f, -6.6f, -1.7f, 5.2f, 6.6f, 3.4f, JACKET)
-                .decor(Face.FRONT, 2, 0, 2, 7, JACKET_HI)
-                .decor(Face.FRONT, 2, 3, 1, 1, BUTTON).decor(Face.FRONT, 2, 5, 1, 1, BUTTON)
-                .decor(Face.BACK, 2, 0, 2, 7, JACKET_HI);
-        m.part("jacketHem", "chest", 0, 12, 0, -2.9f, -1, -2.0f, 5.8f, 1.3f, 4.0f, JACKET).decor(Face.FRONT, 2, 0, 2, 2, LAPEL);
-        m.part("lapelR", "chest", -0.6f, 5.6f, -1.75f, -1.8f, 0, -0.3f, 1.8f, 3.2f, 0.6f, LAPEL).rot(0, 0, -16).decor(Face.FRONT, 0, 0, 1, 1, 0x5C586A);
-        m.part("lapelL", "chest", 0.6f, 5.6f, -1.75f, 0, 0, -0.3f, 1.8f, 3.2f, 0.6f, LAPEL).rot(0, 0, 16).decor(Face.FRONT, 1, 0, 1, 1, 0x5C586A);
-        m.part("collar", "chest", 0, 5.8f, 0, -1.8f, -0.9f, -1.6f, 3.6f, 1.2f, 3.2f, LAPEL).decor(Face.FRONT, 1, 0, 2, 1, BUTTON);
-        for (int s = -1; s <= 1; s += 2)   // sharp shoulder pads (angular silhouette)
-            m.part("pad" + (s < 0 ? "R" : "L"), "chest", s * 2.8f, 5.8f, 0, -1.4f, -0.6f, -1.6f, 2.8f, 1.2f, 3.2f, JACKET_HI).rot(0, 0, s * -12);
+        // ---------------------------------------------------------------- torso
+        m.part("torso", "hips", 0, 12, 0, -4, -10, -2.25f, 8, 10, 4.5f, NAVY)
+                .decor(Face.FRONT, 5, 0, 1, 10, NAVY_D)
+                .decor(Face.FRONT, 1, 2, 1, 1, BTN).decor(Face.FRONT, 6, 2, 1, 1, BTN)
+                .decor(Face.FRONT, 1, 5, 1, 1, BTN).decor(Face.FRONT, 6, 5, 1, 1, BTN)
+                .decor(Face.FRONT, 1, 8, 1, 1, BTN).decor(Face.FRONT, 6, 8, 1, 1, BTN)
+                .decor(Face.FRONT, 0, 9, 8, 1, NAVY_D).decor(Face.BACK, 3, 0, 2, 10, NAVY_D);
+        m.part("lapel", "torso", 0, 12, 0, -3.4f, -10, -2.6f, 6.8f, 3, 0.6f, NAVY_L)
+                .decor(Face.FRONT, 3, 0, 1, 3, NAVY_D).decor(Face.FRONT, 0, 2, 1, 1, BTN);
+        m.part("collar", "torso", 0, 12, 0, -3.9f, -12.6f, -3.9f, 7.8f, 3.4f, 7, NAVY)
+                .decor(Face.FRONT, 0, 0, 8, 1, NAVY_L).decor(Face.FRONT, 4, 1, 1, 3, NAVY_D);
+        m.part("shoulderR", "torso", -4, 2.2f, 0, -2.4f, -0.6f, -2.5f, 3, 1.6f, 5, NAVY_L);
+        m.part("shoulderL", "torso", 4, 2.2f, 0, -0.6f, -0.6f, -2.5f, 3, 1.6f, 5, NAVY_L);
+        m.part("strap", "torso", 0, 7, -2.4f, -0.6f, -6.5f, -0.4f, 1.2f, 13, 0.5f, 0x3A2A1E).rot(0, 0, -38);
+        m.part("strapB", "torso", 0, 7, 2.4f, -0.6f, -6.5f, -0.1f, 1.2f, 13, 0.5f, 0x3A2A1E).rot(0, 0, 38);
 
-        // ---------------------------------------------------------------- head
-        m.part("neck", "chest", 0, 5.6f, 0, -0.75f, -1.1f, -0.75f, 1.5f, 1.3f, 1.5f, SKIN);
-        m.part("head", "neck", 0, 4.7f, 0, -3, -6, -3, 6, 6, 6, SKIN)
-                .decor(Face.FRONT, 0, 0, 6, 3, 0x2A2730)                                // fringe shadow
-                .decorGlow(Face.FRONT, 1, 2, 1, 1, 0xE8F0FF).decorGlow(Face.FRONT, 4, 2, 1, 1, 0xE8F0FF)
-                .decor(Face.FRONT, 0, 3, 1, 1, MOUTH).decor(Face.FRONT, 5, 3, 1, 1, MOUTH)
-                .decor(Face.FRONT, 0, 4, 6, 1, MOUTH)
-                .decor(Face.FRONT, 1, 4, 1, 1, CLAW).decor(Face.FRONT, 3, 4, 1, 1, CLAW)
-                .decor(Face.FRONT, 2, 3, 1, 1, MOUTH).decor(Face.FRONT, 4, 4, 1, 1, CLAW).decor(Face.FRONT, 2, 5, 2, 1, 0xC8C4BC);
-        // flat bob + bangs
-        m.part("hairCap", "head", 0, -1.3f, 0, -3.6f, -1.6f, -3.6f, 7.2f, 2.4f, 7.2f, HAIR).pattern(Pattern.STRIPE_V, HAIR_HI, 3);
-        m.part("bobBack", "head", 0, -0.5f, 0, -3.6f, 0, 1.6f, 7.2f, 5.6f, 2.0f, HAIR).pattern(Pattern.STRIPE_V, HAIR_HI, 2);
-        m.part("bobR", "head", 0, -0.5f, 0, -3.6f, 0, -3.5f, 1.2f, 5.6f, 5.4f, HAIR).pattern(Pattern.STRIPE_H, HAIR_HI, 3);
-        m.part("bobL", "head", 0, -0.5f, 0, 2.4f, 0, -3.5f, 1.2f, 5.6f, 5.4f, HAIR).pattern(Pattern.STRIPE_H, HAIR_HI, 3);
-        m.part("bangs", "head", 0, -0.6f, 0, -3.4f, 0, -3.7f, 6.8f, 2.3f, 0.6f, HAIR).decor(Face.FRONT, 0, 2, 7, 1, HAIR_HI);
-        float[] bx = {-2.6f, -0.9f, 0.9f, 2.6f};
-        for (int i = 0; i < 4; i++)
-            m.part("bangT" + i, "bangs", bx[i], 1.7f, -3.4f, -0.5f, -0.5f, -0.3f, 1, 1, 0.5f, HAIR).rot(0, 0, 45);
-        // spiky flares sticking out horizontally from the bob
+        // ---------------------------------------------------------------- head + hair
+        m.group("neck", "torso", 0, 2, 0);
+        m.part("head", "neck", 0, 2, 0, -3.5f, -7, -3.5f, 7, 7, 7, FACE)
+                .decor(Face.FRONT, 1, 3, 2, 1, 0x3A2E10).decorGlow(Face.FRONT, 1, 3, 1, 1, 0xFFD84A)
+                .decor(Face.FRONT, 4, 2, 3, 3, HAIR).decor(Face.FRONT, 2, 5, 3, 1, 0x8AA6B8);
+        m.part("hairBack", "head", 0, 2, 0, -3.9f, -6.6f, 2.6f, 7.8f, 6.8f, 1.6f, HAIR);
+        m.part("hairSideR", "head", -3.6f, -4.6f, 0, -0.8f, 0, -3.8f, 1.6f, 6.4f, 7, HAIR).rot(0, 0, 4)
+                .decor(Face.RIGHT, 0, 5, 7, 1, NAVY_D);
+        m.part("hairSideL", "head", 3.6f, -4.6f, 0, -0.8f, 0, -3.8f, 1.6f, 6.4f, 7, HAIR).rot(0, 0, -4)
+                .decor(Face.LEFT, 0, 5, 7, 1, NAVY_D);
+        m.part("fringe", "head", 0, -4.6f, -3.6f, -3.8f, 0, -0.5f, 7.6f, 1.6f, 0.8f, HAIR)
+                .decor(Face.FRONT, 2, 1, 1, 1, FACE).decor(Face.FRONT, 5, 1, 1, 1, FACE);
+
+        // ---------------------------------------------------------------- black horns + choppy bun wrapped in marking tape (canon)
+        m.part("hairTop", "head", 0, -7, 0, -3.9f, -1.2f, -3.9f, 7.8f, 1.6f, 7.8f, HAIR);
+        m.part("bun", "head", 0, -8.2f, 1.4f, -2.2f, -3.4f, -2.2f, 4.4f, 3.4f, 4.4f, HAIR).pattern(Pattern.DIAG, 0x24242F, 2);
+        m.part("bunTape", "bun", 0, -9.6f, 1.4f, -2.5f, -0.6f, -2.5f, 5, 1.2f, 5, TAN).pattern(Pattern.DIAG, STRIPE_D, 1);
+        m.part("bunTuft1", "bun", 0, -11.4f, 1.4f, -0.5f, -2.4f, -0.5f, 1, 2.4f, 1, HAIR).rot(-20, 0, 12);
+        m.part("bunTuft2", "bun", 0, -11.4f, 1.4f, -0.5f, -2.2f, -0.5f, 1, 2.2f, 1, HAIR).rot(10, 0, -18);
+        m.part("hornR", "head", -2.4f, -7.4f, -0.6f, -1, -5.4f, -1, 2, 5.4f, 2, HAT).pattern(Pattern.STRIPE_H, 0xE8E8EC, 4).rot(-10, 0, -26);
+        m.part("hornTipR", "hornR", -2.4f, -12.4f, -0.6f, -0.6f, -3, -0.6f, 1.2f, 3, 1.2f, HAT).rot(0, 0, -14);
+        m.part("hornL", "head", 2.4f, -7.4f, -0.6f, -1, -5.4f, -1, 2, 5.4f, 2, HAT).rot(-10, 0, 26);
+        m.part("hornTipL", "hornL", 2.4f, -12.4f, -0.6f, -0.6f, -3, -0.6f, 1.2f, 3, 1.2f, HAT).rot(0, 0, 14);
+
+        // ---------------------------------------------------------------- two very long hazard ribbons (4 segments each)
         for (int s = -1; s <= 1; s += 2) {
             String k = s < 0 ? "R" : "L";
-            m.part("spk1" + k, "head", s * 3.4f, 0.2f, -1.0f, s < 0 ? -5.5f : 0, -0.6f, -0.6f, 5.5f, 1.2f, 1.2f, HAIR).rot(0, s * 10, s * -8);
-            m.part("spk2" + k, "head", s * 3.4f, 2.8f, 0.2f, s < 0 ? -4.5f : 0, -0.6f, -0.6f, 4.5f, 1.2f, 1.2f, HAIR).rot(0, s * -15, s * -28);
-            m.part("spk3" + k, "head", s * 3.4f, -1.8f, 0.5f, s < 0 ? -4.0f : 0, -0.5f, -0.5f, 4.0f, 1.0f, 1.0f, HAIR_HI).rot(0, s * 20, s * 22);
-            m.part("spk4" + k, "head", s * 2.8f, 4.6f, 1.6f, s < 0 ? -3.2f : 0, -0.5f, -0.5f, 3.2f, 1.0f, 1.0f, HAIR).rot(0, s * -35, s * -40);
+            float x = 3.4f * s;
+            String par = "head";
+            float y = -5.4f;
+            float[] len = {7, 7, 6.5f, 5.5f};
+            for (int i = 0; i < 4; i++) {
+                String n = "rib" + k + (i + 1);
+                ModelSpec.Part pt = m.part(n, par, x, y, 3.8f, -1.2f, 0, -0.3f, 2.4f, len[i], 0.6f, TAN).pattern(Pattern.DIAG, STRIPE_D, 2);
+                if (i == 0) pt.rot(14, 0, 9 * -s);
+                par = n; y += len[i];
+            }
+            m.part("ribEnd" + k, "rib" + k + "4", x, y, 3.8f, -1.4f, 0, -0.35f, 2.8f, 1, 0.7f, STRIPE_D);
+            m.part("ribKnot" + k, "head", x, -5.4f, 3.6f, -1.3f, -1.3f, -0.8f, 2.6f, 2.6f, 1.6f, TAN).pattern(Pattern.DIAG, STRIPE_D, 1);
         }
-        // top-knot + pale bow
-        m.group("knot", "head", 0, -2.8f, 0.4f);
-        m.part("knotBase", "knot", 0, -2.8f, 0.4f, -1.3f, -2.6f, -1.3f, 2.6f, 2.6f, 2.6f, HAIR).rot(0, 45, 0);
-        m.part("knotSpike", "knot", 0, -5.2f, 0.4f, -0.7f, -3.2f, -0.7f, 1.4f, 3.2f, 1.4f, HAIR).rot(0, 45, -12);
-        m.part("bowC", "knot", 0, -4.6f, -0.9f, -0.8f, -0.8f, -0.8f, 1.6f, 1.6f, 1.6f, BOW);
-        m.part("bowR", "knot", -0.6f, -4.6f, -0.9f, -2.6f, -1.2f, -0.4f, 2.6f, 2.4f, 0.8f, BOW).rot(0, 0, 18).decor(Face.FRONT, 0, 1, 1, 1, 0xB4B8B6);
-        m.part("bowL", "knot", 0.6f, -4.6f, -0.9f, 0, -1.2f, -0.4f, 2.6f, 2.4f, 0.8f, BOW).rot(0, 0, -18).decor(Face.FRONT, 2, 1, 1, 1, 0xB4B8B6);
 
-        // ---------------------------------------------------------------- right arm: long, white claws
-        m.group("armR", "chest", -3.3f, 6.3f, 0);
-        m.part("uArmR", "armR", -3.3f, 6.3f, 0, -1.1f, -0.8f, -1.1f, 2, 6.6f, 2.2f, JACKET).decor(Face.FRONT, 0, 0, 2, 1, JACKET_HI);
-        m.part("foreR", "uArmR", -3.4f, 12, 0, -0.9f, 0, -0.9f, 1.8f, 5.4f, 1.8f, JACKET).decor(Face.FRONT, 0, 4, 2, 2, LAPEL).decor(Face.RIGHT, 0, 4, 2, 2, LAPEL);
-        m.part("handR", "foreR", -3.4f, 17.3f, 0, -1, 0, -1.1f, 2, 1.6f, 2.2f, 0x2B2832);
-        float[][] cl = {{-4.1f, -0.7f, -26}, {-3.6f, -1.0f, -9}, {-3.0f, -1.0f, 8}, {-2.5f, -0.6f, 24}};
-        for (int i = 0; i < 4; i++) {
-            m.part("clR" + i, "handR", cl[i][0], 18.7f, cl[i][1], -0.35f, 0, -0.35f, 0.7f, 2.6f, 0.7f, CLAW).rot(-12, 0, cl[i][2]);
-            m.part("clR" + i + "t", "clR" + i, cl[i][0], 21.2f, cl[i][1], -0.25f, 0, -0.25f, 0.5f, 2.4f, 0.5f, CLAW).rot(-28, 0, 0);
+        // ---------------------------------------------------------------- arms
+        for (int s = -1; s <= 1; s += 2) {
+            String k = s < 0 ? "R" : "L";
+            float x = 5.5f * s;
+            m.part("arm" + k, "torso", x, 2.6f, 0, -1.75f, -1, -1.75f, 3.5f, 8, 3.5f, NAVY).decor(Face.FRONT, 0, 7, 4, 1, NAVY_D);
+            m.part("cuff" + k, "arm" + k, x, 2.6f, 0, -2, 6.4f, -2, 4, 2.6f, 4, TAN).pattern(Pattern.STRIPE_H, STRIPE_D, 1);
+            m.part("hand" + k, "arm" + k, x, 2.6f, 0, -1.3f, 9, -1.3f, 2.6f, 2.6f, 2.6f, GLOVE);
         }
-        m.part("clRT", "handR", -2.4f, 18f, 0.6f, -0.35f, 0, -0.35f, 0.7f, 2.4f, 0.7f, CLAW).rot(-45, 0, 40);
 
-        // ---------------------------------------------------------------- left arm + the cleaver
-        m.group("armL", "chest", 3.3f, 6.3f, 0);
-        m.part("uArmL", "armL", 3.3f, 6.3f, 0, -0.9f, -0.8f, -1.1f, 2, 6.6f, 2.2f, JACKET).decor(Face.FRONT, 0, 0, 2, 1, JACKET_HI);
-        m.part("foreL", "uArmL", 3.4f, 12, 0, -0.9f, 0, -0.9f, 1.8f, 5.4f, 1.8f, JACKET).decor(Face.FRONT, 0, 4, 2, 2, LAPEL).decor(Face.LEFT, 0, 4, 2, 2, LAPEL);
-        m.part("handL", "foreL", 3.4f, 17.3f, 0, -1, 0, -1.1f, 2, 2, 2.2f, 0x2B2832);
-        // blade group: pivot in the fist, blade points along -z (forward when the arm hangs)
-        m.group("blade", "handL", 3.4f, 18.4f, 0);
-        m.part("grip", "blade", 3.4f, 18.4f, 0, -0.55f, -0.55f, -1.6f, 1.1f, 1.1f, 4.6f, GRIP).pattern(Pattern.STRIPE_V, 0x463C36, 1);
-        m.part("pommel", "blade", 3.4f, 18.4f, 0, -0.75f, -0.75f, 3.0f, 1.5f, 1.5f, 1.0f, 0x3B3842);
-        m.part("guard", "blade", 3.4f, 18.4f, 0, -0.7f, -1.6f, -2.4f, 1.4f, 3.2f, 0.8f, 0x3B3842);
-        // wide blade body: wrapped near the hilt, bare serrated steel toward the tip
-        m.part("wrap", "blade", 3.4f, 18.4f, 0, -0.5f, -1.8f, -10.4f, 1.0f, 4.2f, 8.0f, BANDAGE).pattern(Pattern.DIAG, BANDAGE_SH, 2).grain(0.05f)
-                .decor(Face.LEFT, 2, 1, 1, 2, BLOOD).decor(Face.RIGHT, 5, 2, 1, 1, BLOOD);
-        m.part("steel", "blade", 3.4f, 18.4f, 0, -0.4f, -1.7f, -19.4f, 0.8f, 4.0f, 9.0f, BLADE).grain(0.1f)
-                .decor(Face.LEFT, 0, 3, 9, 1, BLADE_DK).decor(Face.RIGHT, 0, 3, 9, 1, BLADE_DK)
-                .decor(Face.LEFT, 3, 1, 2, 2, BLOOD).decor(Face.RIGHT, 6, 0, 1, 2, BLOOD);
-        m.part("band2", "blade", 3.4f, 18.4f, 0, -0.55f, -1.9f, -16.0f, 1.1f, 4.4f, 1.4f, BANDAGE).rot(18, 0, 0);
-        m.part("edge", "blade", 3.4f, 18.4f, 0, -0.3f, 2.2f, -19.0f, 0.6f, 0.7f, 16.4f, EDGE).decorGlow(Face.LEFT, 0, 0, 16, 1, 0x9A2232).decorGlow(Face.RIGHT, 0, 0, 16, 1, 0x9A2232);
-        m.part("tip", "blade", 3.4f, 21.2f, -19.4f, -0.4f, -4.2f, -2.4f, 0.8f, 4.2f, 2.4f, BLADE).rot(-32, 0, 0);
-        for (int i = 0; i < 6; i++)   // serrated back
-            m.part("tooth" + i, "blade", 3.4f, 16.6f, -4.5f - i * 2.5f, -0.35f, -0.8f, -0.8f, 0.7f, 1.6f, 1.6f, i < 3 ? BANDAGE_SH : BLADE_DK).rot(45, 0, 0);
-        m.part("ribbon", "blade", 3.4f, 18.9f, 1.5f, -0.2f, 0, -0.5f, 0.4f, 5, 1, BANDAGE).pattern(Pattern.STRIPE_H, BANDAGE_SH, 2);
-        m.part("ribbon2", "ribbon", 3.4f, 23.9f, 1.5f, -0.2f, 0, -0.4f, 0.4f, 3, 0.8f, BANDAGE);
+        // ---------------------------------------------------------------- AK-47 (held in the right hand, barrel along -z)
+        String G = "gun";
+        float gx = -3.9f, gy = 12.6f, gz = -0.2f;
+        m.group(G, "armR", gx, gy, gz);
+        m.part("receiver", G, gx, gy, gz, -0.8f, -3, -4.2f, 1.6f, 2.3f, 6, STEEL)
+                .decor(Face.LEFT, 1, 0, 4, 1, STEEL_L).decor(Face.RIGHT, 1, 0, 4, 1, STEEL_L).decor(Face.RIGHT, 3, 1, 1, 1, 0x50525C);
+        m.part("dustCover", G, gx, gy, gz, -0.7f, -3.5f, -3.4f, 1.4f, 0.6f, 4.8f, STEEL_L);
+        m.part("rearSight", G, gx, gy, gz, -0.5f, -3.9f, -4.3f, 1, 0.9f, 0.9f, STEEL);
+        m.part("stock", G, gx, gy, gz, -0.65f, -2.6f, 1.6f, 1.3f, 2, 4.6f, WOOD).rot(8, 0, 0)
+                .decor(Face.LEFT, 0, 0, 5, 1, 0xA0602E).decor(Face.RIGHT, 0, 0, 5, 1, 0xA0602E);
+        m.part("buttPlate", "stock", gx, gy, gz, -0.75f, -2.8f, 6.1f, 1.5f, 2.6f, 0.6f, STEEL);
+        m.part("grip", G, gx, gy, gz, -0.55f, -1, 0.2f, 1.1f, 2.8f, 1.2f, WOOD_D).rot(20, 0, 0);
+        m.part("trigGuard", G, gx, gy, gz, -0.25f, -0.9f, -1.4f, 0.5f, 1, 1.6f, STEEL);
+        m.group("mag", G, gx, gy - 0.9f, gz - 2.8f);
+        m.part("mag1", "mag", gx, gy - 0.9f, gz - 2.8f, -0.6f, 0, -0.9f, 1.2f, 2.4f, 1.7f, 0x2C2A30).rot(-10, 0, 0)
+                .decor(Face.LEFT, 0, 0, 2, 1, STEEL_L);
+        m.part("mag2", "mag1", gx, gy + 1.4f, gz - 3.2f, -0.6f, 0, -0.9f, 1.2f, 2, 1.7f, 0x2C2A30).rot(-24, 0, 0);
+        m.part("handguard", G, gx, gy, gz, -0.85f, -2.7f, -7.8f, 1.7f, 1.9f, 3.7f, WOOD)
+                .decor(Face.LEFT, 0, 1, 4, 1, WOOD_D).decor(Face.RIGHT, 0, 1, 4, 1, WOOD_D);
+        m.part("gasTube", G, gx, gy, gz, -0.6f, -3.5f, -8.6f, 1.2f, 0.8f, 5, WOOD_D);
+        m.part("launcherTube", G, gx, gy, gz, -0.65f, -0.9f, -8.6f, 1.3f, 1.2f, 4, 0x3A3B44);
+        m.part("barrel", G, gx, gy, gz, -0.35f, -2.4f, -12, 0.7f, 0.7f, 4.4f, STEEL_L);
+        m.part("frontSight", G, gx, gy, gz, -0.3f, -3.6f, -11.4f, 0.6f, 1.3f, 0.6f, STEEL);
+        m.part("muzzle", G, gx, gy, gz, -0.5f, -2.55f, -13.2f, 1, 1, 1.3f, STEEL);
+        m.group("flashG", G, gx, gy - 2.05f, gz - 13.2f);
+        m.part("flash", "flashG", gx, gy - 2.05f, gz - 13.2f, -1.4f, -1.4f, -3.2f, 2.8f, 2.8f, 3.2f, 0xFFD45A).glow();
+        m.part("flashX", "flashG", gx, gy - 2.05f, gz - 13.2f, -0.4f, -3, -1.6f, 0.8f, 6, 1, 0xFFF0A0).glow();
+        m.part("flashY", "flashG", gx, gy - 2.05f, gz - 13.2f, -3, -0.4f, -1.6f, 6, 0.8f, 1, 0xFFF0A0).glow();
 
         m.animator(DangerBloomieSpec::animate);
         return m;
     }
 
-    // =================================================================== animation
-    static final String[] CL = {"clR0", "clR1", "clR2", "clR3"};
+    // ==================================================================== animation
+    private static final class P {
+        float rootX, rootDY, spinX, spinY, spinDY, spinDZ;
+        float bodyX, bodyY, bodyZ, headX, headY, headZ;
+        float aRx, aRy, aRz, aLx, aLy, aLz;
+        float lRx, lRz, sRx, lLx, lLz, sLx;
+        float gunP, gunYaw, gunRoll, gunDY, gunDZ;
+        float ribX, ribZ, ribOut, crouch, kneel;
+    }
 
-    static float cv(float t, float... tv) { return Anim.curve(t, tv); }
+    /** ticks since the last shot of a schedule start..end step (huge if none yet) */
+    static float since(float t, int start, int end, int step) {
+        if (t < start) return 99;
+        int k = Math.min(end, start + (int) ((t - start) / step) * step);
+        return t - k;
+    }
 
-    static void animate(ModelParts m, AnimCtx c) {
-        BloomiePose idle = new BloomiePose();
-        idlePose(idle, c);
-        BloomiePose p = idle;
-        if (!c.idle()) {
-            BloomiePose a = idle.copy();
-            ability(a, c, c.t);
-            float w = Anim.smooth(c.t / 2.5f) * (1 - Anim.smooth((c.t - (c.dur - 5)) / 5f));
-            p = BloomiePose.lerp(idle, a, w);
-            BloomiePose past = idle.copy();
-            ability(past, c, Math.max(0, c.t - 2.5f));
-            BloomiePose pb = BloomiePose.lerp(idle, past, w);
-            float dx = (p.get("chest", 0) - pb.get("chest", 0)) + (p.get("root", 0) - pb.get("root", 0));
-            float dy = p.get("chest", 1) - pb.get("chest", 1) + p.get("root", 1) - pb.get("root", 1);
-            float dv = p.get("root", 4) - pb.get("root", 4);
-            p.ar("bobBack", Anim.clamp(-dx * 0.4f - dv * 3, -25, 25), 0, 0);
-            p.ar("knot", Anim.clamp(-dx * 0.5f, -25, 25), 0, Anim.clamp(dy * 0.3f, -25, 25));
-            p.ar("skirtHem", Anim.clamp(-dx * 0.3f + dv * 3, -22, 22), 0, Anim.clamp(-dy * 0.1f, -12, 12));
-            p.ar("ribbon", Anim.clamp(-(p.get("armL", 0) - pb.get("armL", 0)) * 0.6f, -60, 60), 0, 0);
-            for (int s = 0; s < 2; s++) {   // the horizontal hair flares whip with spins
-                String k = s == 0 ? "R" : "L";
-                p.ar("spk1" + k, 0, Anim.clamp(-dy * 0.4f, -30, 30), 0);
-                p.ar("spk2" + k, 0, Anim.clamp(-dy * 0.3f, -30, 30), 0);
+    /** blend between low-ready (k=0) and shouldered aim (k=1) */
+    static void aim(P p, float k, float pitch) {
+        p.aRx = Anim.lerp(-26, -84, k); p.aRy = Anim.lerp(0, -6, k); p.aRz = Anim.lerp(6, 0, k);
+        p.aLx = Anim.lerp(-46, -86, k); p.aLy = Anim.lerp(36, 38, k); p.aLz = Anim.lerp(0, -4, k);
+        p.gunP = Anim.lerp(36, pitch, k);
+    }
+
+    private static void animate(ModelParts m, AnimCtx c) {
+        P p = new P();
+        float w = c.walk();
+        float sw = Anim.sinr(c.limbSwing * 0.6f);
+        float breathe = Anim.sin(c.age * 6f);
+        float t = c.t;
+        float pitch = Anim.clamp(c.headPitch, -40, 40);
+
+        // ---------------- idle: cold, still, rifle at low ready; only breath and ribbons move
+        aim(p, 0, 0);
+        p.aRx += breathe * 1.5f; p.aLx += breathe * 1.5f;
+        p.bodyX = 1 + breathe * 0.8f;
+        p.headX = pitch * 0.8f + 3; p.headY = c.headYaw; p.headZ = -3;
+        p.lLx = -3; p.lRz = 2; p.lLz = -2;
+        p.ribZ = Anim.sin(c.age * 2.2f) * 4;
+
+        // ---------------- walk: measured military march, rifle steady, coat swinging
+        if (w > 0.01f) {
+            p.lRx += sw * 32 * w; p.lLx -= sw * 32 * w;
+            p.sRx += Math.max(0, -Anim.sinr(c.limbSwing * 0.6f + 1.3f)) * 35 * w;
+            p.sLx += Math.max(0, Anim.sinr(c.limbSwing * 0.6f + 1.3f)) * 35 * w;
+            p.bodyX += 4 * w; p.bodyY += sw * 4 * w;
+            p.spinDY -= Math.abs(Anim.sinr(c.limbSwing * 0.6f)) * 0.6f * w;
+            p.aRx += sw * 4 * w; p.aLx -= sw * 4 * w; p.gunP += sw * 3 * w;
+            p.ribX += 22 * w + Math.abs(sw) * 6 * w;
+            p.ribZ += sw * 5 * w;
+        }
+
+        float flash = 99; float flashScale = 1;
+
+        if (c.is("burst")) {
+            float k = curve(t, 0, 0, 7, 1, 25, 1, 30, 0);
+            aim(p, k, pitch);
+            float s1 = since(t, 10, 14, 2), s2 = since(t, 20, 24, 2);
+            flash = (t < 20) ? s1 : s2;
+            float rec = Math.max(0, 1 - flash / 2f) * (t < 26 ? 1 : 0);
+            p.gunP -= rec * 7; p.aRx -= rec * 5; p.aLx -= rec * 4; p.bodyX -= rec * 3; p.spinDZ += rec * 0.4f;
+            p.headX = Anim.lerp(p.headX, 8 + pitch * 0.5f, k); p.headZ = Anim.lerp(-3, -10, k); p.headY = Anim.lerp(c.headYaw, -6, k);
+            p.bodyY = 8 * k; p.lLx = Anim.lerp(-3, -16, k); p.lRx = Anim.lerp(0, 12, k);
+        } else if (c.is("spray")) {
+            float k = curve(t, 0, 0, 8, 1, 44, 1, 52, 0);
+            aim(p, k * 0.75f, 2);
+            float sweep = Anim.lerp(-40, 40, Anim.smooth(c.seg(10, 42))) * k;
+            p.spinY = sweep * 0.55f; p.bodyY = sweep * 0.45f;
+            p.headY = 0; p.headZ = -6 * k;
+            flash = since(t, 10, 42, 2);
+            float rec = t <= 43 ? Math.max(0, 1 - flash / 1.6f) : 0;
+            p.gunP -= rec * 6 + Anim.sin(t * 97) * 2 * c.seg(10, 12); p.aRx -= rec * 4; p.aLx -= rec * 3;
+            p.bodyX = Anim.lerp(1, 6, k) - rec * 2; p.bodyZ = Anim.sin(t * 140) * 1.5f * c.seg(10, 12) * (1 - c.seg(42, 44));
+            p.crouch = 1.6f * k; p.lRz = 2 + 9 * k; p.lLz = -2 - 9 * k; p.lLx = -12 * k; p.lRx = 10 * k;
+            p.ribZ += -sweep * 0.4f; p.ribX += 10 * k;
+        } else if (c.is("grenade_launcher")) {
+            p.kneel = curve(t, 3, 0, 10, 1, 26, 1, 33, 0);
+            float k = curve(t, 2, 0, 10, 1, 26, 1, 32, 0);
+            aim(p, k, -26);
+            p.aLx = Anim.lerp(p.aLx, -70, k); p.aLy = Anim.lerp(p.aLy, 26, k); // hand under the GP tube
+            p.aLx += curve(t, 10, 0, 12, 12, 14, 0); // thumb the launcher
+            flash = since(t, 16, 16, 1); flashScale = 1.6f;
+            float rec = Math.max(0, 1 - flash / 5f) * (t >= 16 ? 1 : 0);
+            p.gunP -= rec * 26; p.aRx -= rec * 18; p.aLx -= rec * 18; p.bodyX = 4 * k - rec * 14; p.spinDZ += rec * 1.4f;
+            p.headX = Anim.lerp(p.headX, -6, k) - rec * 10; p.headZ = -8 * k;
+            p.ribX += rec * 20;
+        } else if (c.is("shotgun")) {
+            float k = curve(t, 0, 0, 7, 1, 20, 1, 26, 0);
+            // hip fire: rifle level at the hip
+            p.aRx = Anim.lerp(p.aRx, -38, k); p.aLx = Anim.lerp(p.aLx, -62, k); p.aLy = Anim.lerp(p.aLy, 32, k);
+            p.gunP = Anim.lerp(p.gunP, 4, k);
+            p.crouch = curve(t, 0, 0, 8, 2.4f, 10, 2.6f, 12, 1, 26, 0);
+            p.bodyX = curve(t, 0, 1, 8, 16, 10, 16, 11.5f, -16, 18, -4, 26, 1);
+            flash = since(t, 10, 10, 1); flashScale = 2.1f;
+            float rec = Math.max(0, 1 - flash / 4f) * (t >= 10 ? 1 : 0);
+            p.gunP -= rec * 34; p.aRx -= rec * 20; p.aLx -= rec * 14;
+            p.spinDZ += curve(t, 10, 0, 12, 3, 20, 1.5f, 26, 0);
+            p.lLx = -20 * k; p.lRx = 16 * k; p.lRz = 2 + 6 * k; p.lLz = -2 - 6 * k;
+            p.headX = curve(t, 0, p.headX, 8, 15, 11, -15, 20, p.headX);
+            p.ribX += curve(t, 10, 0, 12, 40, 20, 10, 26, 0);
+        } else if (c.is("butt_bash")) {
+            float flip = curve(t, 0, 0, 7, 180, 15, 180, 22, 0);
+            p.gunYaw = flip;
+            p.gunP = curve(t, 0, 36, 7, 6, 15, 6, 22, 36);
+            p.aRx = curve(t, 0, -26, 7, -40, 9, -38, 11, -98, 15, -90, 22, -26);
+            p.aLx = curve(t, 0, -46, 7, -54, 9, -52, 11, -104, 15, -96, 22, -46);
+            p.aLy = curve(t, 0, 36, 7, 30, 11, 22, 22, 36);
+            p.bodyY = curve(t, 0, 0, 8, -32, 11, 18, 16, 10, 26, 0);
+            p.bodyX = curve(t, 0, 1, 8, -8, 11, 20, 16, 12, 26, 1);
+            p.spinDZ = curve(t, 8, 0, 11, -2.6f, 18, -1.5f, 26, 0);
+            p.lLx = curve(t, 6, -3, 11, -36, 18, -20, 26, -3);
+            p.lRx = curve(t, 6, 0, 11, 24, 18, 12, 26, 0);
+            p.headX = curve(t, 6, p.headX, 11, 14, 18, p.headX);
+            p.ribX += curve(t, 8, 0, 12, 30, 20, 0);
+            p.ribZ += curve(t, 6, 0, 9, 20, 12, -25, 20, 0);
+        } else if (c.is("ribbon_whip")) {
+            float spin = Anim.easeOut(c.seg(10, 21));
+            p.crouch = curve(t, 0, 0, 8, 2.4f, 21, 2, 28, 0);
+            p.spinY = curve(t, 0, 0, 9, -40, 10, -40) * (1 - spin) + spin * 400 - 40 * spin;
+            p.bodyY = curve(t, 0, 0, 9, -35, 12, 10, 22, 0);
+            p.aRx = curve(t, 0, -26, 8, -60, 20, -60, 28, -26); p.aLx = curve(t, 0, -46, 8, -70, 20, -70, 28, -46);
+            p.gunP = curve(t, 0, 36, 8, 70, 20, 70, 28, 36);
+            p.headX = curve(t, 0, p.headX, 9, 18, 12, -20, 20, -15, 28, p.headX);
+            p.lRz = curve(t, 8, 2, 12, 14, 22, 2); p.lLz = curve(t, 8, -2, 12, -14, 22, -2);
+            p.ribOut = curve(t, 8, 0, 11, 1, 19, 1, 23, 0);
+            float wob = Anim.sin((t - 21) * 55) * 30 * Math.max(0, 1 - (t - 21) / 12f) * (t > 21 ? 1 : 0);
+            p.ribX += wob + curve(t, 0, 0, 9, 25, 10, 25);
+            p.ribZ += wob * 0.6f;
+        } else if (c.is("suppress")) {
+            p.kneel = curve(t, 2, 0, 10, 1, 58, 1, 64, 0);
+            float k = curve(t, 2, 0, 11, 1, 57, 1, 63, 0);
+            aim(p, k, pitch + 3);
+            float sweep = Anim.sin((t - 14) * 9) * 10 * c.seg(14, 20) * (1 - c.seg(54, 58));
+            p.bodyY = sweep; p.headY = sweep * 0.3f;
+            flash = since(t, 14, 56, 3);
+            float rec = t <= 57 ? Math.max(0, 1 - flash / 2f) : 0;
+            p.gunP -= rec * 5; p.aRx -= rec * 4; p.aLx -= rec * 3; p.bodyX = 6 * k - rec * 2;
+            p.headX = Anim.lerp(p.headX, 10, k); p.headZ = -10 * k;
+        } else if (c.is("reload")) {
+            // tilt rifle, rip the mag, fetch a new one from the coat, slam it, rack the bolt
+            p.gunRoll = curve(t, 0, 0, 4, 40, 22, 40, 26, 10, 32, 0);
+            p.gunP = curve(t, 0, 36, 4, 12, 26, 12, 32, 36);
+            p.aRx = curve(t, 0, -26, 4, -48, 26, -48, 32, -26);
+            p.aLx = curve(t, 0, -46, 4, -40, 8, -36, 11, -10, 15, 10, 18, -30, 20, -40, 23, -78, 25, -60, 27, -66, 32, -46);
+            p.aLy = curve(t, 0, 36, 4, 22, 11, 10, 15, -10, 18, 15, 21, 22, 23, 44, 32, 36);
+            p.aLz = curve(t, 11, 0, 15, -14, 18, 0);
+            p.headX = curve(t, 0, p.headX, 4, 32, 27, 30, 32, p.headX);
+            p.headY = curve(t, 0, c.headYaw, 4, 0, 13, 22, 17, 22, 20, 0, 32, c.headYaw);
+            p.bodyX = curve(t, 0, 1, 4, 10, 24, 10, 25.5f, 4, 27, 10, 32, 1);
+            p.bodyY = curve(t, 10, 0, 15, 14, 19, 0);
+            boolean has = t < 9 || t >= 17.5f;
+            m.show("mag", has || t < 13);
+            if (t >= 9 && t < 13) { float d = c.seg(9, 13); m.move("mag", 0, d * d * 9, -d * 2); m.rot("mag", d * 70, 0, d * 40); }
+            if (t >= 17.5f && t < 21) { float d = 1 - c.seg(17.5f, 21); m.move("mag", 0, d * 4, d * 1); m.rot("mag", d * 20, 0, 0); }
+        } else if (c.is("backstep")) {
+            float flip = Anim.smooth(c.seg(4, 14));
+            p.spinX = -360 * flip;
+            p.spinDY = curve(t, 0, 0, 3, 1.5f, 15, 1.5f, 22, 0) - Anim.sin(flip * 180) * 13;
+            p.crouch = curve(t, 0, 0, 3, 2, 5, 0, 13, 0, 15, 2.6f, 22, 0);
+            float tuck = Anim.sin(flip * 180);
+            p.lRx -= tuck * 85; p.lLx -= tuck * 95; p.sRx += tuck * 110; p.sLx += tuck * 120;
+            float k = curve(t, 13, 0, 16, 1, 19, 1, 22, 0);
+            aim(p, k, pitch);
+            p.aRx -= tuck * 30; p.aLx -= tuck * 30;
+            flash = since(t, 16, 16, 1);
+            float rec = Math.max(0, 1 - flash / 2.5f) * (t >= 16 ? 1 : 0);
+            p.gunP -= rec * 10; p.aRx -= rec * 6;
+            p.ribX += tuck * 70; p.headX += tuck * 20;
+        } else if (c.is("bullet_hail")) {
+            // fire the whole drum into the sky, then calmly aim while the bullets come down
+            float up = curve(t, 0, 0, 10, 1, 38, 1, 48, 0);
+            float k = curve(t, 40, 0, 50, 1, 76, 1, 84, 0);
+            aim(p, Math.max(up, k), Anim.lerp(pitch, -82, up));
+            p.aRx -= up * 55; p.aLx -= up * 70; p.aLy = Anim.lerp(p.aLy, 10, up);
+            p.headX = Anim.lerp(p.headX, -40, up) + Anim.sin(t * 70) * 6 * up * c.seg(12, 14);
+            p.bodyX = -14 * up + 4 * k;
+            float s1 = since(t, 12, 40, 2), s2 = since(t, 50, 74, 4);
+            flash = t < 46 ? s1 : s2;
+            float rec = Math.max(0, 1 - flash / 2f) * ((t < 42 || (t > 49 && t < 76)) ? 1 : 0);
+            p.gunP -= rec * 6; p.aRx -= rec * 4; p.bodyZ = Anim.sin(t * 150) * 2 * up * c.seg(12, 14);
+            p.lRz = 2 + 7 * up; p.lLz = -2 - 7 * up; p.crouch = 1.2f * up;
+            p.ribX += 10 * up + Anim.sin(t * 40) * 8 * up;
+            p.headZ = -10 * k;
+        }
+
+        // ---------------- death: rifle slips, knees buckle, falls face-first
+        if (c.death > 0) {
+            float d = c.death;
+            float fall = Anim.easeIn(Anim.clamp((d - 0.4f) / 0.55f, 0, 1));
+            float drop = Anim.smooth(d / 0.35f);
+            p.kneel = Anim.smooth((d - 0.15f) / 0.3f);
+            p.gunP = Anim.lerp(36, 95, drop); p.gunRoll = 50 * drop;
+            p.aRx = Anim.lerp(-26, -5, drop) - 60 * fall; p.aLx = Anim.lerp(-46, 0, drop) - 70 * fall; p.aLy = 36 * (1 - drop); p.aLz = -10 * drop;
+            p.bodyX = 20 * drop; p.headX = 30 * drop; p.headZ = 12 * drop;
+            p.rootX = 84 * fall; p.rootDY = 0;
+            p.ribX = -40 * fall + 30 * drop * (1 - fall);
+        }
+
+        // flash visibility
+        boolean f = flash < 1.5f;
+        m.show("flashG", f);
+        if (f) { float s = flashScale * (1.2f - flash * 0.4f); m.scale("flashG", s, s, s); m.rot("flashG", 0, 0, c.age * 47 % 90); }
+
+        apply(m, p, c, w);
+    }
+
+    private static void apply(ModelParts m, P p, AnimCtx c, float w) {
+        if (p.crouch > 0.01f) {
+            float th = (float) Math.toDegrees(Math.acos(Anim.clamp(1 - p.crouch / 12f, -1, 1)));
+            p.spinDY += p.crouch; p.lRx -= th; p.lLx -= th; p.sRx += 2 * th; p.sLx += 2 * th; p.bodyX += th * 0.3f;
+        }
+        if (p.kneel > 0.001f) {
+            float k = p.kneel;
+            p.spinDY += 4.2f * k;
+            p.lLx = Anim.lerp(p.lLx, -62, k); p.sLx = Anim.lerp(p.sLx, 62, k);
+            p.lRx = Anim.lerp(p.lRx, 8, k); p.sRx = Anim.lerp(p.sRx, 84, k);
+        }
+        m.rot("root", p.rootX, 0, 0); m.move("root", 0, p.rootDY, 0);
+        m.rot("spin", p.spinX, p.spinY, 0); m.move("spin", 0, p.spinDY, p.spinDZ);
+        m.rot("torso", p.bodyX, p.bodyY, p.bodyZ);
+        m.rot("head", Anim.clamp(p.headX, -55, 45), Anim.clamp(p.headY, -70, 70), p.headZ);
+        m.rot("armR", p.aRx, p.aRy, p.aRz); m.rot("armL", p.aLx, p.aLy, p.aLz);
+        m.rot("legR", p.lRx, 0, p.lRz); m.rot("shinR", p.sRx, 0, 0);
+        m.rot("legL", p.lLx, 0, p.lLz); m.rot("shinL", p.sLx, 0, 0);
+        // gun: cancel the arm pitch so gunP is the rifle's pitch relative to the body (flip-aware)
+        float cy = Anim.cos(p.gunYaw);
+        m.rot("gun", p.gunP - p.aRx * cy, p.gunYaw - p.aRy, p.gunRoll);
+        m.move("gun", 0, p.gunDY, p.gunDZ);
+
+        // coat panels follow the legs
+        m.addRot("coatR", Math.max(-45, Math.min(40, p.lRx * 0.7f)), 0, Math.max(0, -p.lRx) * 0.05f);
+        m.addRot("coatL", Math.max(-45, Math.min(40, p.lLx * 0.7f)), 0, -Math.max(0, -p.lLx) * 0.05f);
+        m.addRot("coatBack", Math.max(0, Math.max(p.lRx, p.lLx)) * 0.5f + w * 8 + p.ribX * 0.08f, 0, 0);
+
+        // ribbons: hang straight down against head/body tilt, trail, ripple with phase lag; ribOut = lashing horizontally
+        float base = Anim.clamp(-p.headX - p.bodyX + p.ribX - p.rootX, -60, 100);
+        float out = p.ribOut;
+        for (int s = -1; s <= 1; s += 2) {
+            String k = s < 0 ? "R" : "L";
+            float side = s < 0 ? 1 : -1;
+            float ph = s < 0 ? 0 : 35;
+            m.addRot("rib" + k + "1", Anim.lerp(base * 0.7f + Anim.sin(c.age * 4 + ph) * 3, 75, out), 0,
+                    Anim.lerp(p.ribZ * 0.5f, 70 * side, out));
+            for (int i = 2; i <= 4; i++) {
+                float wave = Anim.sin(c.age * 4 + ph - i * 45) * (2 + i * 1.5f);
+                m.rot("rib" + k + i, Anim.lerp(base * 0.12f + wave + w * 4, Anim.sin(c.age * 30 - i * 60) * 10, out), 0,
+                        Anim.lerp(p.ribZ * 0.25f, 0, out));
             }
         }
-        if (c.death > 0) death(p, c);
-        p.apply(m);
-        m.show("blade", !(c.is("cleaver_throw") && c.t >= 13 && c.t < 46) && !(c.death > 0.3f));
-    }
-
-    static void idlePose(BloomiePose p, AnimCtx c) {
-        float age = c.age, br = Anim.sin(age * 3.6f), w = c.walk();
-        float sw = Anim.sinr(c.limbSwing * 0.6662f) * w, cw = (float) Math.cos(c.limbSwing * 0.6662f) * w;
-        // eerie stillness: slight lean, head cocked hard, a sharp claw twitch every ~3 s
-        float twitch = ((int) (age / 23)) % 3 == 1 ? Anim.curve(age % 23, 0, 0, 1, 1, 4, 0) : 0;
-        p.r("chest", 8 + br * 1.2f + w * 8, sw * 6, 0);
-        p.r("hips", -2, -sw * 5, 0);
-        p.mv("root", 0, -Math.abs(cw) * 0.6f, 0);
-        p.r("neck", 6, 0, 0);
-        p.r("head", -10 - w * 8 + c.headPitch * 0.8f, c.headYaw * 0.85f, 16 + Anim.sin(age * 1.5f) * 4 - twitch * 8);
-        // claw arm: hangs forward a little, fingers splayed
-        p.r("armR", -12 + br * 2 - sw * 12, 0, 12);
-        p.r("foreR", -22 - w * 10, 0, 0);
-        p.r("handR", -10, 0, 0);
-        for (int i = 0; i < 4; i++) { p.r(CL[i], twitch * -35 + Anim.sin(age * 7 + i * 80) * 4, 0, 0); p.r(CL[i] + "t", twitch * -30, 0, 0); }
-        // cleaver arm: blade trails down and back, tip near the floor
-        p.r("armL", 8 + sw * 10 + br * 1.5f, 0, -10);
-        p.r("foreL", -10, 0, 0);
-        p.r("blade", 105 + w * 15, 0, 6);
-        // legs: wide angular stance, walk = long gliding strides
-        p.r("legR", -sw * 38 - 6 * (1 - w), 0, 7 * (1 - w));
-        p.r("shinR", Math.max(0, sw) * 40 + 4 * (1 - w), 0, 0);
-        p.r("legL", sw * 38 + 8 * (1 - w), 0, -9 * (1 - w));
-        p.r("shinL", Math.max(0, -sw) * 40, 0, 0);
-        p.r("footR", 0, 0, 0);
-        p.r("bobBack", 3 + Math.abs(cw) * 6, 0, 0);
-        p.r("knot", 0, 0, Anim.sin(age * 4) * 3);
-        p.r("skirtHem", Anim.sin(age * 4) * 2 - sw * 5, 0, cw * 3);
-        p.r("ribbon", Anim.sin(age * 6) * 12 + w * 30, 0, Anim.sin(age * 4) * 8);
-        p.r("ribbon2", Anim.sin(age * 6 - 50) * 15, 0, 0);
-    }
-
-    static void claws(BloomiePose p, float spread, float curl) {
-        for (int i = 0; i < 4; i++) {
-            p.ar(CL[i], -curl * 0.6f, 0, (i - 1.5f) / 1.5f * spread);
-            p.ar(CL[i] + "t", -curl, 0, 0);
-        }
-        p.ar("clRT", -curl * 0.5f, 0, -spread * 0.5f);
-    }
-
-    /** shadow sink (0-8) / rise (8-14) shared by shadow_step and execution */
-    static void shadow(BloomiePose p, float t) {
-        float sink = cv(t, 0, 0, 7.5f, 1, 8, 1, 14, 0);
-        p.mv("root", 0, sink * 20, 0);
-        p.r("chest", 8 + sink * 30, 0, 0);
-        p.r("head", -10 + sink * 20, 0, 16 + sink * 30);
-        p.r("armR", sink * 40, 0, 12 + sink * 30);
-        p.r("armL", sink * 40, 0, -10 - sink * 30);
-    }
-
-    static void ability(BloomiePose p, AnimCtx c, float t) {
-        switch (c.ability) {
-            case "chop" -> {
-                // raise two-handed overhead 0-11, CHOP 12-13, blade bites the floor 13-20, eerie lift & flick 20-30
-                p.r("armL", cv(t, 0, 8, 10, -185, 11.5f, -190, 13, -45, 20, -42, 26, -20, 30, 8), cv(t, 0, 0, 10, 20, 13, 0), cv(t, 0, -10, 10, 15, 13, 5, 30, -10));
-                p.r("foreL", cv(t, 0, -10, 10, -20, 13, 0, 20, 0, 30, -10), 0, 0);
-                p.r("blade", cv(t, 0, 105, 10, 60, 12, 40, 13, 5, 20, 5, 25, 60, 27, 40, 30, 105), 0, cv(t, 24, 6, 26, 40, 28, -10, 30, 6));
-                p.r("armR", cv(t, 0, -12, 10, -175, 11.5f, -180, 13, -50, 18, -30, 30, -12), 0, cv(t, 0, 12, 10, -25, 13, -20, 20, 25, 30, 12));
-                p.r("foreR", cv(t, 0, -22, 10, -40, 13, -10, 30, -22), 0, 0);
-                p.r("chest", cv(t, 0, 8, 10, -18, 11.5f, -20, 13, 38, 20, 34, 30, 8), 0, 0);
-                p.r("head", cv(t, 0, -10, 10, -30, 13, -40, 20, -38, 26, -10, 30, -10), 0, cv(t, 0, 16, 10, 0, 20, 0, 27, 40, 30, 16));
-                p.mv("root", 0, cv(t, 0, 0, 10, -1.5f, 12, -1.6f, 13, 2.6f, 20, 2.4f, 30, 0), cv(t, 11, 0, 13, -2, 30, 0));
-                p.r("legL", cv(t, 0, 8, 10, 10, 13, -48, 20, -48, 30, 8), 0, -9);
-                p.r("shinL", cv(t, 0, 0, 13, 50, 20, 50, 30, 0), 0, 0);
-                p.r("legR", cv(t, 0, -6, 10, -4, 13, 30, 20, 30, 30, -6), 0, 7);
-                p.r("shinR", cv(t, 0, 4, 13, 30, 20, 30, 30, 4), 0, 0);
-            }
-            case "sweep" -> {
-                // cleaver held out low to the left 0-9, whips across 10-12 (hit 11) with the whole body, overshoot, return
-                p.r("armL", cv(t, 0, 8, 8, -85, 10, -90, 12, -88, 17, -80, 26, 8), cv(t, 0, 0, 8, -105, 9.5f, -110, 11, 10, 12.5f, 75, 17, 85, 26, 0), cv(t, 0, -10, 26, -10));
-                p.r("foreL", cv(t, 0, -10, 8, 0, 26, -10), 0, 0);
-                p.r("blade", cv(t, 0, 105, 8, 90, 17, 90, 26, 105), 0, cv(t, 9, 0, 12, 20, 26, 6));
-                p.r("chest", cv(t, 0, 8, 8, 14, 12, 16, 26, 8), cv(t, 0, 0, 8, -45, 9.5f, -50, 11.5f, 40, 13, 58, 18, 55, 26, 0), cv(t, 8, 0, 12, 8, 26, 0));
-                p.r("hips", -2, cv(t, 0, 0, 8, -20, 12, 25, 18, 22, 26, 0), 0);
-                p.r("head", -10, cv(t, 0, 0, 8, 35, 12, -30, 18, -45, 26, 0), cv(t, 0, 16, 8, 25, 12, -6, 22, 30, 26, 16));
-                p.r("armR", cv(t, 0, -12, 8, -40, 12, 30, 26, -12), 0, cv(t, 0, 12, 8, 40, 12, 60, 26, 12));
-                p.mv("root", 0, cv(t, 0, 0, 8, 2.2f, 12, 2.6f, 20, 2, 26, 0), 0);
-                p.r("legL", cv(t, 0, 8, 8, -30, 18, -30, 26, 8), 0, cv(t, 0, -9, 8, -20, 26, -9));
-                p.r("shinL", cv(t, 0, 0, 8, 40, 18, 40, 26, 0), 0, 0);
-                p.r("legR", cv(t, 0, -6, 8, 20, 18, 25, 26, -6), 0, cv(t, 0, 7, 8, 22, 26, 7));
-                p.r("shinR", cv(t, 0, 4, 8, 30, 26, 4), 0, 0);
-            }
-            case "rising_slash" -> {
-                // drag crouch 0-9 (blade scraping behind), up-cut 10-13 (hit 12), airborne 13-20, land 20-28
-                p.r("armL", cv(t, 0, 8, 8, 55, 10, 60, 12, -150, 14, -175, 20, -160, 28, 8), cv(t, 0, 0, 12, 10, 28, 0), cv(t, 0, -10, 8, -25, 12, 5, 28, -10));
-                p.r("foreL", cv(t, 0, -10, 8, 0, 14, -10, 28, -10), 0, 0);
-                p.r("blade", cv(t, 0, 105, 8, 140, 10, 140, 12, 95, 14, 75, 22, 80, 28, 105), 0, 6);
-                p.r("chest", cv(t, 0, 8, 8, 45, 10, 48, 12, -15, 14, -22, 20, -10, 24, 15, 28, 8), cv(t, 0, 0, 8, -30, 12, 20, 28, 0), 0);
-                p.r("head", cv(t, 0, -10, 8, -45, 12, -10, 14, -20, 28, -10), cv(t, 0, 0, 8, 20, 12, -10, 28, 0), cv(t, 0, 16, 8, 30, 14, 0, 28, 16));
-                p.r("armR", cv(t, 0, -12, 8, 40, 12, -40, 14, -70, 28, -12), 0, cv(t, 0, 12, 8, 20, 14, 50, 28, 12));
-                p.mv("root", 0, cv(t, 0, 0, 8, 4.2f, 10, 4.5f, 12, -1, 14, -3, 18, -2.5f, 21, 1.5f, 28, 0), 0);
-                p.r("legR", cv(t, 0, -6, 8, -75, 12, 10, 14, 25, 19, -20, 22, -30, 28, -6), 0, 7);
-                p.r("shinR", cv(t, 0, 4, 8, 110, 12, 20, 14, 60, 22, 40, 28, 4), 0, 0);
-                p.r("legL", cv(t, 0, 8, 8, -10, 12, -20, 14, -60, 19, -40, 22, 0, 28, 8), 0, -9);
-                p.r("shinL", cv(t, 0, 0, 8, 100, 12, 20, 14, 80, 22, 30, 28, 0), 0, 0);
-            }
-            case "tornado" -> {
-                // wind 0-10 (crouch, arms out), spin 10-44 (4 turns, root yaw), dizzy-free eerie stop 44-54
-                float spin = Anim.linear(t, 10, 0, 14, 120, 40, 1320, 44, 1440);
-                float on = c.seg(8, 11) * (1 - c.seg(42, 46));
-                p.r("root", 0, -spin, 0);
-                p.r("armL", -88 * on + cv(t, 0, 8, 10, 30, 44, 30, 54, 8) * (1 - on), 0, -10 - 75 * on + 5 * Anim.sin(t * 50) * on);
-                p.r("armR", -80 * on - 12 * (1 - on), 0, 12 + 70 * on);
-                p.r("foreL", -10 * (1 - on), 0, 0);
-                p.r("foreR", -22 * (1 - on), 0, 0);
-                p.r("blade", 105 - 15 * on, -90 * on, 6 + 80 * on);
-                claws(p, 30 * on, -20 * on);
-                p.r("chest", 8 + cv(t, 0, 0, 10, 22, 14, 6, 44, 6, 48, 18, 54, 0), cv(t, 0, 0, 10, 40, 14, 0), on * 6);
-                p.r("head", -10 + 10 * on, 0, 16 + 25 * on);
-                p.mv("root", 0, cv(t, 0, 0, 10, 2.6f, 14, 0.6f, 44, 0.6f, 47, 2, 54, 0) + on * Anim.sin(t * 90) * 0.3f, 0);
-                p.r("legR", cv(t, 0, -6, 10, -30, 14, -10, 44, -10, 54, -6), 0, 7 + 8 * on);
-                p.r("legL", cv(t, 0, 8, 10, -30, 14, 10, 44, 10, 54, 8), 0, -9 - 8 * on);
-                p.r("shinR", cv(t, 0, 4, 10, 40, 14, 10, 54, 4), 0, 0);
-                p.r("shinL", cv(t, 0, 0, 10, 40, 14, 10, 54, 0), 0, 0);
-                p.r("skirtHem", -on * 8, 0, 0);
-                p.mv("skirtHem", 0, -on * 0.8f, 0);
-                p.r("bobBack", 3 + on * 25, 0, 0);
-                for (String k : new String[] {"R", "L"}) p.r("spk2" + k, 0, 0, (k.equals("R") ? 1 : -1) * on * 22);
-            }
-            case "blade_wave" -> {
-                // high wind-up behind left 0-11, diagonal slash down-right (wave at 14), reverse up-cut (wave at 22), recover
-                p.r("armL", cv(t, 0, 8, 10, -170, 12, -175, 14, -40, 17, -30, 20, -70, 22, -165, 25, -150, 32, 8), cv(t, 0, 0, 10, -30, 14, 50, 18, 55, 22, -20, 32, 0), cv(t, 0, -10, 10, -40, 14, 20, 18, 22, 22, -30, 32, -10));
-                p.r("foreL", cv(t, 0, -10, 10, -40, 14, 0, 20, -10, 22, 0, 32, -10), 0, 0);
-                p.r("blade", cv(t, 0, 105, 10, 70, 14, 85, 20, 95, 22, 85, 32, 105), 0, cv(t, 0, 6, 14, 30, 22, -20, 32, 6));
-                p.r("chest", cv(t, 0, 8, 10, -16, 14, 30, 19, 26, 22, -8, 26, 0, 32, 8), cv(t, 0, 0, 10, -35, 14, 40, 19, 38, 22, -30, 32, 0), cv(t, 10, -6, 14, 10, 22, -8, 32, 0));
-                p.r("head", cv(t, 0, -10, 14, -30, 22, -15, 32, -10), cv(t, 0, 0, 10, 30, 14, -30, 22, 20, 32, 0), cv(t, 0, 16, 10, 30, 14, 0, 22, 25, 32, 16));
-                p.r("armR", cv(t, 0, -12, 10, 20, 14, -60, 22, 30, 32, -12), 0, cv(t, 0, 12, 10, 40, 14, 20, 22, 50, 32, 12));
-                p.mv("root", 0, cv(t, 0, 0, 10, -1, 14, 2.2f, 20, 1.6f, 22, 0.8f, 32, 0), cv(t, 12, 0, 14, -1.5f, 32, 0));
-                p.r("legL", cv(t, 0, 8, 12, 8, 14, -40, 22, -35, 32, 8), 0, -9);
-                p.r("shinL", cv(t, 0, 0, 14, 45, 22, 30, 32, 0), 0, 0);
-                p.r("legR", cv(t, 0, -6, 14, 20, 22, 15, 32, -6), 0, 7);
-            }
-            case "cleaver_throw" -> {
-                // overhand wind 0-11, throw 13 (blade leaves the hand), eerie beckoning wait 15-42, catch 46
-                p.r("armL", cv(t, 0, 8, 10, -200, 12, -205, 14, -50, 18, -35, 24, 0, 40, 0, 44, -110, 46, -120, 48, -60, 50, 8), cv(t, 0, 0, 14, 20, 24, 0), cv(t, 0, -10, 10, -20, 14, 10, 24, -10, 44, -25, 50, -10));
-                p.r("foreL", cv(t, 0, -10, 10, -60, 13, 0, 24, -10, 44, -10, 46, -40, 50, -10), 0, 0);
-                p.r("blade", 105, 0, 6);
-                p.r("chest", cv(t, 0, 8, 10, -20, 13, 36, 17, 30, 24, 4, 42, 4, 46, 14, 50, 8), cv(t, 0, 0, 10, -40, 13, 40, 18, 35, 26, 0), 0);
-                p.r("head", cv(t, 0, -10, 10, -25, 13, -30, 24, -12, 42, -12, 50, -10), cv(t, 0, 0, 10, 25, 13, -20, 24, 0), cv(t, 0, 16, 13, 0, 24, 45, 40, 50, 46, 10, 50, 16));
-                // beckoning claw (fingers curl one after the other)
-                float beck = t > 22 && t < 42 ? 1 : 0;
-                p.r("armR", cv(t, 0, -12, 10, 30, 13, -40, 20, -60, 42, -60, 50, -12), cv(t, 20, 0, 24, 30, 42, 30, 50, 0), cv(t, 0, 12, 13, 20, 24, -10, 42, -10, 50, 12));
-                p.r("foreR", cv(t, 0, -22, 20, -70, 42, -70, 50, -22), 0, 0);
-                for (int i = 0; i < 4; i++) {
-                    float b = beck * Math.max(0, Anim.sin((t - 22) * 30 - i * 40)) * 70;
-                    p.ar(CL[i], -b * 0.6f, 0, 0);
-                    p.ar(CL[i] + "t", -b, 0, 0);
-                }
-                p.mv("root", 0, cv(t, 0, 0, 10, -0.8f, 13, 1.8f, 20, 0, 44, 0, 46, 1.2f, 50, 0), cv(t, 11, 0, 13, -1.5f, 24, 0));
-                p.r("legL", cv(t, 0, 8, 11, 10, 13, -40, 20, -15, 30, 8), 0, -9);
-                p.r("shinL", cv(t, 0, 0, 13, 40, 20, 10, 30, 0), 0, 0);
-                p.r("legR", cv(t, 0, -6, 10, -15, 13, 20, 24, -6), 0, 7);
-            }
-            case "claw_flurry" -> {
-                // four swipes: 8 (high->low), 13 (low->high), 18 (horizontal), 24 (thrust)
-                p.r("armR", cv(t, 0, -12, 5, -160, 7.5f, -150, 8.5f, -40, 10, -20, 12, -40, 13.5f, -150, 15, -140, 17, -90, 18.5f, -95, 21, 20, 23.5f, -95, 26, -92, 32, -12),
-                        cv(t, 12, 0, 16, 30, 17, 60, 18.5f, -50, 21, 0, 32, 0),
-                        cv(t, 0, 12, 5, 40, 8.5f, -45, 10, -50, 12, -45, 13.5f, 45, 15, 40, 18.5f, 0, 23.5f, 0, 32, 12));
-                p.r("foreR", cv(t, 0, -22, 5, -40, 8.5f, 0, 12, -10, 13.5f, 0, 17, -20, 18.5f, 0, 21, -80, 23.5f, 0, 28, 0, 32, -22), 0, 0);
-                claws(p, cv(t, 0, 0, 5, 40, 23, 35, 24, 0, 32, 0), cv(t, 0, 0, 5, -25, 22, -25, 23.5f, 10, 32, 0));
-                p.r("chest", cv(t, 0, 8, 8, 20, 13, 0, 18, 14, 21, 5, 24, 32, 28, 28, 32, 8), cv(t, 0, 0, 5, 25, 8.5f, -25, 12, -28, 13.5f, 25, 17, 35, 18.5f, -35, 21, 30, 24, -10, 32, 0), cv(t, 0, 0, 8, 6, 13, -8, 18, 0));
-                p.r("hips", -2, cv(t, 0, 0, 8, -12, 13, 12, 18, -15, 24, 0), 0);
-                p.r("head", cv(t, 0, -10, 24, -25, 32, -10), cv(t, 0, 0, 8, 15, 13, -15, 18, 20, 24, 0), cv(t, 0, 16, 8, 30, 13, 0, 18, 30, 24, 10, 32, 16));
-                p.r("armL", cv(t, 0, 8, 8, 25, 13, 0, 18, 25, 24, 35, 32, 8), 0, -10);
-                p.mv("root", 0, cv(t, 0, 0, 6, 1.5f, 24, 2.4f, 32, 0), cv(t, 20, 0, 24, -1.8f, 32, 0));
-                p.r("legR", cv(t, 0, -6, 8, -30, 13, 10, 18, -25, 24, -45, 32, -6), 0, 7);
-                p.r("shinR", cv(t, 0, 4, 8, 35, 13, 10, 18, 35, 24, 50, 32, 4), 0, 0);
-                p.r("legL", cv(t, 0, 8, 8, 20, 13, -20, 18, 20, 24, 25, 32, 8), 0, -9);
-                p.r("shinL", cv(t, 0, 0, 13, 30, 18, 5, 24, 15, 32, 0), 0, 0);
-            }
-            case "shadow_step" -> {
-                // sink 0-8, rise behind the victim 8-14, cock the blade 14-17, stab 18, twist & withdraw 20-34
-                shadow(p, t);
-                float st = c.seg(13, 15);
-                p.r("armL", Anim.lerp(p.get("armL", 0), cv(t, 13, 30, 16, 45, 17.5f, -88, 20, -85, 26, -85, 30, -20, 34, 8), st), 0, Anim.lerp(p.get("armL", 2), -10, st));
-                p.r("foreL", cv(t, 13, -10, 16, -60, 17.5f, 0, 30, 0, 34, -10), 0, 0);
-                p.r("blade", cv(t, 0, 105, 13, 105, 16, 90, 17.5f, 88, 30, 88, 34, 105), 0, cv(t, 20, 6, 24, 95, 28, 95, 31, 6));
-                p.r("chest", Anim.lerp(p.get("chest", 0), cv(t, 13, 8, 16, -5, 17.5f, 30, 26, 28, 34, 8), st), cv(t, 13, 0, 16, -30, 17.5f, 15, 26, 10, 34, 0), 0);
-                p.r("head", Anim.lerp(p.get("head", 0), cv(t, 13, -10, 18, -30, 26, -35, 34, -10), st), 0, Anim.lerp(p.get("head", 2), cv(t, 13, 30, 18, 10, 24, 40, 34, 16), st));
-                p.r("armR", Anim.lerp(p.get("armR", 0), cv(t, 13, -12, 16, -60, 18, -30, 34, -12), st), 0, Anim.lerp(p.get("armR", 2), cv(t, 13, 12, 18, 30, 34, 12), st));
-                claws(p, cv(t, 13, 0, 16, 40, 26, 40, 34, 0), 0);
-                p.am("root", 0, st * cv(t, 13, 0, 17.5f, 1.8f, 26, 1.6f, 34, 0), st * cv(t, 15, 0, 17.5f, -1.8f, 34, 0));
-                p.r("legL", st * cv(t, 13, 8, 17.5f, -42, 26, -42, 34, 8), 0, -9);
-                p.r("shinL", st * cv(t, 13, 0, 17.5f, 45, 26, 45, 34, 0), 0, 0);
-                p.r("legR", st * cv(t, 13, -6, 17.5f, 25, 26, 25, 34, -6), 0, 7);
-            }
-            case "cross_cut" -> {
-                // arms crossed in an X high in front 0-9, both tear outward 10-12 (hits 11/13), held flared 13-20, recover
-                p.r("armR", cv(t, 0, -12, 8, -150, 10, -155, 12, -40, 20, -35, 30, -12), cv(t, 0, 0, 8, 30, 12, -20, 30, 0), cv(t, 0, 12, 8, -40, 10, -45, 12, 75, 20, 70, 30, 12));
-                p.r("armL", cv(t, 0, 8, 8, -150, 10, -155, 13, -40, 20, -35, 30, 8), cv(t, 0, 0, 8, -30, 13, 20, 30, 0), cv(t, 0, -10, 8, 40, 10, 45, 13, -75, 20, -70, 30, -10));
-                p.r("foreR", cv(t, 0, -22, 8, -30, 12, 0, 30, -22), 0, 0);
-                p.r("foreL", cv(t, 0, -10, 8, -30, 13, 0, 30, -10), 0, 0);
-                p.r("blade", cv(t, 0, 105, 8, 60, 13, 90, 20, 90, 30, 105), 0, cv(t, 0, 6, 13, 30, 30, 6));
-                claws(p, cv(t, 0, 0, 8, -10, 12, 45, 20, 40, 30, 0), cv(t, 0, 0, 8, 30, 12, -20, 30, 0));
-                p.r("chest", cv(t, 0, 8, 8, 30, 10, 32, 12, 0, 14, -8, 20, -5, 30, 8), 0, 0);
-                p.r("head", cv(t, 0, -10, 8, 15, 10, 18, 12, -30, 20, -25, 30, -10), 0, cv(t, 0, 16, 8, 0, 12, 0, 18, 45, 30, 16));
-                p.mv("root", 0, cv(t, 0, 0, 8, 3, 10, 3.2f, 12, 0.5f, 20, 0.8f, 30, 0), 0);
-                p.r("legR", cv(t, 0, -6, 8, -40, 12, -10, 30, -6), 0, cv(t, 0, 7, 12, 16, 30, 7));
-                p.r("shinR", cv(t, 0, 4, 8, 60, 12, 10, 30, 4), 0, 0);
-                p.r("legL", cv(t, 0, 8, 8, -30, 12, 5, 30, 8), 0, cv(t, 0, -9, 12, -18, 30, -9));
-                p.r("shinL", cv(t, 0, 0, 8, 55, 12, 10, 30, 0), 0, 0);
-            }
-            case "execution" -> {
-                // 0-14 shadow step, 16 horizontal cross slash, 26 launcher, 30 leap, 32-42 front flip, 46 plunge, 46-62 kneel, 62-80 rise + blood flick
-                if (t < 15) { shadow(p, t); break; }
-                float flip = Anim.linear(t, 32, 0, 42, 360);
-                p.r("root", t > 31 && t < 43 ? flip : 0, 0, 0);
-                p.mv("root", 0, cv(t, 14, 0, 16, 1.6f, 24, 2.6f, 26, -0.5f, 29, 2.5f, 31, -1, 44, -1, 46, 6, 58, 6, 66, 1, 80, 0), 0);
-                p.r("armR", cv(t, 14, -12, 15, -80, 16.5f, -90, 18, -85, 22, 30, 26, -150, 30, -60, 46, -40, 62, -30, 80, -12),
-                        cv(t, 14, 0, 15, -80, 16.5f, 60, 19, 70, 22, 0), cv(t, 14, 12, 26, 30, 46, 50, 80, 12));
-                p.r("armL", cv(t, 14, 8, 15, -90, 16.5f, -95, 19, -90, 22, 50, 25, 60, 26.5f, -160, 30, -180, 44, -190, 46, -60, 58, -55, 66, -60, 70, -40, 72, -70, 80, 8),
-                        cv(t, 14, 0, 15, -100, 16.5f, 60, 19, 80, 22, 0), cv(t, 14, -10, 26, 0, 72, -20, 80, -10));
-                p.r("foreL", cv(t, 14, -10, 46, -20, 47, 0, 80, -10), 0, 0);
-                p.r("blade", cv(t, 14, 105, 15, 90, 19, 90, 22, 140, 26, 95, 30, 50, 44, 40, 46, 0, 58, 0, 66, 60, 70, 100, 72, 140, 76, 105), 0, cv(t, 66, 6, 70, 30, 72, -40, 80, 6));
-                claws(p, cv(t, 14, 0, 16, 40, 26, 30, 46, 40, 80, 0), cv(t, 14, 0, 46, -10, 62, 20, 80, 0));
-                p.r("chest", cv(t, 14, 8, 15, 20, 16.5f, 10, 22, 45, 26, -20, 30, 10, 42, 30, 46, 50, 58, 48, 66, 20, 80, 8),
-                        cv(t, 14, 0, 15, -50, 16.5f, 45, 20, 50, 22, 0), 0);
-                p.r("head", cv(t, 14, -10, 22, -40, 26, -20, 46, -45, 58, -40, 64, 0, 70, -20, 80, -10), 0, cv(t, 14, 16, 26, 0, 46, 0, 58, 10, 64, 85, 72, 80, 80, 16));
-                p.r("legR", cv(t, 14, -6, 16, -30, 22, -70, 26, 10, 30, 20, 32, -80, 42, -80, 46, -70, 58, -70, 66, -20, 80, -6), 0, 7);
-                p.r("shinR", cv(t, 14, 4, 22, 100, 26, 20, 32, 110, 42, 110, 46, 90, 58, 90, 66, 30, 80, 4), 0, 0);
-                p.r("legL", cv(t, 14, 8, 16, 20, 22, -40, 26, -20, 32, -80, 42, -80, 46, 10, 58, 10, 66, 5, 80, 8), 0, -9);
-                p.r("shinL", cv(t, 14, 0, 22, 90, 26, 30, 32, 110, 42, 110, 46, 100, 58, 100, 66, 20, 80, 0), 0, 0);
-            }
-            default -> {}
-        }
-    }
-
-    static void death(BloomiePose p, AnimCtx c) {
-        float d = c.death;
-        float jolt = Anim.curve(d, 0, 0, 0.1f, 1, 0.3f, 0.3f);
-        float drop = Anim.easeIn(Anim.clamp(d / 0.35f, 0, 1));           // cleaver slips & falls (then hidden)
-        float buckle = Anim.smooth((d - 0.25f) / 0.3f);
-        float fall = Anim.easeIn(Anim.clamp((d - 0.5f) / 0.35f, 0, 1));
-        float twitch = d > 0.85f ? Anim.sin(d * 4000) * (1 - d) * 50 : 0;
-        p.ar("head", 20 * jolt, 0, 70 * buckle);                          // head lolls sideways
-        p.ar("chest", -20 * jolt + 25 * buckle, 0, -10 * buckle);
-        p.ar("blade", 60 * drop, 0, 80 * drop);
-        p.am("blade", 0, 6 * drop, 0);
-        p.ar("armL", 20 * buckle, 0, -20 * buckle);
-        p.ar("armR", -40 * jolt + 30 * buckle, 0, 25 * buckle);
-        claws(p, 30 * jolt, -40 * jolt + 60 * buckle + twitch);
-        p.ar("legR", -50 * buckle * (1 - fall * 0.7f), 0, 0);
-        p.ar("shinR", 80 * buckle * (1 - fall * 0.7f), 0, 0);
-        p.ar("legL", -20 * buckle, 0, -10 * buckle);
-        p.ar("shinL", 40 * buckle * (1 - fall * 0.5f), 0, 0);
-        p.am("root", 0, 3.2f * buckle * (1 - fall) - 1.6f * fall, 0);
-        p.ar("root", 0, 0, -84 * fall);                                    // keels over sideways
-        p.ar("knot", 0, 0, 30 * fall);
+        m.addRot("crown2", Anim.sin(c.age * 3) * 1.5f - w * 3, 0, 0);
+        m.addRot("crown3", Anim.sin(c.age * 3 - 40) * 2.5f - w * 4, 0, 0);
+        m.addRot("crownTip", Anim.sin(c.age * 3 - 80) * 3.5f - w * 5, 0, 0);
     }
 }

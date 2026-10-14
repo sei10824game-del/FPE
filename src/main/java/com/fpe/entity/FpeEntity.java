@@ -37,6 +37,24 @@ import net.minecraft.world.phys.Vec3;
  */
 public abstract class FpeEntity extends Monster {
     public static final int DEATH_TICKS = 40;
+
+    /** Which side a character is on; see {@link #hostile}. FPE characters fight members of hostile factions. */
+    public enum Faction { MISS, DANGER, INFECTED, ALICE, DANGER_ALICE, STUDENT }
+
+    private static final Faction[][] FEUDS = {
+            {Faction.MISS, Faction.INFECTED}, {Faction.MISS, Faction.DANGER}, {Faction.MISS, Faction.DANGER_ALICE},
+            {Faction.DANGER, Faction.INFECTED}, {Faction.DANGER, Faction.ALICE},
+            {Faction.DANGER_ALICE, Faction.INFECTED}, {Faction.DANGER_ALICE, Faction.ALICE},
+            {Faction.ALICE, Faction.INFECTED},
+            {Faction.STUDENT, Faction.INFECTED}, {Faction.STUDENT, Faction.DANGER}, {Faction.STUDENT, Faction.DANGER_ALICE}};
+
+    public static boolean hostile(Faction a, Faction b) {
+        for (Faction[] f : FEUDS) if ((f[0] == a && f[1] == b) || (f[0] == b && f[1] == a)) return true;
+        return false;
+    }
+
+    public Faction faction() { return Faction.MISS; }
+
     protected static final EntityDataAccessor<Integer> ANIM = SynchedEntityData.defineId(FpeEntity.class, EntityDataSerializers.INT);
     protected static final EntityDataAccessor<Integer> VARIANT = SynchedEntityData.defineId(FpeEntity.class, EntityDataSerializers.INT);
 
@@ -197,9 +215,9 @@ public abstract class FpeEntity extends Monster {
         goalSelector.addGoal(0, new FloatGoal(this));
         goalSelector.addGoal(2, new ApproachGoal(this));
         goalSelector.addGoal(8, new RandomLookAroundGoal(this));
-        targetSelector.addGoal(1, new HurtByTargetGoal(this, FpeEntity.class).setAlertOthers());
+        targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers());
         targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
-        targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Mob.class, 10, true, false, t -> !(t instanceof FpeEntity)));
+        targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Mob.class, 10, true, false, t -> !(t instanceof FpeEntity f) || hostile(faction(), f.faction())));
     }
 
     /** chases the target until preferredDistance(), never attacks itself (abilities do) */
@@ -274,11 +292,11 @@ public abstract class FpeEntity extends Monster {
 
     @Override
     public boolean hurt(DamageSource s, float amount) {
-        if (s.getEntity() instanceof FpeEntity) return false;
+        if (s.getEntity() instanceof FpeEntity f && !hostile(faction(), f.faction())) return false;
         return super.hurt(s, amount);
     }
 
-    @Override public boolean canAttack(LivingEntity t) { return !(t instanceof FpeEntity) && super.canAttack(t); }
+    @Override public boolean canAttack(LivingEntity t) { return (!(t instanceof FpeEntity f) || hostile(faction(), f.faction())) && super.canAttack(t); }
 
     @Override
     public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); t.putInt("FpeVariant", getVariant()); }

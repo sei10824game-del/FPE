@@ -74,7 +74,7 @@ public class FpeProjectile extends Projectile {
 
     @Override
     protected boolean canHitEntity(Entity e) {
-        if (!(e instanceof LivingEntity l) || !l.isAlive() || e instanceof FpeEntity || e.isSpectator()) return false;
+        if (!(e instanceof LivingEntity l) || !l.isAlive() || e.isSpectator() || (getOwner() != null && FpeUtil.isAlly(getOwner(), e))) return false;
         if (hitSet.contains(e.getUUID())) return false;
         return !(e instanceof net.minecraft.world.entity.player.Player p && p.isCreative());
     }

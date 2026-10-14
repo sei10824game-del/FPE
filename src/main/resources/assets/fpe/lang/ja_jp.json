@@ -23,5 +23,7 @@
  "entity.fpe.infected_bloomie": "感染したミス・ブルーミー",
  "item.fpe.infected_bloomie_spawn_egg": "感染したミス・ブルーミー スポーンエッグ",
  "entity.fpe.infected_zip": "感染したジップ",
- "item.fpe.infected_zip_spawn_egg": "感染したジップ スポーンエッグ"
+ "item.fpe.infected_zip_spawn_egg": "感染したジップ スポーンエッグ",
+ "entity.fpe.danger_alice": "アリス (DANGER AU)",
+ "item.fpe.danger_alice_spawn_egg": "アリス (DANGER AU) スポーンエッグ"
 }

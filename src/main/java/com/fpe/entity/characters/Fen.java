@@ -35,6 +35,8 @@ public class Fen extends FpeEntity {
 
     public Fen(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
+    @Override public Faction faction() { return Faction.STUDENT; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(90, 7, 0.34, 4, 0.3); }
 
     @Override public double preferredDistance() { return 1.5; }

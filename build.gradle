@@ -212,5 +212,5 @@ tasks.register('preview', JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.fpe.tools.Preview'
     args = [project.findProperty('spec') ?: 'all', project.findProperty('out') ?: 'build/preview']
-    jvmArgs '-Djava.awt.headless=true'
+    jvmArgs '-Djava.awt.headless=true', "-Dfpe.variant=${project.findProperty('variant') ?: 0}"
 }

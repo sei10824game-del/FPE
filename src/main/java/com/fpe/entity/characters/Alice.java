@@ -55,6 +55,8 @@ public class Alice extends FpeEntity {
 
     public Alice(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
+    @Override public Faction faction() { return Faction.ALICE; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(500, 9, 0.34, 6, 0.4); }
 
     // ------------------------------------------------------------------ phase / boss plumbing

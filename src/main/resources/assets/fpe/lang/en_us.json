@@ -23,5 +23,7 @@
  "entity.fpe.infected_bloomie": "Infected Miss Bloomie",
  "item.fpe.infected_bloomie_spawn_egg": "Infected Miss Bloomie Spawn Egg",
  "entity.fpe.infected_zip": "Infected Zip",
- "item.fpe.infected_zip_spawn_egg": "Infected Zip Spawn Egg"
+ "item.fpe.infected_zip_spawn_egg": "Infected Zip Spawn Egg",
+ "entity.fpe.danger_alice": "Alice (DANGER AU)",
+ "item.fpe.danger_alice_spawn_egg": "Alice (DANGER AU) Spawn Egg"
 }

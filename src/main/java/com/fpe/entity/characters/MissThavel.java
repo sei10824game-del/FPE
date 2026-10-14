@@ -24,6 +24,8 @@ import net.minecraft.world.phys.Vec3;
 public class MissThavel extends FpeEntity {
     public MissThavel(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
+    @Override public Faction faction() { return Faction.MISS; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(90, 7, 0.29, 4, 0.3); }
 
     @Override public double preferredDistance() { return 5.0; }

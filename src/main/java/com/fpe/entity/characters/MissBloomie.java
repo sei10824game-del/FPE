@@ -34,6 +34,8 @@ public class MissBloomie extends FpeEntity {
 
     public MissBloomie(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
+    @Override public Faction faction() { return Faction.MISS; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(130, 7, 0.29, 5, 0.35); }
 
     @Override public double preferredDistance() { return 1.6; }

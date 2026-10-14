@@ -1,5 +1,7 @@
 package com.fpe.entity.characters;
 
+import com.fpe.entity.FpeCombat;
+
 import java.util.List;
 
 import com.fpe.entity.Ability;
@@ -31,6 +33,8 @@ public class InfectedZip extends FpeEntity {
 
     public InfectedZip(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
+    @Override public Faction faction() { return Faction.INFECTED; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(190, 9, 0.38, 3, 0.5); }
 
     @Override public double preferredDistance() { return 2.2; }
@@ -56,17 +60,17 @@ public class InfectedZip extends FpeEntity {
         out.add(Ability.of("maul", 34, 50).range(0, 3.6).weight(4).faceUntil(12).tick((e, t, tk) -> {
             if (tk == 13) e.dashForward(0.5, 0.1);
             if (tk == 15) {
-                for (LivingEntity v : DangerBloomie.cone(e, 3.6, 50))
+                for (LivingEntity v : FpeCombat.cone(e, 3.6, 50))
                     if (FpeUtil.hit(e, v, e.dmg(1.4f), 0.4, 0.15)) { infect(v, 100); e.heal(5f); }
                 snd(e, SoundEvents.FOX_BITE, 1.3f, 0.35f);
-                FpeUtil.particles(e, DangerBloomie.BLOOD, e.position().add(0, 1.2, 0).add(FpeUtil.forward(e).scale(2)), 16, 0.3, 0.3, 0.3, 0.05);
+                FpeUtil.particles(e, FpeCombat.BLOOD, e.position().add(0, 1.2, 0).add(FpeUtil.forward(e).scale(2)), 16, 0.3, 0.3, 0.3, 0.05);
             }
         }));
         // rear up, two heavy claw swipes
         out.add(Ability.of("claw", 34, 45).range(0, 4.2).weight(4).faceUntil(18).tick((e, t, tk) -> {
             if (tk == 12 || tk == 20) {
-                for (LivingEntity v : DangerBloomie.cone(e, 4.0, 65)) { v.invulnerableTime = 0; FpeUtil.hit(e, v, e.dmg(1f), 0.8, 0.3); }
-                DangerBloomie.slashArc(e, 4.2f, 120, tk == 12 ? 30 : -30, 0, 1.6, 0xD0C8CCDC);
+                for (LivingEntity v : FpeCombat.cone(e, 4.0, 65)) { v.invulnerableTime = 0; FpeUtil.hit(e, v, e.dmg(1f), 0.8, 0.3); }
+                FpeCombat.slashArc(e, 4.2f, 120, tk == 12 ? 30 : -30, 0, 1.6, 0xD0C8CCDC);
                 snd(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1.2f, 0.6f);
             }
         }));
@@ -81,7 +85,7 @@ public class InfectedZip extends FpeEntity {
         // wing-blade chop
         out.add(Ability.of("wing_slash", 36, 60).range(0, 7).weight(3).faceUntil(15).tick((e, t, tk) -> {
             if (tk == 17) {
-                DangerBloomie.slashArc(e, 6f, 100, 70, 0, 1.8, 0xE8E0E4F4);
+                FpeCombat.slashArc(e, 6f, 100, 70, 0, 1.8, 0xE8E0E4F4);
                 FpeUtil.hitCone(e, 6.2, 45, e.dmg(1.7f), 1.2, 0.45);
                 snd(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1.4f, 0.4f);
             }
@@ -104,7 +108,7 @@ public class InfectedZip extends FpeEntity {
             if (tk >= 16 && tk < 34 && tk % 2 == 0) {
                 int i = (tk - 16) / 2;
                 for (int ang = -24; ang <= 24; ang += 24) {
-                    Vec3 d = DangerBloomie.rotY(FpeUtil.forward(e), ang);
+                    Vec3 d = FpeCombat.rotY(FpeUtil.forward(e), ang);
                     FpeUtil.fx(e, FpeFx.Kind.SPIKE, e.position().add(d.scale(2.2 + i * 1.5)), 8, 30, 1f, e.dmg(1f)).param(1.3f);
                 }
             }
@@ -114,7 +118,7 @@ public class InfectedZip extends FpeEntity {
             if (tk == 16 || tk == 20 || tk == 24) {
                 Vec3 from = e.position().add(0, 1.3, 0).add(FpeUtil.forward(e).scale(1.8));
                 Vec3 v = FpeUtil.aim(from, t, 0.55, 0.3);
-                FpeUtil.projectile(e, FpeProjectile.Kind.SHADOW_ORB, from, DangerBloomie.rotY(v, (tk - 20) * 2.5), e.dmg(0.9f));
+                FpeUtil.projectile(e, FpeProjectile.Kind.SHADOW_ORB, from, FpeCombat.rotY(v, (tk - 20) * 2.5), e.dmg(0.9f));
                 FpeUtil.particles(e, ParticleTypes.SQUID_INK, from, 8, 0.2, 0.2, 0.2, 0.05);
                 snd(e, SoundEvents.LLAMA_SPIT, 1f, 0.5f);
             }

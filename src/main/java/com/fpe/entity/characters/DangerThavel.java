@@ -11,9 +11,6 @@ import com.fpe.entity.FpeUtil;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -21,157 +18,197 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Danger AU Thavel: a silent rifle gunner who keeps her distance. Many weak bullets, a grenade launcher,
- * and close-quarters answers (hip-fire blast, rifle butt, ribbon lash, back-flip). Spray/suppress/hail end in a
- * forced, vulnerable reload.
+ * Miss Thavel "the bomb": cheerful explosives teacher. Every attack is a different way of delivering a bang.
+ * All explosions are entity-only (FpeProjectile detonate / hitRadius): blocks are never broken.
  */
 public class DangerThavel extends FpeEntity {
     public DangerThavel(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
-    public static AttributeSupplier.Builder attributes() { return baseAttributes(100, 6, 0.27, 6, 0.4); }
+    @Override public Faction faction() { return Faction.DANGER; }
 
-    @Override public double preferredDistance() { return 8.0; }
+    public static AttributeSupplier.Builder attributes() { return baseAttributes(90, 7, 0.29, 4, 0.3); }
 
-    @Override protected SoundEvent getHurtSound(DamageSource s) { return SoundEvents.IRON_GOLEM_HURT; }
-    @Override protected SoundEvent getDeathSound() { return SoundEvents.IRON_GOLEM_DEATH; }
+    @Override public double preferredDistance() { return 5.0; }
 
-    /** reloading leaves her open: +50% damage taken */
-    @Override
-    public boolean hurt(DamageSource s, float amount) {
-        return super.hurt(s, "reload".equals(currentAbilityId()) ? amount * 1.5f : amount);
+    @Override protected SoundEvent getAmbientSound() { return SoundEvents.WITCH_CELEBRATE; }
+    @Override protected SoundEvent getHurtSound(net.minecraft.world.damagesource.DamageSource s) { return SoundEvents.WITCH_HURT; }
+    @Override protected SoundEvent getDeathSound() { return SoundEvents.GENERIC_EXPLODE; }
+
+    // ------------------------------------------------------------------ helpers
+    /** approx world position of a hand (side: +1 left, -1 right) */
+    static Vec3 hand(FpeEntity e, int side, double up, double fwd) {
+        return e.position().add(0, up, 0).add(FpeUtil.forward(e).scale(fwd)).add(FpeUtil.right(e).scale(-0.35 * side));
     }
 
-    // ------------------------------------------------------------------ gun helpers
-    static Vec3 muzzle(FpeEntity e) {
-        return e.position().add(0, 1.45, 0).add(FpeUtil.forward(e).scale(1.35)).add(FpeUtil.right(e).scale(0.22));
-    }
-
-    static Vec3 spread(FpeEntity e, Vec3 v, double deg) {
-        double s = Math.tan(Math.toRadians(deg)) * v.length();
-        return v.add(e.getRandom().nextGaussian() * s, e.getRandom().nextGaussian() * s * 0.6, e.getRandom().nextGaussian() * s);
-    }
-
-    static void shot(FpeEntity e, Vec3 from, Vec3 vel, float dmg, boolean loud) {
-        FpeUtil.projectile(e, Kind.BULLET, from, vel, dmg);
-        FpeUtil.particles(e, ParticleTypes.FLAME, from, 2, 0.05, 0.05, 0.05, 0.02);
-        FpeUtil.particles(e, ParticleTypes.SMOKE, from, 1, 0.05, 0.05, 0.05, 0.01);
-        if (loud) FpeUtil.sound(e, SoundEvents.FIREWORK_ROCKET_BLAST, 0.9f, 1.7f + e.getRandom().nextFloat() * 0.2f);
-        FpeUtil.sound(e, SoundEvents.CROSSBOW_SHOOT, 0.4f, 1.9f);
-    }
-
-    /** aimed bullet at the target's chest from the muzzle */
-    static void aimed(FpeEntity e, LivingEntity t, double deg, float mult) {
-        Vec3 m = muzzle(e);
-        shot(e, m, spread(e, FpeUtil.aim(m, t, 3.0, 0.5), deg), e.dmg(mult), true);
-    }
-
+    /** ballistic lob (gravity g, drag 0.98) landing at `to` after `ticks` */
     static Vec3 lob(Vec3 from, Vec3 to, double g, int ticks) {
         double f = ticks * 0.02 / (1 - Math.pow(0.98, ticks));
-        return new Vec3((to.x - from.x) / ticks * f, ((to.y - from.y) / ticks + 0.5 * g * ticks) * f, (to.z - from.z) / ticks * f);
+        double vx = (to.x - from.x) / ticks, vz = (to.z - from.z) / ticks;
+        double vy = (to.y - from.y) / ticks + 0.5 * g * ticks;
+        return new Vec3(vx * f, vy * f, vz * f);
+    }
+
+    static Vec3 lead(LivingEntity t, double ticks) { return t.position().add(t.getDeltaMovement().multiply(ticks, 0, ticks)); }
+
+    static void boom(FpeEntity e, Vec3 at, double r, float dmg, double knock) {
+        FpeUtil.particles(e, ParticleTypes.EXPLOSION_EMITTER, at, 1, 0, 0, 0, 0);
+        FpeUtil.particles(e, ParticleTypes.EXPLOSION, at, (int) (r * 3), r * 0.5, 0.4, r * 0.5, 0);
+        FpeUtil.particles(e, ParticleTypes.FLAME, at, (int) (r * 10), r * 0.4, 0.3, r * 0.4, 0.08);
+        FpeUtil.particles(e, ParticleTypes.LARGE_SMOKE, at, (int) (r * 6), r * 0.4, 0.4, r * 0.4, 0.03);
+        e.level().playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE, net.minecraft.sounds.SoundSource.HOSTILE, (float) Math.min(3, r * 0.6), 1.0f);
+        FpeUtil.hitRadius(e, at, r, dmg, knock, 0.6);
+    }
+
+    private static Vec3 rand(FpeEntity e, double r) {
+        return new Vec3((e.getRandom().nextDouble() - 0.5) * 2 * r, 0, (e.getRandom().nextDouble() - 0.5) * 2 * r);
     }
 
     @Override
     protected void registerAbilities(List<Ability> out) {
-        // 1. shouldered double three-round burst
-        out.add(Ability.of("burst", 30, 28).range(3, 22).weight(5).tick((e, t, tk) -> {
-            if (tk == 6) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_CHAIN, 0.8f, 0.7f);
-            if ((tk >= 10 && tk <= 14 || tk >= 20 && tk <= 24) && tk % 2 == 0) aimed(e, t, 2.0, 0.4f);
-        }));
-        // 2. full-auto strafing spray, sweeping left -> right
-        out.add(Ability.of("spray", 52, 110).range(3, 16).weight(3).faceUntil(8).tick((e, t, tk) -> {
-            if (tk >= 10 && tk <= 42 && tk % 2 == 0) {
-                float off = -40 + 80 * smooth((tk - 10) / 32f);
-                Vec3 m = muzzle(e);
-                Vec3 to = t.position().add(0, t.getBbHeight() * 0.55, 0);
-                double pitch = Math.atan2(to.y - m.y, Math.max(1, Math.hypot(to.x - m.x, to.z - m.z)));
-                Vec3 d = Vec3.directionFromRotation(0, e.getYRot() + off);
-                Vec3 v = new Vec3(d.x * Math.cos(pitch), Math.sin(pitch), d.z * Math.cos(pitch)).scale(3.0);
-                Vec3 from = e.position().add(0, 1.45, 0).add(d.scale(1.35));
-                shot(e, from, spread(e, v, 3.0), e.dmg(0.32f), tk % 4 == 0);
-            }
-        }).end((e, t, tk) -> e.forceAbility("reload")));
-        // 3. kneel, underbarrel grenade launcher lob
-        out.add(Ability.of("grenade_launcher", 36, 100).range(7, 22).weight(3).tick((e, t, tk) -> {
-            if (tk == 11) FpeUtil.sound(e, SoundEvents.CROSSBOW_LOADING_MIDDLE, 1f, 0.6f);
+        // 1. pull the pin with her teeth, big overhand lob
+        out.add(Ability.of("grenade_lob", 30, 45).range(3.5, 16).weight(4).tick((e, t, tk) -> {
+            if (tk == 6) FpeUtil.sound(e, SoundEvents.TRIPWIRE_CLICK_OFF, 1f, 1.6f);
             if (tk == 16) {
-                Vec3 m = e.position().add(0, 1.0, 0).add(FpeUtil.forward(e).scale(1.3)).add(FpeUtil.right(e).scale(0.22));
-                int fl = (int) Math.max(12, Math.min(30, e.distanceTo(t) * 1.4));
-                Vec3 to = t.position().add(t.getDeltaMovement().multiply(fl, 0, fl));
-                FpeUtil.projectile(e, Kind.GRENADE, m, lob(m, to, 0.06, fl), e.dmg(1.8f));
-                FpeUtil.particles(e, ParticleTypes.LARGE_SMOKE, m, 6, 0.1, 0.1, 0.1, 0.03);
-                FpeUtil.sound(e, SoundEvents.DISPENSER_LAUNCH, 1.4f, 0.5f);
+                Vec3 from = hand(e, 1, 2.1, 0.3);
+                int fl = (int) Math.max(12, Math.min(28, e.distanceTo(t) * 1.7));
+                FpeUtil.projectile(e, Kind.GRENADE, from, lob(from, lead(t, fl).add(0, 0.2, 0), 0.06, fl), e.dmg(1.8f));
+                FpeUtil.sound(e, SoundEvents.SNOWBALL_THROW, 1f, 0.6f);
             }
         }));
-        // 4. hip-fire buckshot cone (close range), recoil slides her back
-        out.add(Ability.of("shotgun", 26, 60).range(0, 6).weight(3).tick((e, t, tk) -> {
-            if (tk == 10) {
-                Vec3 m = e.position().add(0, 1.05, 0).add(FpeUtil.forward(e).scale(1.3)).add(FpeUtil.right(e).scale(0.22));
-                Vec3 base = FpeUtil.aim(m, t, 2.6, 0.2);
-                for (int i = 0; i < 8; i++) FpeUtil.projectile(e, Kind.BULLET, m, spread(e, base, 11), e.dmg(0.45f));
-                FpeUtil.particles(e, ParticleTypes.FLAME, m, 12, 0.2, 0.15, 0.2, 0.08);
-                FpeUtil.particles(e, ParticleTypes.LARGE_SMOKE, m, 6, 0.2, 0.1, 0.2, 0.04);
-                FpeUtil.sound(e, SoundEvents.GENERIC_EXPLODE, 0.8f, 1.8f);
-                FpeUtil.hitCone(e, 2.2, 40, e.dmg(0.6f), 1.0, 0.25);
-                e.dashForward(-0.45, 0.05);
-            }
-        }));
-        // 5. flip the rifle and ram the stock forward
-        out.add(Ability.of("butt_bash", 26, 40).range(0, 3.2).weight(4).tick((e, t, tk) -> {
-            if (tk == 9) e.dashForward(0.4, 0.05);
-            if (tk == 11) {
-                if (FpeUtil.hitCone(e, 3.2, 60, e.dmg(1.4f), 1.2, 0.35) > 0) FpeUtil.sound(e, SoundEvents.ZOMBIE_ATTACK_IRON_DOOR, 0.8f, 1.3f);
-                else FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 0.7f);
-                FpeUtil.particles(e, ParticleTypes.CRIT, FpeUtil.ahead(e, 1.5, 1.3), 8, 0.2, 0.2, 0.2, 0.2);
-            }
-        }));
-        // 6. heel spin: the two long hazard ribbons lash everything around her twice
-        out.add(Ability.of("ribbon_whip", 34, 70).range(0, 4.5).weight(3).tick((e, t, tk) -> {
-            if (tk == 11) FpeUtil.fx(e, FpeFx.Kind.ARC, e.position().add(0, 1.5, 0), 0, 8, 4.2f, 0).param(320).color(0xFFDCC690);
-            if (tk == 15) FpeUtil.fx(e, FpeFx.Kind.ARC, e.position().add(0, 1.1, 0), 0, 8, 4.0f, 0).param(320).color(0xFF16161C);
-            if (tk == 12 || tk == 16) {
-                FpeUtil.hitRadius(e, e.position(), 4.0, e.dmg(tk == 12 ? 1.0f : 0.8f), 0.9, 0.3);
-                FpeUtil.arc(e, ParticleTypes.SWEEP_ATTACK, e.position().add(0, 1.4, 0), e.getYRot(), 180, 3.0, 8);
-                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, tk == 12 ? 0.6f : 0.8f);
-            }
-        }));
-        // 7. kneeling suppressive fire: steady stream, pins the target (slowness)
-        out.add(Ability.of("suppress", 64, 160).range(6, 26).weight(2).tick((e, t, tk) -> {
-            if (tk >= 14 && tk <= 56 && (tk - 14) % 3 == 0) {
-                aimed(e, t, 4.5, 0.3f);
-                if (tk % 12 == 2 && e.hasLineOfSight(t)) t.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 1));
-            }
-        }).end((e, t, tk) -> e.forceAbility("reload")));
-        // 8. forced reload after long strings of fire (never picked randomly) - she takes +50% damage meanwhile
-        out.add(Ability.of("reload", 32, 0).range(0, 99).blind().when(e -> false).tick((e, t, tk) -> {
-            if (tk == 9) FpeUtil.sound(e, SoundEvents.IRON_TRAPDOOR_OPEN, 0.8f, 1.6f);
-            if (tk == 13) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_IRON, 0.6f, 1.4f);
-            if (tk == 20) FpeUtil.sound(e, SoundEvents.CROSSBOW_LOADING_END, 1f, 1.2f);
-            if (tk == 25) FpeUtil.sound(e, SoundEvents.IRON_TRAPDOOR_CLOSE, 1f, 1.8f);
-        }));
-        // 9. back-flip away from melee range, snap shot on landing
-        out.add(Ability.of("backstep", 22, 70).range(0, 3.5).weight(3).tick((e, t, tk) -> {
-            if (tk == 4) {
-                e.dashToward(e.position().add(e.position().subtract(t.position())), 0.85, 0.42);
-                FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_LEATHER, 1f, 0.8f);
-            }
-            if (tk == 16) aimed(e, t, 1.0, 0.6f);
-        }));
-        // 10. ENRAGED: empty the drum into the sky, then the bullets hail down on the target while she keeps firing
-        out.add(Ability.of("bullet_hail", 84, 240).range(0, 26).weight(4).when(FpeEntity::isEnraged).tick((e, t, tk) -> {
-            if (tk >= 12 && tk <= 40 && tk % 2 == 0) {
-                Vec3 m = e.position().add(0, 2.6, 0).add(FpeUtil.forward(e).scale(0.4));
-                shot(e, m, spread(e, new Vec3(0, 3.0, 0), 6), 0f, tk % 4 == 0);
-            }
-            if (tk == 30) FpeUtil.arc(e, ParticleTypes.CRIT, t.position().add(0, 0.1, 0), 0, 180, 3.5, 30);
-            if (tk >= 36 && tk <= 76) {
-                for (int i = 0; i < 2; i++) {
-                    Vec3 at = t.position().add((e.getRandom().nextDouble() - 0.5) * 7, 16, (e.getRandom().nextDouble() - 0.5) * 7);
-                    FpeUtil.projectile(e, Kind.BULLET, at, new Vec3((e.getRandom().nextDouble() - 0.5) * 0.2, -3.0, (e.getRandom().nextDouble() - 0.5) * 0.2), e.dmg(0.3f));
+        // 2. rip the bandolier open: a fan of seven bomblets
+        out.add(Ability.of("bandolier_burst", 36, 90).range(2, 10).weight(3).tick((e, t, tk) -> {
+            if (tk == 6) FpeUtil.sound(e, SoundEvents.TNT_PRIMED, 1f, 1.4f);
+            if (tk == 14) {
+                Vec3 c = e.position().add(0, 1.4, 0);
+                for (int i = 0; i < 7; i++) {
+                    float yaw = e.getYRot() - 66 + i * 22;
+                    Vec3 d = Vec3.directionFromRotation(0, yaw);
+                    double sp = 0.45 + Math.min(0.5, e.distanceTo(t) * 0.04) + (i % 2) * 0.12;
+                    FpeUtil.projectile(e, Kind.BOMBLET, c.add(d.scale(0.5)), new Vec3(d.x * sp, 0.42 + (i % 3) * 0.06, d.z * sp), e.dmg(0.9f));
                 }
+                FpeUtil.particles(e, ParticleTypes.CRIT, c, 20, 0.6, 0.3, 0.6, 0.3);
+                FpeUtil.sound(e, SoundEvents.CROSSBOW_SHOOT, 1f, 0.7f);
+                FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1f, 1.3f);
             }
-            if (tk >= 50 && tk <= 74 && (tk - 50) % 4 == 0) aimed(e, t, 2.5, 0.35f);
-        }).end((e, t, tk) -> e.forceAbility("reload")));
+        }));
+        // 3. kneeling pirouette sowing timed mines around herself + a few tossed around the target, then hop away
+        out.add(Ability.of("mine_field", 44, 140).range(0, 8).weight(2).faceUntil(10).tick((e, t, tk) -> {
+            if (tk >= 12 && tk <= 28 && (tk - 12) % 4 == 0) {
+                float yaw = e.getYRot() + (tk - 12) / 16f * 360f;
+                Vec3 d = Vec3.directionFromRotation(0, yaw);
+                for (double r : new double[] {1.8, 3.3}) {
+                    Vec3 at = e.position().add(d.scale(r)).add(0, 0.3, 0);
+                    FpeUtil.projectile(e, Kind.BOMBLET, at, new Vec3(d.x * 0.02, 0.05, d.z * 0.02), e.dmg(1.0f));
+                }
+                FpeUtil.sound(e, SoundEvents.STONE_BUTTON_CLICK_ON, 0.8f, 1.5f);
+                FpeUtil.particles(e, ParticleTypes.SMOKE, e.position().add(d.scale(1.8)), 4, 0.2, 0.1, 0.2, 0.01);
+            }
+            if (tk == 20) for (int i = 0; i < 3; i++) {
+                Vec3 from = hand(e, -1, 1.2, 0.5);
+                Vec3 to = t.position().add(Vec3.directionFromRotation(0, i * 120 + e.getRandom().nextInt(60)).scale(2.2));
+                FpeUtil.projectile(e, Kind.BOMBLET, from, lob(from, to, 0.06, 14), e.dmg(0.9f));
+            }
+            if (tk == 32) {
+                Vec3 away = e.position().add(e.position().subtract(t.position()));
+                e.dashToward(away, 0.75, 0.45);
+                FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1f, 1.5f);
+            }
+        }));
+        // 4. pull a rocket launcher out of her hair, kneel, fire
+        out.add(Ability.of("rocket", 44, 110).range(6, 24).weight(3).faceUntil(24).tick((e, t, tk) -> {
+            if (tk == 8) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_IRON, 1f, 0.8f);
+            if (tk == 20) FpeUtil.sound(e, SoundEvents.CROSSBOW_LOADING_END, 1f, 0.7f);
+            if (tk == 24) {
+                Vec3 from = e.position().add(0, 1.35, 0).add(FpeUtil.forward(e).scale(1.1)).add(FpeUtil.right(e).scale(0.35));
+                FpeUtil.projectile(e, Kind.ROCKET, from, FpeUtil.aim(from, t, 1.25, 0.6), e.dmg(2.0f));
+                Vec3 back = from.subtract(FpeUtil.forward(e).scale(1.6));
+                FpeUtil.particles(e, ParticleTypes.LARGE_SMOKE, back, 14, 0.3, 0.2, 0.3, 0.05);
+                FpeUtil.particles(e, ParticleTypes.FLAME, back, 10, 0.2, 0.2, 0.2, 0.06);
+                FpeUtil.sound(e, SoundEvents.FIREWORK_ROCKET_LAUNCH, 2f, 0.5f);
+                e.dashForward(-0.35, 0.05);
+            }
+        }));
+        // 5. hurl bombs into the sky, they rain down around the target
+        out.add(Ability.of("bomb_rain", 56, 160).range(4, 20).weight(2).tick((e, t, tk) -> {
+            if (tk == 4) FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1.2f, 1.1f);
+            if (tk == 15) {
+                FpeUtil.particles(e, ParticleTypes.FIREWORK, e.position().add(0, 2.4, 0), 20, 0.2, 0.6, 0.2, 0.25);
+                FpeUtil.sound(e, SoundEvents.FIREWORK_ROCKET_LAUNCH, 1.5f, 0.8f);
+            }
+            if (tk == 18) FpeUtil.arc(e, ParticleTypes.SMOKE, t.position().add(0, 0.1, 0), 0, 180, 3.5, 24);
+            if (tk >= 22 && tk <= 46 && tk % 3 == 1) {
+                Vec3 at = lead(t, 6).add(rand(e, 3.5)).add(0, 9, 0);
+                FpeUtil.projectile(e, Kind.BOMBLET, at, new Vec3(0, -0.75, 0), e.dmg(1.0f));
+            }
+        }));
+        // 6. kamikaze: light her own antenna, dive-hug the target and explode (she survives, blown back)
+        out.add(Ability.of("kamikaze", 50, 220).range(3, 12).weight(2).faceUntil(20).tick((e, t, tk) -> {
+            Vec3 head = e.position().add(0, 2.6, 0);
+            if (tk == 6) FpeUtil.sound(e, SoundEvents.FLINTANDSTEEL_USE, 1f, 1f);
+            if (tk == 9) FpeUtil.sound(e, SoundEvents.TNT_PRIMED, 1.5f, 0.9f);
+            if (tk > 6 && tk < 28) {
+                FpeUtil.particles(e, ParticleTypes.FLAME, head, 2, 0.05, 0.05, 0.05, 0.02);
+                FpeUtil.particles(e, ParticleTypes.SMOKE, head, 1, 0.05, 0.1, 0.05, 0.02);
+            }
+            if (tk == 16) {
+                double d = e.distanceTo(t);
+                e.dashToward(t.position(), Math.min(1.7, 0.35 + d * 0.12), 0.32);
+                FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1.5f, 1.6f);
+            }
+            if (tk == 28) {
+                boom(e, e.position().add(0, 1, 0), 4.5, e.dmg(2.3f), 1.7);
+                e.dashToward(e.position().add(e.position().subtract(t.position())), 0.8, 0.65);
+            }
+        }));
+        // 7. explosive stomp -> shockwave ring
+        out.add(Ability.of("stomp", 32, 70).range(0, 4.5).weight(3).tick((e, t, tk) -> {
+            if (tk == 9) e.setDeltaMovement(e.getDeltaMovement().add(0, 0.25, 0));
+            if (tk == 13) {
+                Vec3 foot = e.position().add(FpeUtil.forward(e).scale(0.3)).add(0, 0.1, 0);
+                FpeUtil.particles(e, ParticleTypes.EXPLOSION, foot, 3, 0.4, 0.1, 0.4, 0);
+                FpeUtil.particles(e, ParticleTypes.LAVA, foot, 8, 0.6, 0.1, 0.6, 0);
+                FpeUtil.sound(e, SoundEvents.GENERIC_EXPLODE, 1.2f, 1.3f);
+                FpeUtil.hitRadius(e, foot, 1.9, e.dmg(1.3f), 1.0, 0.6);
+                FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, foot, 0, 14, 5.5f, e.dmg(1.0f));
+            }
+        }));
+        // 8. flick the grenade up and volley-kick it at the target (plus the kick itself hurts up close)
+        out.add(Ability.of("kick_back", 38, 90).range(1.5, 9).weight(3).tick((e, t, tk) -> {
+            if (tk == 4) FpeUtil.sound(e, SoundEvents.TRIPWIRE_CLICK_OFF, 1f, 1.6f);
+            if (tk == 16) {
+                Vec3 from = e.position().add(0, 0.5, 0).add(FpeUtil.forward(e).scale(0.7));
+                Vec3 v = FpeUtil.aim(from, t, 1.45, 0.4).add(0, 0.06 + e.distanceTo(t) * 0.012, 0);
+                FpeUtil.projectile(e, Kind.BOMBLET, from, v, e.dmg(1.6f));
+                FpeUtil.hitCone(e, 2.4, 50, e.dmg(0.9f), 0.9, 0.4);
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_STRONG, 1f, 0.8f);
+                FpeUtil.particles(e, ParticleTypes.CRIT, from, 10, 0.2, 0.2, 0.2, 0.3);
+            }
+        }));
+        // 9. point-blank grenade punch
+        out.add(Ability.of("boom_punch", 24, 35).range(0, 3).weight(4).tick((e, t, tk) -> {
+            if (tk == 8) e.dashForward(0.45, 0.05);
+            if (tk == 11) {
+                Vec3 fist = FpeUtil.ahead(e, 1.4, 1.3);
+                FpeUtil.particles(e, ParticleTypes.EXPLOSION, fist, 2, 0.2, 0.2, 0.2, 0);
+                FpeUtil.particles(e, ParticleTypes.FLAME, fist, 12, 0.3, 0.3, 0.3, 0.06);
+                FpeUtil.sound(e, SoundEvents.GENERIC_EXPLODE, 0.9f, 1.5f);
+                FpeUtil.hitCone(e, 2.9, 55, e.dmg(1.5f), 1.2, 0.45);
+            }
+        }));
+        // 10. ENRAGED: detonator click -> two lines of falling rockets carpet the ground toward and past the target
+        out.add(Ability.of("carpet_bomb", 72, 260).range(0, 26).weight(4).blind().when(FpeEntity::isEnraged).tick((e, t, tk) -> {
+            if (tk == 4) FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1.5f, 0.9f);
+            if (tk == 15) FpeUtil.sound(e, SoundEvents.LEVER_CLICK, 1f, 1.8f);
+            if (tk == 16) FpeUtil.sound(e, SoundEvents.NOTE_BLOCK_PLING.value(), 2f, 0.5f);
+            if (tk >= 18 && tk <= 57 && (tk - 18) % 3 == 0) {
+                int k = (tk - 18) / 3; // 0..13
+                Vec3 start = e.position().add(FpeUtil.forward(e).scale(2.5));
+                Vec3 dir = t.position().subtract(start);
+                Vec3 end = t.position().add(new Vec3(dir.x, 0, dir.z).normalize().scale(4));
+                Vec3 at = start.lerp(end, k / 13.0).add(FpeUtil.right(e).scale(k % 2 == 0 ? 1.6 : -1.6));
+                at = new Vec3(at.x, Math.max(e.getY(), t.getY()) + 14, at.z);
+                FpeUtil.projectile(e, Kind.ROCKET, at, new Vec3(0, -1.6, 0), e.dmg(1.3f));
+            }
+        }));
     }
-
-    private static float smooth(float x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
 }
