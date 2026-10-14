@@ -20,5 +20,6 @@ public class FpeMod {
         ModItems.TABS.register(bus);
         bus.register(ModEntities.Events.class);
         MinecraftForge.EVENT_BUS.register(FpeHostility.class);
+        if (Boolean.getBoolean("fpe.selftest")) MinecraftForge.EVENT_BUS.register(com.fpe.tools.SelfTest.class);
     }
 }
