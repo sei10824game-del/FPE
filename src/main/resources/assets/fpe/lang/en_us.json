@@ -19,5 +19,7 @@
  "entity.fpe.fen": "Fen",
  "item.fpe.fen_spawn_egg": "Fen Spawn Egg",
  "entity.fpe.aiden": "Aiden",
- "item.fpe.aiden_spawn_egg": "Aiden Spawn Egg"
+ "item.fpe.aiden_spawn_egg": "Aiden Spawn Egg",
+ "entity.fpe.infected_bloomie": "Infected Miss Bloomie",
+ "item.fpe.infected_bloomie_spawn_egg": "Infected Miss Bloomie Spawn Egg"
 }

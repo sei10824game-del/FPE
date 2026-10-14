@@ -54,10 +54,12 @@ public final class Preview {
         @Override public void unsetDefaultColor() { }
     }
 
-    private static final Map<String, Class<? extends FpeEntity>> ENTITY = Map.of(
+    private static final Map<String, Class<? extends FpeEntity>> ENTITY = new java.util.HashMap<>(Map.of(
             "miss_circle", MissCircle.class, "miss_thavel", MissThavel.class, "miss_bloomie", MissBloomie.class,
             "alice", Alice.class, "alice_boss", Alice.class, "red_circle", RedCircle.class,
-            "danger_thavel", DangerThavel.class, "danger_bloomie", DangerBloomie.class, "fen", Fen.class, "aiden", Aiden.class);
+            "danger_thavel", DangerThavel.class, "danger_bloomie", DangerBloomie.class,  "fen", Fen.class, "aiden", Aiden.class));
+
+    static { ENTITY.put("infected_bloomie", InfectedBloomie.class); }
 
     @SuppressWarnings("unchecked")
     private static List<Ability> abilitiesOf(Class<? extends FpeEntity> c) throws Exception {

@@ -19,5 +19,7 @@
  "entity.fpe.fen": "フェン",
  "item.fpe.fen_spawn_egg": "フェン スポーンエッグ",
  "entity.fpe.aiden": "エイデン",
- "item.fpe.aiden_spawn_egg": "エイデン スポーンエッグ"
+ "item.fpe.aiden_spawn_egg": "エイデン スポーンエッグ",
+ "entity.fpe.infected_bloomie": "感染したミス・ブルーミー",
+ "item.fpe.infected_bloomie_spawn_egg": "感染したミス・ブルーミー スポーンエッグ"
 }
