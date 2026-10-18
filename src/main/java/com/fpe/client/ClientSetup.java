@@ -42,6 +42,17 @@ public final class ClientSetup {
         e.registerEntityRenderer(ModEntities.DANGER_ALICE.get(), c -> new FpeRenderer<>(c, DangerAliceSpec.SPEC, DangerAliceSpec.PHASE2));
         e.registerEntityRenderer(ModEntities.FEN.get(), c -> new FpeRenderer<>(c, FenSpec.SPEC));
         e.registerEntityRenderer(ModEntities.AIDEN.get(), c -> new FpeRenderer<>(c, AidenSpec.SPEC));
+        e.registerEntityRenderer(ModEntities.MUTANT_CLAIRE.get(), c -> new FpeRenderer<>(c, MutantClaireSpec.SPEC));
+        e.registerEntityRenderer(ModEntities.MUTANT_ENGEL.get(), c -> new FpeRenderer<>(c, MutantEngelSpec.SPEC));
+        e.registerEntityRenderer(ModEntities.MUTANT_BUBBLE.get(), c -> new FpeRenderer<>(c, MutantBubbleSpec.SPEC));
+        e.registerEntityRenderer(ModEntities.MUTANT_LANA.get(), c -> new FpeRenderer<>(c, MutantLanaSpec.SPEC));
+        e.registerEntityRenderer(ModEntities.MUTANT_ABBIE.get(), c -> new FpeRenderer<>(c, MutantAbbieSpec.SPEC));
+        e.registerEntityRenderer(ModEntities.GREEN_THAVEL.get(), c -> new FpeRenderer<>(c, GreenThavelSpec.SPEC));
+        e.registerEntityRenderer(ModEntities.GREEN_BLOOMIE.get(), c -> new FpeRenderer<>(c, GreenBloomieSpec.SPEC));
+        e.registerEntityRenderer(ModEntities.GREEN_ALICE.get(), c -> new FpeRenderer<>(c, GreenAliceSpec.PHASE1, GreenAliceSpec.PHASE2));
+        e.registerEntityRenderer(ModEntities.GREEN_CIRCLE.get(), c -> new FpeRenderer<>(c, GreenCircleSpec.SPEC));
+        e.registerEntityRenderer(ModEntities.HANSEL_JUVENILE.get(), c -> new FpeRenderer<>(c, HanselJuvenileSpec.SPEC));
+        e.registerEntityRenderer(ModEntities.LORD_HANSEL.get(), c -> new FpeRenderer<>(c, LordHanselSpec.MATURED, LordHanselSpec.PREMATURE, LordHanselSpec.TRUE_FORM));
         e.registerEntityRenderer(ModEntities.PROJECTILE.get(), FpeProjectileRenderer::new);
         e.registerEntityRenderer(ModEntities.FX.get(), FpeFxRenderer::new);
     }
@@ -58,6 +69,8 @@ public final class ClientSetup {
             s.bake();
             mc.getTextureManager().register(s.texture(), new DynamicTexture(image(s.pixels(), s.texW, s.texH)));
             if (s.hasGlow()) mc.getTextureManager().register(s.glowTexture(), new DynamicTexture(image(s.glowPixels(), s.texW, s.texH)));
+            int glErr = com.mojang.blaze3d.platform.GlStateManager._getError();
+            org.slf4j.LoggerFactory.getLogger("fpe").info("FPE texture {} {}x{} glow={} glError={}", s.name, s.texW, s.texH, s.hasGlow(), glErr);
         }
         int[] white = new int[16 * 16];
         java.util.Arrays.fill(white, 0xFFFFFFFF);

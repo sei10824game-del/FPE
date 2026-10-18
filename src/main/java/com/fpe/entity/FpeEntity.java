@@ -39,14 +39,18 @@ public abstract class FpeEntity extends Monster {
     public static final int DEATH_TICKS = 40;
 
     /** Which side a character is on; see {@link #hostile}. FPE characters fight members of hostile factions. */
-    public enum Faction { MISS, DANGER, INFECTED, ALICE, DANGER_ALICE, STUDENT }
+    public enum Faction { MISS, DANGER, INFECTED, ALICE, DANGER_ALICE, STUDENT, GREEN_TEACHER, MUTANT, OUTSIDER }
 
     private static final Faction[][] FEUDS = {
             {Faction.MISS, Faction.INFECTED}, {Faction.MISS, Faction.DANGER}, {Faction.MISS, Faction.DANGER_ALICE},
             {Faction.DANGER, Faction.INFECTED}, {Faction.DANGER, Faction.ALICE},
             {Faction.DANGER_ALICE, Faction.INFECTED}, {Faction.DANGER_ALICE, Faction.ALICE},
             {Faction.ALICE, Faction.INFECTED},
-            {Faction.STUDENT, Faction.INFECTED}, {Faction.STUDENT, Faction.DANGER}, {Faction.STUDENT, Faction.DANGER_ALICE}};
+            {Faction.STUDENT, Faction.INFECTED}, {Faction.STUDENT, Faction.DANGER}, {Faction.STUDENT, Faction.DANGER_ALICE},
+            {Faction.GREEN_TEACHER, Faction.MUTANT}, {Faction.GREEN_TEACHER, Faction.INFECTED}, {Faction.GREEN_TEACHER, Faction.DANGER},
+            {Faction.GREEN_TEACHER, Faction.DANGER_ALICE}, {Faction.GREEN_TEACHER, Faction.ALICE},
+            {Faction.MUTANT, Faction.INFECTED}, {Faction.MUTANT, Faction.MISS}, {Faction.MUTANT, Faction.DANGER},
+            {Faction.OUTSIDER, Faction.GREEN_TEACHER}, {Faction.OUTSIDER, Faction.MUTANT}, {Faction.OUTSIDER, Faction.MISS}, {Faction.OUTSIDER, Faction.DANGER}};
 
     public static boolean hostile(Faction a, Faction b) {
         for (Faction[] f : FEUDS) if ((f[0] == a && f[1] == b) || (f[0] == b && f[1] == a)) return true;

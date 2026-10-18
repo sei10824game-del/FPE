@@ -40,6 +40,19 @@ public final class ModEntities {
     public static final RegistryObject<EntityType<Fen>> FEN = chara("fen", Fen::new, 1.0f, 2.8f);
     public static final RegistryObject<EntityType<Aiden>> AIDEN = chara("aiden", Aiden::new, 0.6f, 1.7f);
 
+    public static final RegistryObject<EntityType<MutantClaire>> MUTANT_CLAIRE = chara("mutant_claire", MutantClaire::new, 0.8f, 2.0f);
+    public static final RegistryObject<EntityType<MutantEngel>> MUTANT_ENGEL = chara("mutant_engel", MutantEngel::new, 0.8f, 2.8f);
+    public static final RegistryObject<EntityType<MutantBubble>> MUTANT_BUBBLE = chara("mutant_bubble", MutantBubble::new, 0.6f, 1.2f);
+    public static final RegistryObject<EntityType<MutantLana>> MUTANT_LANA = chara("mutant_lana", MutantLana::new, 0.7f, 2.0f);
+    public static final RegistryObject<EntityType<MutantAbbie>> MUTANT_ABBIE = chara("mutant_abbie", MutantAbbie::new, 0.8f, 2.2f);
+    public static final RegistryObject<EntityType<GreenThavel>> GREEN_THAVEL = chara("green_thavel", GreenThavel::new, 0.7f, 2.1f);
+    public static final RegistryObject<EntityType<GreenBloomie>> GREEN_BLOOMIE = chara("green_bloomie", GreenBloomie::new, 0.7f, 2.3f);
+    public static final RegistryObject<EntityType<GreenAlice>> GREEN_ALICE = chara("green_alice", GreenAlice::new, 0.7f, 2.0f);
+
+    public static final RegistryObject<EntityType<GreenCircle>> GREEN_CIRCLE = chara("green_circle", GreenCircle::new, 0.8f, 2.6f);
+    public static final RegistryObject<EntityType<HanselJuvenile>> HANSEL_JUVENILE = chara("hansel_juvenile", HanselJuvenile::new, 0.7f, 2.0f);
+    public static final RegistryObject<EntityType<LordHansel>> LORD_HANSEL = chara("lord_hansel", LordHansel::new, 0.9f, 2.6f);
+
     public static final RegistryObject<EntityType<FpeProjectile>> PROJECTILE = ENTITIES.register("projectile", () ->
             EntityType.Builder.<FpeProjectile>of(FpeProjectile::new, MobCategory.MISC).sized(0.4f, 0.4f).clientTrackingRange(8).updateInterval(1).build(FpeMod.MODID + ":projectile"));
     public static final RegistryObject<EntityType<FpeFx>> FX = ENTITIES.register("fx", () ->
@@ -48,7 +61,8 @@ public final class ModEntities {
     /** all character types (for eggs, spawns, attributes) */
     @SuppressWarnings("unchecked")
     public static java.util.List<RegistryObject<? extends EntityType<? extends FpeEntity>>> characters() {
-        return java.util.List.of(MISS_CIRCLE, MISS_THAVEL, MISS_BLOOMIE, ALICE, RED_CIRCLE, DANGER_THAVEL, DANGER_BLOOMIE, INFECTED_BLOOMIE, INFECTED_ZIP, DANGER_ALICE, FEN, AIDEN);
+        return java.util.List.of(MISS_CIRCLE, MISS_THAVEL, MISS_BLOOMIE, ALICE, RED_CIRCLE, DANGER_THAVEL, DANGER_BLOOMIE, INFECTED_BLOOMIE, INFECTED_ZIP, DANGER_ALICE, FEN, AIDEN,
+                MUTANT_CLAIRE, MUTANT_ENGEL, MUTANT_BUBBLE, MUTANT_LANA, MUTANT_ABBIE, GREEN_CIRCLE, HANSEL_JUVENILE, LORD_HANSEL, GREEN_THAVEL, GREEN_BLOOMIE, GREEN_ALICE);
     }
 
     public static final class Events {
@@ -66,6 +80,17 @@ public final class ModEntities {
             e.put(DANGER_ALICE.get(), DangerAlice.attributes().build());
             e.put(FEN.get(), Fen.attributes().build());
             e.put(AIDEN.get(), Aiden.attributes().build());
+            e.put(GREEN_CIRCLE.get(), GreenCircle.attributes().build());
+            e.put(HANSEL_JUVENILE.get(), HanselJuvenile.attributes().build());
+            e.put(LORD_HANSEL.get(), LordHansel.attributes().build());
+            e.put(MUTANT_CLAIRE.get(), MutantClaire.attributes().build());
+            e.put(MUTANT_ENGEL.get(), MutantEngel.attributes().build());
+            e.put(MUTANT_BUBBLE.get(), MutantBubble.attributes().build());
+            e.put(MUTANT_LANA.get(), MutantLana.attributes().build());
+            e.put(MUTANT_ABBIE.get(), MutantAbbie.attributes().build());
+            e.put(GREEN_THAVEL.get(), GreenThavel.attributes().build());
+            e.put(GREEN_BLOOMIE.get(), GreenBloomie.attributes().build());
+            e.put(GREEN_ALICE.get(), GreenAlice.attributes().build());
         }
 
         /** give every living type an attack so that all mobs (even cows) can be turned hostile to FPE characters */
