@@ -65,7 +65,7 @@ public final class ModelSpec {
     /** animation; may be null */
     public Animator animator;
     private int[] pixels, glowPixels;
-    private boolean baked;
+    private boolean baked, externalGlow;
 
     public ModelSpec(String name) { this.name = name; }
 
@@ -94,7 +94,7 @@ public final class ModelSpec {
     public ResourceLocation texture() { return new ResourceLocation(FpeMod.MODID, "dyn/" + name); }
     public ResourceLocation glowTexture() { return new ResourceLocation(FpeMod.MODID, "dyn/" + name + "_glow"); }
     public ModelLayerLocation layer() { return new ModelLayerLocation(new ResourceLocation(FpeMod.MODID, name), "main"); }
-    public boolean hasGlow() { for (Part p : parts) { if (p.glow) return true; for (Decor d : p.decor) if (d.glow) return true; } return false; }
+    public boolean hasGlow() { if (externalGlow) return true; for (Part p : parts) { if (p.glow) return true; for (Decor d : p.decor) if (d.glow) return true; } return false; }
 
     /** path of part names from root (for ModelPart.getChild chain). */
     public List<String> path(String n) {
@@ -107,6 +107,7 @@ public final class ModelSpec {
     /** use ready-made pixels (e.g. from a .bbmodel); parts must already have u/v set. glow may be null. */
     public synchronized ModelSpec external(int[] argb, int[] glowArgb, int w, int h) {
         texW = w; texH = h; pixels = argb;
+        externalGlow = glowArgb != null;
         glowPixels = glowArgb != null ? glowArgb : new int[w * h];
         if (glowArgb == null) java.util.Arrays.fill(glowPixels, 0xFF000000);
         baked = true;

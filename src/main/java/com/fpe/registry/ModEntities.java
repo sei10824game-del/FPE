@@ -27,7 +27,7 @@ public final class ModEntities {
         return ENTITIES.register(id, () -> EntityType.Builder.of(f, MobCategory.MONSTER).sized(w, h).clientTrackingRange(10).updateInterval(2).build(FpeMod.MODID + ":" + id));
     }
 
-    public static final RegistryObject<EntityType<MissCircle>> MISS_CIRCLE = chara("miss_circle", MissCircle::new, 0.7f, 2.2f);
+    public static final RegistryObject<EntityType<MissCircle>> MISS_CIRCLE = chara("miss_circle", MissCircle::new, 0.8f, 2.5f);
     public static final RegistryObject<EntityType<MissThavel>> MISS_THAVEL = chara("miss_thavel", MissThavel::new, 0.7f, 2.0f);
     public static final RegistryObject<EntityType<MissBloomie>> MISS_BLOOMIE = chara("miss_bloomie", MissBloomie::new, 0.7f, 2.0f);
     public static final RegistryObject<EntityType<Alice>> ALICE = chara("alice", Alice::new, 0.7f, 2.0f);
@@ -37,7 +37,7 @@ public final class ModEntities {
     public static final RegistryObject<EntityType<InfectedBloomie>> INFECTED_BLOOMIE = chara("infected_bloomie", InfectedBloomie::new, 1.3f, 3.2f);
     public static final RegistryObject<EntityType<InfectedZip>> INFECTED_ZIP = chara("infected_zip", InfectedZip::new, 1.5f, 2.3f);
     public static final RegistryObject<EntityType<DangerAlice>> DANGER_ALICE = chara("danger_alice", DangerAlice::new, 0.7f, 2.0f);
-    public static final RegistryObject<EntityType<Fen>> FEN = chara("fen", Fen::new, 0.9f, 2.5f);
+    public static final RegistryObject<EntityType<Fen>> FEN = chara("fen", Fen::new, 1.0f, 2.8f);
     public static final RegistryObject<EntityType<Aiden>> AIDEN = chara("aiden", Aiden::new, 0.6f, 1.7f);
 
     public static final RegistryObject<EntityType<FpeProjectile>> PROJECTILE = ENTITIES.register("projectile", () ->

@@ -19,7 +19,7 @@ public final class FenSpec {
             BAND = 0xEDE6D8, CLAW = 0x111116, HAIR = 0xF59A2E, HAIR_M = 0xE8801F, HAIR_D = 0xCF6516, BLADE = 0x6A0D1C, BLADE_E = 0xC0283E,
             CAT = 0x18181F, EYE = 0xFF8A1E;
 
-    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("fen", 0.8f);
+    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("fen", 0.9f);
     static final ModelSpec PROC = build();
 
     private static ModelSpec build() {
