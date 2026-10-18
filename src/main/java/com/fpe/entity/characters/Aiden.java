@@ -199,6 +199,53 @@ public class Aiden extends FpeEntity {
                         FpeUtil.sound(this, SoundEvents.TRIDENT_THROW, 1f, 0.5f);
                     }
                 }));
+        // 11 saw blade waves: flat sweep (12) + backhand (21), each launches a piercing crescent
+        out.add(Ability.of("bladewave", 30, 80).range(3.5, 12).weight(3)
+                .tick((e, t, k) -> {
+                    if (k == 4) FpeUtil.sound(this, SoundEvents.GRINDSTONE_USE, 0.8f, 0.8f);
+                    if (k == 12 || k == 21) {
+                        Vec3 from = FpeUtil.ahead(this, 0.6, 1.0);
+                        FpeUtil.projectile(this, FpeProjectile.Kind.BLADE_WAVE, from, FpeUtil.aim(from, t, 1.1, 0.3), dmg(k == 12 ? 0.9f : 1.0f));
+                        if (isEnraged()) for (int s = -1; s <= 1; s += 2)
+                            FpeUtil.projectile(this, FpeProjectile.Kind.BLADE_WAVE, from, FpeUtil.aim(from, t, 1.1, 0.3).yRot((float) Math.toRadians(18 * s)), dmg(0.7f));
+                        slash(0.8, 1.0, 2.6f, 160, k == 12 ? 4 : -4);
+                        FpeUtil.hitCone(this, 2.6, 70, dmg(0.6f), 0.4, 0.1);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 0.7f);
+                    }
+                }));
+        // 12 bear trap: underhand toss (12) onto the target's predicted spot; snaps shut after a short warm-up
+        out.add(Ability.of("beartrap", 34, 110).range(3, 10).weight(2)
+                .tick((e, t, k) -> {
+                    if (k == 6) FpeUtil.sound(this, SoundEvents.IRON_TRAPDOOR_OPEN, 1f, 0.6f);
+                    if (k == 12) {
+                        Vec3 at = t.position().add(t.getDeltaMovement().multiply(6, 0, 6));
+                        FpeUtil.fx(this, FpeFx.Kind.RING_TRAP, at.add(0, 0.05, 0), 14, 20, 1.8f, dmg(1.4f));
+                        FpeUtil.particles(this, ParticleTypes.CRIT, at.add(0, 0.2, 0), 10, 0.6, 0.05, 0.6, 0.05);
+                        FpeUtil.sound(this, SoundEvents.CHAIN_PLACE, 1f, 0.8f);
+                    }
+                    if (k == 26) {
+                        for (LivingEntity v : FpeUtil.enemiesInRadius(this, t.position(), 2.4, 2, 0.5))
+                            v.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 3));
+                        FpeUtil.sound(this, SoundEvents.IRON_TRAPDOOR_CLOSE, 1.2f, 0.5f);
+                    }
+                }));
+        // 13 tool rain (enraged): flings blades skyward (10), five waves rain down around the target, last wave a falling axe
+        out.add(Ability.of("toolrain", 50, 220).range(0, 12).weight(3).when(FpeEntity::isEnraged).blind()
+                .tick((e, t, k) -> {
+                    if (k == 10) {
+                        FpeUtil.particles(this, ParticleTypes.CRIT, position().add(0, 2.2, 0), 20, 0.4, 0.8, 0.4, 0.3);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 1.4f);
+                    }
+                    if (k == 16 || k == 22 || k == 28 || k == 34 || k == 40) {
+                        int n = k == 40 ? 1 : 3;
+                        for (int i = 0; i < n; i++) {
+                            double a = random.nextDouble() * Math.PI * 2, r = k == 40 ? 0 : 0.6 + random.nextDouble() * 1.8;
+                            Vec3 from = t.position().add(Math.cos(a) * r, 7, Math.sin(a) * r);
+                            FpeUtil.projectile(this, k == 40 ? FpeProjectile.Kind.AXE : FpeProjectile.Kind.KNIFE, from, new Vec3(0, -1.1, 0), dmg(k == 40 ? 1.3f : 0.55f));
+                        }
+                        FpeUtil.sound(this, SoundEvents.ARROW_SHOOT, 0.8f, 0.6f);
+                    }
+                }));
     }
 
     // ------------------------------------------------------------------ sounds (quiet, unsettling child)

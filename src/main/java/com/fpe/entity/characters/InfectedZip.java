@@ -25,8 +25,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Infected Zip (Basics in Survival AU): feral inked quadruped, huge maw, spiky mane, one bat-blade wing and a long blade tail.
- * Ticks match client/spec/InfectedZipSpec.
+ * Infected Zip: feral ink-sketch quadruped, gaping maw, spiky mane + back, spiral hat, two bat wings and a long bristly blade tail.
+ * Ticks match the animations in assets/fpe/bbmodels/infected_zip.bbmodel (tools/bbgen/chars/infected_zip.py).
  */
 public class InfectedZip extends FpeEntity {
     private boolean landed;
@@ -147,5 +147,61 @@ public class InfectedZip extends FpeEntity {
                 }
             }
         }));
+        // scorpion tail: the blade tail arcs over the back and stabs far forward
+        out.add(Ability.of("tail_stab", 34, 55).range(2, 6.5).weight(3).faceUntil(13).tick((e, t, tk) -> {
+            if (tk == 16) {
+                Vec3 from = e.position().add(0, 1.2, 0);
+                FpeUtil.hitLine(e, from, from.add(FpeUtil.forward(e).scale(6.2)), 1.1, e.dmg(1.6f), 0.7, 0.2);
+                for (LivingEntity v : FpeUtil.enemiesInRadius(e, from.add(FpeUtil.forward(e).scale(5)), 1.6, 2, 1)) infect(v, 80);
+                FpeUtil.particles(e, ParticleTypes.SQUID_INK, from.add(FpeUtil.forward(e).scale(5)), 14, 0.2, 0.2, 0.2, 0.08);
+                snd(e, SoundEvents.TRIDENT_HIT, 1.2f, 0.6f);
+            }
+        }));
+        // wing gust: both wings beat twice, blasting enemies back and loosing ink quills
+        out.add(Ability.of("wing_gust", 42, 90).range(3, 11).weight(2).faceUntil(22).tick((e, t, tk) -> {
+            if (tk == 16 || tk == 26) {
+                for (LivingEntity v : FpeCombat.cone(e, 9, 55)) {
+                    FpeUtil.knock(v, e.position(), tk == 16 ? 1.4 : 1.0, 0.35);
+                    v.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 50, 1));
+                }
+                FpeUtil.arc(e, ParticleTypes.CLOUD, e.position().add(0, 1.2, 0), e.getYRot(), 55, 4, 14);
+                snd(e, SoundEvents.ENDER_DRAGON_FLAP, 1.4f, 0.7f);
+            }
+            if (tk == 17 || tk == 27) {
+                Vec3 from = e.position().add(0, 2.2, 0);
+                Vec3 v = FpeUtil.aim(from, t, 0.9, 0.2);
+                for (int a = -20; a <= 20; a += 10) FpeUtil.projectile(e, FpeProjectile.Kind.KNIFE, from, FpeCombat.rotY(v, a), e.dmg(0.6f));
+            }
+        }));
+        // ink tendrils: claws plunge into the floor, ink tentacles burst up under and around the target
+        out.add(Ability.of("ink_tendrils", 46, 100).range(3, 14).weight(2).faceUntil(14).tick((e, t, tk) -> {
+            if (tk == 14) {
+                snd(e, SoundEvents.SLIME_SQUISH, 1.5f, 0.4f);
+                FpeUtil.particles(e, ParticleTypes.SQUID_INK, FpeUtil.ahead(e, 1.6, 0.2), 30, 0.8, 0.1, 0.8, 0.05);
+            }
+            if (tk == 18) FpeUtil.fx(e, FpeFx.Kind.TENTACLE, t.position(), 6, 40, 1.4f, e.dmg(1.1f));
+            if (tk == 22 || tk == 26) {
+                for (int i = 0; i < 3; i++) {
+                    Vec3 off = FpeCombat.rotY(new Vec3(2.4, 0, 0), i * 120 + tk * 17);
+                    FpeUtil.fx(e, FpeFx.Kind.TENTACLE, t.position().add(off), 6, 34, 1.2f, e.dmg(0.8f));
+                }
+            }
+        }));
+        // enraged signature: beats its wings, rockets skyward and crashes down on the target in a spike crater
+        out.add(Ability.of("dive_bomb", 60, 200).range(4, 18).weight(4).moving().when(FpeEntity::isEnraged).faceUntil(20)
+                .start((e, t, tk) -> ((InfectedZip) e).landed = false)
+                .tick((e, t, tk) -> {
+                    InfectedZip z = (InfectedZip) e;
+                    if (tk == 12) { e.setDeltaMovement(0, 1.25, 0); snd(e, SoundEvents.ENDER_DRAGON_FLAP, 1.6f, 0.6f); }
+                    if (tk == 20) { e.dashToward(t.position(), 1.9, -0.9); snd(e, SoundEvents.RAVAGER_ROAR, 1.4f, 0.7f); }
+                    if (tk > 21 && !z.landed && e.onGround()) {
+                        z.landed = true;
+                        FpeUtil.hitRadius(e, e.position(), 4.5, e.dmg(2.0f), 1.6, 0.6);
+                        FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, e.position().add(0, 0.1, 0), 0, 16, 8f, e.dmg(0.8f));
+                        for (int a = 0; a < 360; a += 45)
+                            FpeUtil.fx(e, FpeFx.Kind.SPIKE, e.position().add(FpeCombat.rotY(new Vec3(3, 0, 0), a)), 4, 30, 1f, e.dmg(0.9f)).param(1.6f);
+                        snd(e, SoundEvents.GENERIC_EXPLODE, 1.2f, 0.8f);
+                    }
+                }));
     }
 }

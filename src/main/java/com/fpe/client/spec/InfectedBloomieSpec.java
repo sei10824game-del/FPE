@@ -17,7 +17,8 @@ public final class InfectedBloomieSpec {
     static final int BONE = 0xC4C9D8, BONE_DK = 0x8E96AE, BONE_LT = 0xE6E9F2, INK = 0x14111C, INK2 = 0x2B2638, EYE = 0xF2F8FF, EDGE = 0xD8DCEA,
             TOOTH = 0xE8E6DC, OOZE = 0x0B0910, VEIN = 0x5E6AA0;
 
-    public static final ModelSpec SPEC = build();
+    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("infected_bloomie", 1.0f);
+    static final ModelSpec PROC = build();
 
     private static ModelSpec build() {
         ModelSpec m = new ModelSpec("infected_bloomie").shadow(1.0f);

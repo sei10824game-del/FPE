@@ -17,7 +17,10 @@ public final class DangerAliceSpec {
     static final int HAIR = 0x5E4234, HAIR_D = 0x46301F, SKIN = 0xD6A476, COAT = 0x17171D, COAT_L = 0x24242C, GREY = 0x484852, GREY_D = 0x34343E,
             BLACK = 0x0F0F13, BOOT = 0x131318, SIGN = 0xE8A850, STEEL = 0xC4C8D0, EYE = 0xFFD83A;
 
-    public static final ModelSpec SPEC = build();
+    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("danger_alice", 0.6f);
+    /** variant 1 (monster form); needs registering: FpeRenderer(c, SPEC, PHASE2) in ClientSetup + Specs.all() */
+    public static final ModelSpec PHASE2 = com.fpe.client.model.BbModel.load("danger_alice_boss", 1.4f);
+    static final ModelSpec PROC = build();
 
     private static final String[] SPIKES = {"spk0", "spk1", "spk2", "spk3", "spk4", "spk5"};
 

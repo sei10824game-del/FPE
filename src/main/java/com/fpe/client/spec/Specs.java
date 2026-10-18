@@ -12,7 +12,7 @@ public final class Specs {
     public static List<ModelSpec> all() {
         List<ModelSpec> l = new ArrayList<>(List.of(
                 MissCircleSpec.SPEC, MissThavelSpec.SPEC, MissBloomieSpec.SPEC, AliceSpec.PHASE1, AliceSpec.PHASE2,
-                RedCircleSpec.SPEC, DangerThavelSpec.SPEC, DangerBloomieSpec.SPEC, InfectedBloomieSpec.SPEC, InfectedZipSpec.SPEC, DangerAliceSpec.SPEC, FenSpec.SPEC, AidenSpec.SPEC,
+                RedCircleSpec.SPEC, DangerThavelSpec.SPEC, DangerBloomieSpec.SPEC, InfectedBloomieSpec.SPEC, InfectedZipSpec.SPEC, DangerAliceSpec.SPEC, DangerAliceSpec.PHASE2, FenSpec.SPEC, AidenSpec.SPEC,
                 FxSpecs.SPIKE, FxSpecs.TENTACLE));
         ProjectileSpecs.all().forEach(l::add);
         return l;

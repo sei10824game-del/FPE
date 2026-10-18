@@ -25,8 +25,10 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Miss Circle (pyromaniac AU). Giant drawing compass + thigh-holstered flamethrower.
- * Abilities: sweep, lunge, splitSlam, compassThrow, drawCircle, flame, fireball, charge, hairWhip, combo (rage), inferno (rage).
+ * Miss Circle (normal teacher, confirmed art docs/ref/confirmed/miss_circle.jpg). Giant steel drawing compass (needle + pencil leg),
+ * black claw hand. Model + animations: assets/fpe/bbmodels/miss_circle.bbmodel (tools/bbgen/chars/miss_circle.py).
+ * Abilities: sweep, lunge, splitSlam, compassThrow, drawCircle, charge, hairWhip, pencilVolley, scissorSnip, arcSlash,
+ * combo (rage), perfectCircle (rage signature), impale (canon skewer + slam), pencilRain (zone).
  */
 public class MissCircle extends FpeEntity {
     /** direction locked at the start of directional moves (slam crack lines) */
@@ -57,35 +59,10 @@ public class MissCircle extends FpeEntity {
         return FpeUtil.forward(e).scale(Math.cos(r)).add(FpeUtil.right(e).scale(Math.sin(r)));
     }
 
-    /** fire cone: damage + ignite everything within range/halfAngle of dir */
-    private static void fireCone(FpeEntity e, Vec3 origin, Vec3 dir, double range, double halfAngle, float dmg, int fireSecs) {
-        AABB box = new AABB(origin, origin).inflate(range + 1, 2, range + 1);
-        for (LivingEntity v : e.level().getEntitiesOfClass(LivingEntity.class, box, x -> FpeUtil.canHurt(e, x))) {
-            Vec3 d = new Vec3(v.getX() - origin.x, 0, v.getZ() - origin.z);
-            double len = d.length();
-            if (len - v.getBbWidth() * 0.5 > range) continue;
-            if (len > 0.3 && Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, d.normalize().dot(dir))))) > halfAngle) continue;
-            v.invulnerableTime = Math.min(v.invulnerableTime, 10);
-            if (FpeUtil.hit(e, v, dmg, 0.15, 0.05)) v.setSecondsOnFire(fireSecs);
-        }
-    }
-
-    private static void sprayParticles(FpeEntity e, Vec3 origin, Vec3 dir, double range) {
-        for (int i = 0; i < 7; i++) {
-            double d = 0.6 + e.getRandom().nextDouble() * range;
-            Vec3 at = origin.add(dir.scale(d));
-            double s = 0.1 + d * 0.12;
-            FpeUtil.particles(e, ParticleTypes.FLAME, at, 2, s, s * 0.6, s, 0.02);
-        }
-        FpeUtil.particles(e, ParticleTypes.LARGE_SMOKE, origin.add(dir.scale(range * 0.9)), 1, 0.4, 0.3, 0.4, 0.01);
-    }
-
     private static void debris(FpeEntity e, Vec3 at) {
         BlockState st = e.level().getBlockState(BlockPos.containing(at.x, at.y - 0.5, at.z));
         if (!st.isAir()) FpeUtil.particles(e, new BlockParticleOption(ParticleTypes.BLOCK, st), at.add(0, 0.2, 0), 14, 0.35, 0.15, 0.35, 0.15);
     }
-
-    private static Vec3 muzzle(FpeEntity e) { return e.position().add(0, 1.35, 0).add(FpeUtil.forward(e).scale(1.1)).add(FpeUtil.right(e).scale(-0.35)); }
 
     // ------------------------------------------------------------------ abilities
     @Override
@@ -157,9 +134,9 @@ public class MissCircle extends FpeEntity {
                         lockPos = e.position();
                     }
                     if (k >= 6 && k <= 30) {
-                        // the pencil leg traces the circle in sync with her spin (model yaw goes 0 -> -360)
-                        double spin = -360.0 * (k - 6) / 24.0;
-                        Vec3 d = dirRight(e, spin + 90);
+                        // the pencil leg (pointing ahead) traces the circle in sync with her right-hand spin (model ry 0 -> -360)
+                        double spin = 360.0 * (k - 6) / 24.0;
+                        Vec3 d = dirRight(e, spin);
                         FpeUtil.particles(e, ParticleTypes.FLAME, lockPos.add(d.scale(5.5)).add(0, 0.1, 0), 3, 0.15, 0.02, 0.15, 0.01);
                         FpeUtil.particles(e, ParticleTypes.ELECTRIC_SPARK, e.position().add(d.scale(1.8)).add(0, 0.1, 0), 2, 0.1, 0.05, 0.1, 0.05);
                         if (k % 4 == 0) FpeUtil.sound(e, SoundEvents.GRINDSTONE_USE, 0.5f, 1.4f);
@@ -167,35 +144,7 @@ public class MissCircle extends FpeEntity {
                     if (k == 31) FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1.2f, 0.8f);
                 }));
 
-        // 6. flamethrower stream (pyromaniac)
-        out.add(Ability.of("flame", 52, 140).range(0, 6.5).weight(3)
-                .tick((e, t, k) -> {
-                    if (k == 6) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_LEATHER, 1f, 0.8f);
-                    if (k == 12) FpeUtil.sound(e, SoundEvents.FLINTANDSTEEL_USE, 1f, 0.8f);
-                    if (k >= 14 && k <= 42) {
-                        double sweep = Math.sin((k - 14) * 0.22) * 18;
-                        Vec3 dir = dirRight(e, sweep);
-                        Vec3 o = muzzle(e);
-                        sprayParticles(e, o, dir, 6);
-                        if (k % 3 == 0) fireCone(e, o.subtract(dir.scale(1.0)), dir, 6.5, 20, e.dmg(0.35f), 4);
-                        if (k % 6 == 2) FpeUtil.sound(e, SoundEvents.BLAZE_SHOOT, 0.7f, 0.6f);
-                    }
-                }));
-
-        // 7. fireball shot(s)
-        out.add(Ability.of("fireball", 30, 80).range(5, 20).weight(3)
-                .tick((e, t, k) -> {
-                    if (k == 14 || (k == 20 && e.isEnraged())) {
-                        Vec3 o = muzzle(e);
-                        Vec3 v = FpeUtil.aim(o, t, 0.9, 0.5);
-                        FpeUtil.projectile(e, FpeProjectile.Kind.FIREBALL, o, v, e.dmg(1.4f));
-                        if (e.isEnraged()) for (int s = -1; s <= 1; s += 2) FpeUtil.projectile(e, FpeProjectile.Kind.FIREBALL, o, rotY(v, s * 14).add(0, v.y, 0), e.dmg(1.0f));
-                        FpeUtil.sound(e, SoundEvents.GHAST_SHOOT, 1f, 0.9f);
-                        FpeUtil.particles(e, ParticleTypes.FLAME, o, 12, 0.2, 0.2, 0.2, 0.08);
-                    }
-                }));
-
-        // 8. sprinting chase with the compass scraping behind, rising slash
+        // 6. sprinting chase with the compass scraping behind, rising slash
         out.add(Ability.of("charge", 34, 100).range(5, 18).weight(3)
                 .tick((e, t, k) -> {
                     if (k == 4) FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1f, 1.2f);
@@ -214,7 +163,7 @@ public class MissCircle extends FpeEntity {
                     }
                 }));
 
-        // 9. hair whip
+        // 7. hair whip
         out.add(Ability.of("hairWhip", 28, 70).range(0, 4).weight(3)
                 .tick((e, t, k) -> {
                     if (k == 11) FpeUtil.sound(e, SoundEvents.PHANTOM_FLAP, 1.2f, 0.6f);
@@ -225,19 +174,19 @@ public class MissCircle extends FpeEntity {
                     }
                 }));
 
-        // 10. enraged three-hit combo
+        // 12. enraged three-hit combo
         out.add(Ability.of("combo", 44, 90).range(0, 5).weight(4).when(FpeEntity::isEnraged)
                 .tick((e, t, k) -> {
                     if (k == 6 || k == 15) e.dashForward(0.45, 0);
                     if (k == 22) e.dashForward(0.4, 0.45);
                     if (k == 8) {
                         FpeUtil.hitCone(e, 3.6, 80, e.dmg(1.1f), 0.5, 0.2);
-                        FpeUtil.fx(e, FpeFx.Kind.ARC, e.position().add(0, 1.1, 0), 0, 7, 3.6f, 0).param(170).color(0xFFFFB050);
+                        FpeUtil.fx(e, FpeFx.Kind.ARC, e.position().add(0, 1.1, 0), 0, 7, 3.6f, 0).param(170).color(0xFFE6E8F4);
                         FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 0.9f);
                     }
                     if (k == 17) {
                         FpeUtil.hitCone(e, 3.6, 80, e.dmg(1.1f), 0.5, 0.4);
-                        FpeUtil.fx(e, FpeFx.Kind.ARC, e.position().add(0, 1.3, 0), 0, 7, 3.6f, 0).param(170).color(0xFFFFB050).setXRot(-35);
+                        FpeUtil.fx(e, FpeFx.Kind.ARC, e.position().add(0, 1.3, 0), 0, 7, 3.6f, 0).param(170).color(0xFFE6E8F4).setXRot(-35);
                         FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 1.1f);
                     }
                     if (k == 30) {
@@ -248,29 +197,150 @@ public class MissCircle extends FpeEntity {
                     }
                 }));
 
-        // 11. enraged inferno: two spinning fire spirals, then compass plant + fireball nova
-        out.add(Ability.of("inferno", 64, 220).range(0, 9).weight(3).when(FpeEntity::isEnraged).faceUntil(10)
+        // 8. pencil volley: two sidearm fans of pencil darts (12, 21); enraged = 5 per fan
+        out.add(Ability.of("pencilVolley", 34, 90).range(4, 16).weight(3).faceUntil(20)
+                .tick((e, t, k) -> {
+                    if (k == 5 || k == 16) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_LEATHER, 1f, 1.4f);
+                    if (k == 12 || k == 21) {
+                        Vec3 from = e.position().add(0, 1.45, 0).add(FpeUtil.right(e).scale(0.35));
+                        Vec3 v = FpeUtil.aim(from, t, 1.25, 0.4);
+                        int n = e.isEnraged() ? 2 : 1;
+                        for (int i = -n; i <= n; i++) FpeUtil.projectile(e, FpeProjectile.Kind.PENCIL, from, rotY(v, i * 9).add(0, v.y, 0), e.dmg(0.8f));
+                        FpeUtil.sound(e, SoundEvents.ARROW_SHOOT, 1f, 1.3f);
+                    }
+                }));
+
+        // 9. scissor snip: compass legs flung open, step in, snap shut on 14 (heavy hit + slowness)
+        out.add(Ability.of("scissorSnip", 30, 80).range(0, 4.2).weight(3).faceUntil(12)
+                .tick((e, t, k) -> {
+                    if (k == 4) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_IRON, 1f, 1.3f);
+                    if (k == 10) e.dashForward(0.45, 0);
+                    if (k == 14) {
+                        Vec3 from = e.position().add(0, 1.2, 0), to = from.add(FpeUtil.forward(e).scale(3.6));
+                        if (FpeUtil.hitLine(e, from, to, 0.9, e.dmg(2.1f), 0.3, 0.1) > 0)
+                            for (LivingEntity v : FpeUtil.enemiesInRadius(e, from.add(FpeUtil.forward(e).scale(2.4)), 1.8, 3, 1))
+                                v.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 50, 2));
+                        FpeUtil.sound(e, SoundEvents.SHEEP_SHEAR, 1.4f, 0.5f);
+                        FpeUtil.sound(e, SoundEvents.ANVIL_PLACE, 0.5f, 1.8f);
+                        FpeUtil.particles(e, ParticleTypes.CRIT, to, 12, 0.3, 0.3, 0.3, 0.2);
+                    }
+                }));
+
+        // 10. arc slash: diagonal compass slash launches a crescent wave (14); backhand return slash (24), wave too when enraged
+        out.add(Ability.of("arcSlash", 36, 100).range(2, 12).weight(3).faceUntil(12)
+                .tick((e, t, k) -> {
+                    if (k == 6) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_CHAIN, 1f, 0.7f);
+                    if (k == 14 || k == 24) {
+                        boolean first = k == 14;
+                        FpeUtil.hitCone(e, 3.4, 75, e.dmg(first ? 1.4f : 1.0f), 0.6, 0.2);
+                        FpeUtil.fx(e, FpeFx.Kind.ARC, e.position().add(0, 1.2, 0), 0, 8, 3.4f, 0).param(160).color(0xFFE6E8F4).setXRot(first ? 40 : -10);
+                        FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1.2f, first ? 0.7f : 0.9f);
+                        if (first || e.isEnraged()) {
+                            Vec3 from = e.position().add(0, 1.1, 0).add(FpeUtil.forward(e).scale(0.8));
+                            FpeUtil.projectile(e, FpeProjectile.Kind.BLADE_WAVE, from, FpeUtil.aim(from, t, 1.1, 0.2), e.dmg(1.2f));
+                        }
+                    }
+                }));
+
+        // 11. enraged signature "perfect circle": leap, plant the compass (20), draw two turns around herself while circles open under the target,
+        //     rip the compass out (48) -> every circle bursts + shockwave
+        out.add(Ability.of("perfectCircle", 64, 260).range(0, 12).weight(3).blind().when(FpeEntity::isEnraged).faceUntil(14)
                 .tick((e, t, k) -> {
                     if (k == 2) FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1.4f, 0.6f);
-                    if (k >= 10 && k <= 46) {
-                        // gun points to her left (+x) and the model spins 0 -> -720 over ticks 10..46
-                        double spin = -720.0 * (k - 10) / 36.0;
-                        Vec3 dir = dirRight(e, spin - 90);
-                        Vec3 o = e.position().add(0, 1.3, 0).add(dir.scale(0.9));
-                        sprayParticles(e, o, dir, 6);
-                        fireCone(e, o.subtract(dir), dir, 6.5, 18, e.dmg(0.4f), 5);
-                        if (k % 5 == 0) FpeUtil.sound(e, SoundEvents.BLAZE_SHOOT, 0.8f, 0.5f);
+                    if (k == 14) e.dashForward(0.25, 0.45);
+                    if (k == 20) {
+                        lockPos = e.position();
+                        FpeUtil.hitRadius(e, e.position().add(FpeUtil.forward(e).scale(1.5)), 2.0, e.dmg(1.4f), 0.5, 0.5);
+                        FpeUtil.fx(e, FpeFx.Kind.RING_TRAP, lockPos, 28, 30, 6.5f, e.dmg(1.8f));
+                        FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 0.9f, 0.6f);
+                        debris(e, e.position().add(FpeUtil.forward(e).scale(1.5)));
+                    }
+                    if (k == 26 || k == 34 || k == 42) FpeUtil.fx(e, FpeFx.Kind.RING_TRAP, t.position(), 48 - k, 20, 2.4f, e.dmg(1.3f));
+                    if (k > 22 && k <= 46) {
+                        // pencil tip on the ground, two right-hand turns (model ry 0 -> -720 over 22..46)
+                        double yaw = (k - 22) * 30.0;
+                        Vec3 d = dirRight(e, yaw);
+                        FpeUtil.particles(e, ParticleTypes.ELECTRIC_SPARK, lockPos.add(d.scale(2.6)).add(0, 0.1, 0), 3, 0.1, 0.02, 0.1, 0.02);
+                        FpeUtil.particles(e, ParticleTypes.END_ROD, lockPos.add(d.scale(6.5)).add(0, 0.1, 0), 2, 0.1, 0.02, 0.1, 0.0);
+                        if (k % 4 == 0) FpeUtil.sound(e, SoundEvents.GRINDSTONE_USE, 0.6f, 1.2f);
                     }
                     if (k == 48) {
-                        FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, e.position(), 0, 16, 7f, e.dmg(1.2f));
-                        FpeUtil.hitRadius(e, e.position(), 2.5, e.dmg(1.5f), 1.0, 0.6);
-                        for (int i = 0; i < 6; i++) {
-                            Vec3 d = dirRight(e, i * 60);
-                            FpeUtil.projectile(e, FpeProjectile.Kind.FIREBALL, e.position().add(0, 1.2, 0).add(d), d.scale(0.6).add(0, 0.05, 0), e.dmg(1.0f));
+                        FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, e.position(), 0, 14, 6.5f, e.dmg(1.0f));
+                        FpeUtil.hitRadius(e, e.position(), 2.6, e.dmg(1.2f), 1.2, 0.6);
+                        FpeUtil.sound(e, SoundEvents.GENERIC_EXPLODE, 1.1f, 0.8f);
+                    }
+                    if (k == 52) FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1.4f, 0.7f);
+                }));
+
+        impale(out);
+    }
+
+    /** victim skewered on the needle during "impale" */
+    private LivingEntity skewered;
+
+    private void impale(List<Ability> out) {
+        // 13. canon: needle thrust (11) -> the victim is hoisted overhead on the compass (12..24) -> slammed down in front (26)
+        out.add(Ability.of("impale", 40, 120).range(0, 3.6).weight(3).faceUntil(10)
+                .start((e, t, k) -> skewered = null)
+                .tick((e, t, k) -> {
+                    if (k == 4) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_CHAIN, 1f, 0.5f);
+                    if (k == 10) e.dashForward(0.4, 0);
+                    if (k == 11) {
+                        Vec3 from = e.position().add(0, 1.3, 0), to = from.add(FpeUtil.forward(e).scale(3.2));
+                        FpeUtil.sound(e, SoundEvents.TRIDENT_HIT, 1.2f, 0.7f);
+                        for (LivingEntity v : FpeUtil.enemiesInRadius(e, from.add(FpeUtil.forward(e).scale(1.8)), 1.6, 1.5, 1.5)) {
+                            if (FpeUtil.hit(e, v, e.dmg(1.2f), 0, 0)) { skewered = v; break; }
                         }
-                        FpeUtil.sound(e, SoundEvents.GENERIC_EXPLODE, 1.3f, 0.6f);
-                        FpeUtil.arc(e, ParticleTypes.FLAME, e.position().add(0, 0.2, 0), 0, 180, 3, 40);
-                        debris(e, e.position().add(FpeUtil.forward(e).scale(1.5)));
+                        FpeUtil.particles(e, ParticleTypes.CRIT, to, 10, 0.2, 0.2, 0.2, 0.2);
+                    }
+                    if (k > 11 && k <= 25 && skewered != null && skewered.isAlive()) {
+                        // follow the needle tip: forward 2.2 at chest height, rising to ~3 blocks overhead
+                        double lift = Math.min(1.0, (k - 11) / 11.0);
+                        Vec3 tip = e.position().add(FpeUtil.forward(e).scale(2.2 - 1.6 * lift)).add(0, 1.2 + 2.0 * lift, 0);
+                        skewered.setDeltaMovement(tip.subtract(skewered.position()).scale(0.6));
+                        skewered.hurtMarked = true;
+                        skewered.fallDistance = 0;
+                        if (k % 4 == 0) FpeUtil.particles(e, ParticleTypes.DAMAGE_INDICATOR, skewered.position().add(0, 1, 0), 2, 0.2, 0.2, 0.2, 0.1);
+                    }
+                    if (k == 26) {
+                        Vec3 at = e.position().add(FpeUtil.forward(e).scale(2.0));
+                        if (skewered != null && skewered.isAlive()) {
+                            skewered.setDeltaMovement(at.subtract(skewered.position()).scale(0.5).add(0, -1.4, 0));
+                            skewered.hurtMarked = true;
+                            FpeUtil.hit(e, skewered, e.dmg(1.7f), 0.2, 0.1);
+                        }
+                        FpeUtil.hitRadius(e, at, 1.8, e.dmg(0.9f), 0.8, 0.4);
+                        FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 0.9f, 0.6f);
+                        FpeUtil.sound(e, SoundEvents.GENERIC_EXPLODE, 0.6f, 1.2f);
+                        debris(e, at);
+                        skewered = null;
+                    }
+                    if (k == 30) FpeUtil.sound(e, SoundEvents.TRIDENT_RETURN, 1f, 0.7f);
+                }));
+
+        // 14. pencil rain: hurl a fistful of pencils skyward (12), then 4 waves fall around the target, one per compass tap (18/22/26/30)
+        out.add(Ability.of("pencilRain", 46, 150).range(5, 18).weight(2)
+                .tick((e, t, k) -> {
+                    if (k == 5) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_LEATHER, 1f, 1.3f);
+                    if (k == 12) {
+                        Vec3 from = e.position().add(0, 2.4, 0);
+                        for (int i = 0; i < 4; i++)
+                            FpeUtil.projectile(e, FpeProjectile.Kind.PENCIL, from, new Vec3((e.getRandom().nextDouble() - 0.5) * 0.3, 1.6, (e.getRandom().nextDouble() - 0.5) * 0.3), 0f);
+                        FpeUtil.sound(e, SoundEvents.ARROW_SHOOT, 1.2f, 0.8f);
+                        lockPos = t.position();
+                    }
+                    if (k == 14) lockPos = t.position();
+                    if (k >= 14 && k <= 30) FpeUtil.particles(e, ParticleTypes.WAX_OFF, lockPos.add(0, 0.1, 0), 3, 1.4, 0.02, 1.4, 0);
+                    if (k == 18 || k == 22 || k == 26 || k == 30) {
+                        Vec3 c = k == 18 ? lockPos : lockPos.add(t.position().subtract(lockPos).scale(0.6)); // waves drift after the target
+                        lockPos = c;
+                        int n = e.isEnraged() ? 6 : 4;
+                        for (int i = 0; i < n; i++) {
+                            double a = e.getRandom().nextDouble() * Math.PI * 2, r = i == 0 ? 0 : 0.6 + e.getRandom().nextDouble() * 1.9;
+                            Vec3 at = c.add(Math.cos(a) * r, 7 + e.getRandom().nextDouble(), Math.sin(a) * r);
+                            FpeUtil.projectile(e, FpeProjectile.Kind.PENCIL, at, new Vec3(0, -1.5, 0), e.dmg(0.7f));
+                        }
+                        FpeUtil.sound(e, SoundEvents.ARROW_SHOOT, 0.8f, 1.5f);
                     }
                 }));
     }

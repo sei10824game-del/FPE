@@ -22,7 +22,8 @@ public final class AidenSpec {
 
     static final String[] PROPS = {"axe", "axeL", "hammer", "saw", "knivesR", "knivesL", "crowbar", "pliers", "drill", "nailgun"};
 
-    public static final ModelSpec SPEC = build();
+    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("aiden", 0.6f);
+    static final ModelSpec PROC = build();
 
     private static ModelSpec build() {
         ModelSpec m = new ModelSpec("aiden");

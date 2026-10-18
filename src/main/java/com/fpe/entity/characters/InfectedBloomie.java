@@ -28,10 +28,13 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Infected Bloomie (Basics in Survival AU): a hunched, spindly 3-block creature, drooling black jaw, two long mantis-scythe blades
- * over the back, long clawed forelimbs. Ticks match client/spec/InfectedBloomieSpec.
+ * over the back, long clawed forelimbs. Animations: assets/fpe/bbmodels/infected_bloomie.bbmodel (tools/bbgen/chars/infected_bloomie.py),
+ * hit ticks below = strike peaks there.
  */
 public class InfectedBloomie extends FpeEntity {
     private boolean landed;
+    private Vec3 puddle = Vec3.ZERO;
+    private int side = 1;
 
     public InfectedBloomie(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
@@ -160,6 +163,95 @@ public class InfectedBloomie extends FpeEntity {
                     Vec3 d = FpeCombat.rotY(new Vec3(1, 0, 0), i * 30 + tk * 3).scale(tk == 30 ? 3 : 6);
                     FpeUtil.fx(e, FpeFx.Kind.SPIKE, e.position().add(d), 8, 28, 1f, e.dmg(1f)).param(1.3f);
                 }
+            }
+        }));
+        // hook: the serrated back-blade lashes out, snags and reels the victim in, then the knife-blade jabs
+        out.add(Ability.of("hook", 38, 80).range(4, 11).weight(3).faceUntil(12).tick((e, t, tk) -> {
+            if (tk == 14) {
+                Vec3 a = e.position().add(0, 2.4, 0), b = a.add(FpeUtil.forward(e).scale(10)).add(0, -1.4, 0);
+                for (int i = 1; i <= 10; i++) FpeUtil.particles(e, ParticleTypes.SQUID_INK, a.add(b.subtract(a).scale(i / 10.0)), 2, 0.05, 0.05, 0.05, 0.01);
+                for (LivingEntity v : FpeUtil.enemiesInRadius(e, e.position(), 11, 3, 1)) {
+                    Vec3 rel = v.position().subtract(e.position());
+                    if (rel.horizontalDistance() < 0.1 || rel.normalize().dot(FpeUtil.forward(e)) < 0.85) continue;
+                    if (FpeUtil.hit(e, v, e.dmg(1.0f), 0, 0)) {
+                        Vec3 d = rel.scale(-1).normalize().scale(Math.min(1.8, rel.length() * 0.22));
+                        v.setDeltaMovement(d.x, 0.45, d.z); v.hurtMarked = true;
+                        FpeCombat.bleed(e, v, 60);
+                    }
+                }
+                snd(e, SoundEvents.CHAIN_HIT, 1.4f, 0.6f);
+            }
+            if (tk == 24) {
+                FpeUtil.hitCone(e, 4.2, 35, e.dmg(1.3f), 1.0, 0.3);
+                snd(e, SoundEvents.TRIDENT_HIT, 1f, 0.7f);
+            }
+        }));
+        // stomp: rears up on the hind legs and slams both clawed forelimbs down -> shockwave + a ring of spikes
+        out.add(Ability.of("stomp", 42, 90).range(0, 6).weight(3).faceUntil(16).tick((e, t, tk) -> {
+            if (tk == 20) {
+                Vec3 c = FpeUtil.ahead(e, 1.8, 0);
+                FpeUtil.hitRadius(e, c, 4.0, e.dmg(1.6f), 0.8, 0.7);
+                FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, c.add(0, 0.1, 0), 0, 14, 6f, e.dmg(0.6f));
+                for (int i = 0; i < 8; i++)
+                    FpeUtil.fx(e, FpeFx.Kind.SPIKE, c.add(FpeCombat.rotY(new Vec3(3, 0, 0), i * 45)), 6, 26, 1f, e.dmg(1f)).param(1.2f);
+                FpeUtil.particles(e, ParticleTypes.CAMPFIRE_COSY_SMOKE, c, 12, 1.5, 0.1, 1.5, 0.02);
+                snd(e, SoundEvents.GENERIC_EXPLODE, 0.8f, 1.4f);
+            }
+        }));
+        // ooze: retches up a stream of infected ink that leaves a lingering poison puddle on the ground
+        out.add(Ability.of("ooze", 60, 110).range(3, 12).weight(2).faceUntil(14)
+                .start((e, t, tk) -> ((InfectedBloomie) e).puddle = t.position())
+                .tick((e, t, tk) -> {
+                    InfectedBloomie b = (InfectedBloomie) e;
+                    Vec3 mouth = e.position().add(0, 2.0, 0).add(FpeUtil.forward(e).scale(1.6));
+                    if (tk == 14) b.puddle = t.position();
+                    if (tk >= 16 && tk <= 26) {
+                        Vec3 to = b.puddle.add(0, 0.1, 0);
+                        for (int i = 1; i <= 6; i++) FpeUtil.particles(e, ParticleTypes.SQUID_INK, mouth.add(to.subtract(mouth).scale(i / 6.0)), 2, 0.1, 0.1, 0.1, 0.02);
+                        if (tk % 3 == 1) snd(e, SoundEvents.HONEY_BLOCK_SLIDE, 1.2f, 0.4f);
+                    }
+                    if (tk >= 18 && tk % 4 == 2) {
+                        FpeUtil.particles(e, ParticleTypes.SQUID_INK, b.puddle.add(0, 0.15, 0), 14, 1.4, 0.05, 1.4, 0.01);
+                        for (LivingEntity v : FpeUtil.enemiesInRadius(e, b.puddle, 2.6, 1.5, 1)) {
+                            v.invulnerableTime = 0;
+                            if (FpeUtil.hit(e, v, e.dmg(0.35f), 0, 0)) {
+                                infect(v, 60);
+                                v.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 2));
+                            }
+                        }
+                    }
+                }));
+        // skitter: insect-fast sidestep, then a lunging crossed rake from the flank
+        out.add(Ability.of("skitter", 32, 50).range(2, 9).weight(3).moving().faceUntil(16)
+                .start((e, t, tk) -> ((InfectedBloomie) e).side = e.getRandom().nextBoolean() ? 1 : -1)
+                .tick((e, t, tk) -> {
+                    InfectedBloomie b = (InfectedBloomie) e;
+                    if (tk == 4) {
+                        Vec3 r = FpeUtil.right(e).scale(1.3 * b.side);
+                        e.setDeltaMovement(r.x, 0.25, r.z); e.hurtMarked = true;
+                        snd(e, SoundEvents.SPIDER_STEP, 1.2f, 1.3f);
+                    }
+                    if (tk == 12) e.dashToward(t.position(), 1.2, 0.2);
+                    if (tk == 17) {
+                        FpeCombat.slashArc(e, 4f, 140, 30 * b.side, 0, 1.2, FpeCombat.SLASH);
+                        FpeCombat.cut(e, 4.0, 60, e.dmg(1.3f), 0.7, 0.25, 40, true);
+                        snd(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1.2f, 0.7f);
+                    }
+                }));
+        // enraged: drives both blades into the floor; infected tendrils + spike rows burst up under the target
+        out.add(Ability.of("infest", 60, 220).range(3, 16).weight(5).when(FpeEntity::isEnraged).blind().faceUntil(16).tick((e, t, tk) -> {
+            if (tk == 18) {
+                FpeUtil.hitRadius(e, FpeUtil.ahead(e, 1.5, 0), 2.5, e.dmg(1.2f), 0.6, 0.4);
+                FpeUtil.particles(e, ParticleTypes.SQUID_INK, FpeUtil.ahead(e, 1.5, 0), 30, 1, 0.2, 1, 0.1);
+                snd(e, SoundEvents.WARDEN_DIG, 1.4f, 0.8f);
+            }
+            if (tk == 22 || tk == 30 || tk == 38) {
+                FpeUtil.fx(e, FpeFx.Kind.TENTACLE, t.position(), 8, 34, 1.4f, e.dmg(1.0f));
+                for (int i = 0; i < 5; i++) {
+                    Vec3 d = FpeCombat.rotY(new Vec3(2.2, 0, 0), i * 72 + tk * 7);
+                    FpeUtil.fx(e, FpeFx.Kind.SPIKE, t.position().add(d), 10, 26, 1f, e.dmg(0.9f)).param(1.3f);
+                }
+                snd(e, SoundEvents.WARDEN_EMERGE, 0.8f, 1.4f);
             }
         }));
     }

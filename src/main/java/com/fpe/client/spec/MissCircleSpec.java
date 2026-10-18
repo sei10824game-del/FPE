@@ -27,7 +27,9 @@ public final class MissCircleSpec {
     static final int STEEL = 0xD4D6DE, STEEL_D = 0x8A8C98, DARK = 0x150E1C, TOOTH = 0xFAF7EE;
     static final int GUN = 0x5A5A64, TANK = 0xB8361C, FLAME = 0xFFA830;
 
-    public static final ModelSpec SPEC = build();
+    /** the live model now comes from Blockbench (assets/fpe/bbmodels/miss_circle.bbmodel); PROC is the old procedural original kept for reference. */
+    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("miss_circle", 0.7f);
+    static final ModelSpec PROC = build();
 
     private static ModelSpec build() {
         ModelSpec m = new ModelSpec("miss_circle");

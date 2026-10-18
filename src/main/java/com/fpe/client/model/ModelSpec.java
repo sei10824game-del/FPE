@@ -40,6 +40,8 @@ public final class ModelSpec {
         public float grain = 0.06f;
         public Pattern pattern = Pattern.SOLID;
         public int u, v;
+        /** per-face UV in texture pixels, order north,east,south,west,up,down (each {x1,y1,x2,y2}); null = vanilla box UV from u/v */
+        public float[][] faceUv;
         public final List<Decor> decor = new ArrayList<>();
         Part(String name, String parent) { this.name = name; this.parent = parent; }
 
@@ -102,6 +104,15 @@ public final class ModelSpec {
     }
 
     // ---------------------------------------------------------------- packing & painting
+    /** use ready-made pixels (e.g. from a .bbmodel); parts must already have u/v set. glow may be null. */
+    public synchronized ModelSpec external(int[] argb, int[] glowArgb, int w, int h) {
+        texW = w; texH = h; pixels = argb;
+        glowPixels = glowArgb != null ? glowArgb : new int[w * h];
+        if (glowArgb == null) java.util.Arrays.fill(glowPixels, 0xFF000000);
+        baked = true;
+        return this;
+    }
+
     public synchronized ModelSpec bake() {
         if (baked) return this;
         int cx = 0, cy = 0, rowH = 0;

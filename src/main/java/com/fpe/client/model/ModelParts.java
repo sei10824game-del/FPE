@@ -16,6 +16,7 @@ public final class ModelParts {
             ModelPart cur = root;
             for (String s : spec.path(p.name)) cur = cur.getChild(s);
             map.put(p.name, cur);
+            if (p.faceUv != null) FaceUv.apply(cur, p, spec.texW, spec.texH);
         }
     }
 

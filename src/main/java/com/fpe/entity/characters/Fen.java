@@ -281,6 +281,43 @@ public class Fen extends FpeEntity {
                         FpeUtil.particles(this, ParticleTypes.CRIT, FpeUtil.ahead(this, 1.5, 1), 20, 0.6, 0.6, 0.6, 0.3);
                     }
                 }));
+        // 13 howl – rears up and howls: shockwave ring + fear (slow / weakness), enraged: second wave
+        out.add(Ability.of("howl", 36, 150).range(0, 7).weight(2)
+                .tick((e, t, k) -> {
+                    if (k == 4) FpeUtil.sound(this, SoundEvents.WOLF_GROWL, 1.2f, 0.7f);
+                    if (k == 13) FpeUtil.sound(this, SoundEvents.WOLF_HOWL, 1.6f, 0.8f);
+                    if (k == 14 || (k == 24 && isEnraged())) {
+                        FpeUtil.fx(this, FpeFx.Kind.RING_SHOCK, position().add(0, 0.1, 0), 0, 12, k == 14 ? 5.5f : 7f, 0);
+                        for (LivingEntity v : FpeUtil.enemiesInRadius(this, position(), k == 14 ? 5.5 : 7, 2, 1)) {
+                            FpeUtil.hit(this, v, dmg(0.6f), 0.9, 0.25);
+                            v.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1));
+                            v.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80, 0));
+                        }
+                        FpeUtil.particles(this, ParticleTypes.SONIC_BOOM, position().add(0, 1.6, 0), 1, 0, 0, 0, 0);
+                    }
+                    if (k > 14 && k < 26 && k % 3 == 0) FpeUtil.particles(this, ParticleTypes.LARGE_SMOKE, position().add(0, 1.7, 0), 4, 0.3, 0.2, 0.3, 0.02);
+                }));
+        // 14 clawspikes – both claws plunge into the ground, a line of black claw-spikes rips toward the target
+        out.add(Ability.of("clawspikes", 40, 110).range(3, 12).weight(2).faceUntil(13)
+                .tick((e, t, k) -> {
+                    if (k == 6) FpeUtil.sound(this, SoundEvents.FOX_SCREECH, 1f, 0.6f);
+                    if (k == 14) {
+                        FpeUtil.hitCone(this, 2.2, 80, dmg(1.0f), 0.4, 0.5);
+                        FpeUtil.sound(this, SoundEvents.ZOMBIE_ATTACK_WOODEN_DOOR, 1f, 0.6f);
+                        FpeUtil.particles(this, ParticleTypes.POOF, FpeUtil.ahead(this, 1.0, 0.1), 14, 0.6, 0.05, 0.6, 0.06);
+                    }
+                    if (k >= 16 && k <= 31 && (k - 16) % 3 == 0) {
+                        int i = (k - 16) / 3;
+                        Vec3 p = FpeUtil.ahead(this, 1.8 + i * 1.6, 0);
+                        FpeUtil.fx(this, FpeFx.Kind.SPIKE, p, 3, 22, 1.1f, dmg(1.1f)).param(0.9f + i * 0.15f);
+                        if (isEnraged()) {
+                            Vec3 s = FpeUtil.right(this).scale(1.4);
+                            FpeUtil.fx(this, FpeFx.Kind.SPIKE, p.add(s), 5, 18, 0.9f, dmg(0.8f)).param(0.7f);
+                            FpeUtil.fx(this, FpeFx.Kind.SPIKE, p.subtract(s), 5, 18, 0.9f, dmg(0.8f)).param(0.7f);
+                        }
+                        FpeUtil.sound(this, SoundEvents.POINTED_DRIPSTONE_LAND, 1f, 0.6f + i * 0.08f);
+                    }
+                }));
     }
 
     // ------------------------------------------------------------------ sounds

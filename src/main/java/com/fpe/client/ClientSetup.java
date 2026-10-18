@@ -39,7 +39,7 @@ public final class ClientSetup {
         e.registerEntityRenderer(ModEntities.DANGER_BLOOMIE.get(), c -> new FpeRenderer<>(c, DangerBloomieSpec.SPEC));
         e.registerEntityRenderer(ModEntities.INFECTED_BLOOMIE.get(), c -> new FpeRenderer<>(c, InfectedBloomieSpec.SPEC));
         e.registerEntityRenderer(ModEntities.INFECTED_ZIP.get(), c -> new FpeRenderer<>(c, InfectedZipSpec.SPEC));
-        e.registerEntityRenderer(ModEntities.DANGER_ALICE.get(), c -> new FpeRenderer<>(c, DangerAliceSpec.SPEC));
+        e.registerEntityRenderer(ModEntities.DANGER_ALICE.get(), c -> new FpeRenderer<>(c, DangerAliceSpec.SPEC, DangerAliceSpec.PHASE2));
         e.registerEntityRenderer(ModEntities.FEN.get(), c -> new FpeRenderer<>(c, FenSpec.SPEC));
         e.registerEntityRenderer(ModEntities.AIDEN.get(), c -> new FpeRenderer<>(c, AidenSpec.SPEC));
         e.registerEntityRenderer(ModEntities.PROJECTILE.get(), FpeProjectileRenderer::new);

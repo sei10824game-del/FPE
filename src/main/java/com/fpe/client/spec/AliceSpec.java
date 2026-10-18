@@ -746,6 +746,8 @@ public final class AliceSpec {
     private static final int Alice_T_FLIP = 90; // keep in sync with Alice.T_FLIP (client must not need the entity class here)
 
     // built last so every constant above is initialised first
-    public static final ModelSpec PHASE1 = buildP1();
-    public static final ModelSpec PHASE2 = buildP2();
+    public static final ModelSpec PHASE1 = com.fpe.client.model.BbModel.load("alice", 0.5f);
+    static final ModelSpec PROC1 = buildP1();
+    public static final ModelSpec PHASE2 = com.fpe.client.model.BbModel.load("alice_boss", 1.6f);
+    static final ModelSpec PROC2 = buildP2();
 }
