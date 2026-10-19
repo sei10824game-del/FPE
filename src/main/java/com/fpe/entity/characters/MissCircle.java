@@ -21,6 +21,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -29,6 +30,8 @@ import net.minecraft.world.phys.Vec3;
  * MELEE ONLY (she is never seen fighting at range): sweep, lunge, splitSlam, drawCircle, charge, hairWhip, scissorSnip, arcSlash,
  * impale (canon skewer + slam), devour (canon: grabs and bites failing students), pencilStab (bleeding stab flurry),
  * pounce (leaping needle plunge gap-closer), combo (rage), perfectCircle (rage signature).
+ * Crowd control: compassSnare (hook + reel in + hold + stab + kick/daze), pinDown (pencil pins the victim: root/stun),
+ * confiscate (disarm + collar grab, overhead squeeze, whirl and slam behind: stun).
  */
 public class MissCircle extends FpeEntity {
     /** direction locked at the start of directional moves (slam crack lines) */
@@ -76,6 +79,38 @@ public class MissCircle extends FpeEntity {
         held.setDeltaMovement(at.subtract(held.position()).scale(0.6));
         held.hurtMarked = true;
         held.fallDistance = 0;
+    }
+
+    /** nearest valid enemy whose box crosses the segment (null if none) */
+    private static LivingEntity pickLine(FpeEntity e, Vec3 from, Vec3 to, double r) {
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        for (LivingEntity v : e.level().getEntitiesOfClass(LivingEntity.class, new AABB(from, to).inflate(r + 1), x -> FpeUtil.canHurt(e, x))) {
+            AABB bb = v.getBoundingBox().inflate(r);
+            if (!bb.clip(from, to).isPresent() && !bb.contains(from)) continue;
+            double d = v.distanceToSqr(e);
+            if (d < bd) { bd = d; best = v; }
+        }
+        return best;
+    }
+
+    /** nearest valid enemy inside a horizontal cone in front of her (null if none) */
+    private static LivingEntity pickCone(FpeEntity e, double range, double halfDeg) {
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        Vec3 f = FpeUtil.forward(e);
+        for (LivingEntity v : FpeUtil.enemiesInRadius(e, e.position(), range, 2.5, 1.0)) {
+            Vec3 d = new Vec3(v.getX() - e.getX(), 0, v.getZ() - e.getZ());
+            if (d.lengthSqr() > 0.01 && d.normalize().dot(f) < Math.cos(Math.toRadians(halfDeg))) continue;
+            if (d.lengthSqr() < bd) { bd = d.lengthSqr(); best = v; }
+        }
+        return best;
+    }
+
+    /** grab still valid? drops the victim when it died / became invalid (creative, ally, removed) */
+    private boolean grabbing(FpeEntity e) {
+        if (held != null && !FpeUtil.canHurt(e, held)) held = null;
+        return held != null;
     }
 
     // ------------------------------------------------------------------ abilities
@@ -370,6 +405,138 @@ public class MissCircle extends FpeEntity {
                         debris(e, at);
                     }
                     if (k == 27) { FpeUtil.sound(e, SoundEvents.TRIDENT_RETURN, 1f, 0.7f); debris(e, FpeUtil.ahead(e, 1.4, 0)); }
+                }));
+
+        // ---------------------------------------------------------------- crowd control (grab / pin / disarm)
+        // 15. compass snare: needle cast along a graphite line (10) hooks the first enemy (stun), two yanks reel it in (11..21),
+        //     claw holds it by the collar (22..36), needle stab (28, bleeds), kick away (37: fling + daze)
+        out.add(Ability.of("compassSnare", 48, 180).range(3, 8).weight(2).faceUntil(10)
+                .start((e, t, k) -> held = null)
+                .end((e, t, k) -> held = null)
+                .tick((e, t, k) -> {
+                    if (k == 3) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_CHAIN, 1f, 0.5f);
+                    Vec3 from = e.position().add(0, 1.4, 0);
+                    if (k == 10) {
+                        Vec3 to = from.add(FpeUtil.forward(e).scale(8));
+                        FpeUtil.sound(e, SoundEvents.FISHING_BOBBER_THROW, 1.2f, 0.6f);
+                        for (int i = 1; i <= 16; i++) FpeUtil.particles(e, ParticleTypes.CRIT, from.lerp(to, i / 16.0), 1, 0.02, 0.02, 0.02, 0);
+                        held = pickLine(e, from, to, 0.5);
+                        if (held != null && FpeUtil.hit(e, held, e.dmg(0.7f), 0, 0)) {
+                            FpeUtil.stun(held, 24);
+                            FpeUtil.sound(e, SoundEvents.TRIDENT_HIT, 1.2f, 0.8f);
+                        } else held = null;
+                    }
+                    if (!grabbing(e) || k <= 10) return;
+                    if (k <= 21) {
+                        // reel: two hard yanks (13, 18) + steady drag, graphite thread between needle and victim
+                        double sp = (k == 13 || k == 18) ? 1.3 : 0.45;
+                        if (held.distanceTo(e) > 2.0) FpeUtil.pull(held, FpeUtil.ahead(e, 1.5, 0), sp);
+                        if (k % 2 == 0) for (int i = 1; i < 8; i++)
+                            FpeUtil.particles(e, ParticleTypes.CRIT, from.lerp(held.position().add(0, held.getBbHeight() * 0.6, 0), i / 8.0), 1, 0, 0, 0, 0);
+                        if (k == 13 || k == 18) FpeUtil.sound(e, SoundEvents.FISHING_BOBBER_RETRIEVE, 1.2f, 0.6f);
+                    } else if (k <= 36) {
+                        FpeUtil.hold(e, held, 1.5, 0.35, 0.1);
+                        if (k == 22) FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_STRONG, 1f, 0.6f);
+                        if (k == 28) {
+                            held.invulnerableTime = 0;
+                            if (FpeUtil.hit(e, held, e.dmg(1.4f), 0, 0)) FpeCombat.bleed(e, held, 50);
+                            FpeUtil.sound(e, SoundEvents.TRIDENT_HIT, 1.1f, 0.6f);
+                            FpeUtil.particles(e, FpeCombat.BLOOD, held.position().add(0, 1, 0), 8, 0.2, 0.2, 0.2, 0.05);
+                        }
+                    } else if (k == 37) {
+                        held.invulnerableTime = 0;
+                        FpeUtil.hit(e, held, e.dmg(0.8f), 0, 0);
+                        FpeUtil.fling(held, FpeUtil.forward(e), 1.1, 0.45);
+                        FpeUtil.daze(held, 50);
+                        FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.1f, 0.6f);
+                        held = null;
+                    }
+                }));
+
+        // 16. pin down: compass raised two-handed, step-kneel and drive the pencil leg through the target into the floor (13):
+        //     victim pinned in place (root + stun), two grinding twists (19, 24, bleed), wrench out (30)
+        out.add(Ability.of("pinDown", 44, 150).range(0, 4).weight(2).faceUntil(12)
+                .start((e, t, k) -> held = null)
+                .end((e, t, k) -> held = null)
+                .tick((e, t, k) -> {
+                    if (k == 3) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_IRON, 1f, 0.5f);
+                    if (k == 9) e.dashForward(0.35, 0);
+                    if (k == 13) {
+                        held = pickCone(e, 3.8, 55);
+                        if (held != null && FpeUtil.hit(e, held, e.dmg(1.3f), 0, 0)) {
+                            lockPos = new Vec3(e.getX(), held.getY(), e.getZ()).add(FpeUtil.forward(e).scale(2.0));
+                            FpeUtil.root(held, 70);
+                            FpeUtil.stun(held, 34);
+                        } else held = null;
+                        Vec3 at = FpeUtil.ahead(e, 2.0, 0);
+                        FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 0.9f, 0.6f);
+                        FpeUtil.sound(e, SoundEvents.TRIDENT_HIT, 1.1f, 0.5f);
+                        FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, at, 0, 8, 1.6f, 0);
+                        debris(e, at);
+                    }
+                    if (k < 13 || !grabbing(e)) return;
+                    if (k < 30) {
+                        // ponytail: pin spot is 2 blocks ahead of her; may clip into a wall, the victim pops out on release
+                        FpeUtil.holdAt(held, lockPos);
+                        if (k == 19 || k == 24) {
+                            held.invulnerableTime = 0;
+                            if (FpeUtil.hit(e, held, e.dmg(0.45f), 0, 0)) FpeCombat.bleed(e, held, 30);
+                            FpeUtil.sound(e, SoundEvents.GRINDSTONE_USE, 1f, 0.6f);
+                            FpeUtil.particles(e, FpeCombat.BLOOD, held.position().add(0, 0.6, 0), 6, 0.2, 0.1, 0.2, 0.05);
+                        }
+                    } else if (k == 30) {
+                        held.invulnerableTime = 0;
+                        FpeUtil.hit(e, held, e.dmg(0.5f), 0.3, 0.2);
+                        FpeUtil.sound(e, SoundEvents.TRIDENT_RETURN, 1f, 0.6f);
+                        debris(e, lockPos);
+                        held = null;
+                    }
+                }));
+
+        // 17. confiscate: claw snatch (10) knocks the held item out of the victim's hand (disarm) and grabs it by the collar,
+        //     hoists it overhead (11..18), three scolding squeezes (20, 25, 30), whirls half a turn (33..37) and slams it down
+        //     behind her (38: stun), turns back around
+        out.add(Ability.of("confiscate", 52, 200).range(0, 3.4).weight(2).faceUntil(9)
+                .start((e, t, k) -> held = null)
+                .end((e, t, k) -> held = null)
+                .tick((e, t, k) -> {
+                    if (k == 3) FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1f, 0.7f);
+                    if (k == 8) e.dashForward(0.5, 0);
+                    if (k == 10) {
+                        FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_STRONG, 1f, 0.7f);
+                        held = pickCone(e, 3.2, 50);
+                        if (held != null && FpeUtil.hit(e, held, e.dmg(0.5f), 0, 0)) {
+                            FpeUtil.disarm(held);
+                            FpeUtil.stun(held, 30);
+                            FpeUtil.sound(e, SoundEvents.ITEM_PICKUP, 1f, 0.5f);
+                        } else held = null;
+                    }
+                    if (k <= 10 || !grabbing(e)) return;
+                    if (k < 33) {
+                        FpeUtil.hold(e, held, 1.3, 0.4 + 1.9 * Math.min(1.0, (k - 10) / 8.0), 0);
+                        if (k == 20 || k == 25 || k == 30) {
+                            held.invulnerableTime = 0;
+                            FpeUtil.hit(e, held, e.dmg(0.45f), 0, 0);
+                            FpeUtil.stun(held, 12);
+                            FpeUtil.sound(e, SoundEvents.PLAYER_HURT_SWEET_BERRY_BUSH, 1f, 0.6f);
+                            FpeUtil.sound(e, SoundEvents.WITCH_AMBIENT, 0.8f, 0.6f);
+                        }
+                    } else if (k < 38) {
+                        // half-turn to her right: front -> right -> behind, dropping from overhead
+                        double u = (k - 32) / 6.0, a = Math.PI * u;
+                        FpeUtil.hold(e, held, 1.4 * Math.cos(a), 2.3 - 1.8 * u, 1.4 * Math.sin(a));
+                    } else if (k == 38) {
+                        Vec3 at = FpeUtil.ahead(e, -1.6, 0);
+                        FpeUtil.holdAt(held, new Vec3(at.x, e.getY(), at.z));
+                        held.invulnerableTime = 0;
+                        FpeUtil.hit(e, held, e.dmg(1.5f), 0, 0);
+                        FpeUtil.stun(held, 40);
+                        FpeUtil.hitRadius(e, at, 1.6, e.dmg(0.6f), 0.6, 0.3);
+                        FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 0.9f, 0.6f);
+                        FpeUtil.sound(e, SoundEvents.GENERIC_EXPLODE, 0.5f, 1.3f);
+                        debris(e, at);
+                        held = null;
+                    }
                 }));
     }
 }

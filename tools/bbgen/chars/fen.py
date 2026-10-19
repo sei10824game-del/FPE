@@ -1,16 +1,14 @@
-"""Fen - generates assets/fpe/bbmodels/fen.bbmodel  (BIG rebuild: ~3.6 blocks tall, shape-shifting arms, monster mode).
-References: docs/ref/confirmed/fen_new.jpg (main: very tall + thin, huge orange-red mane flowing out like a tail with curled
-flame tips, curled ahoge, bangs hiding the eyes, black short-sleeve tee, rolled blue denim shorts, bandaged legs, bare feet
-with black claws, forearms turning into ink-black arms that end in LONG black blade claws hanging almost to the ground),
-docs/ref/confirmed/fen.jpg (shark grin, one eye peeking out, feral poses) and docs/ref/confirmed/fen_vs_alice.jpg
-(monster form: pitch-black spindly silhouette, red eyes, spiky hair, long clawed limbs).
-Hitbox 1.0 x 3.2 blocks; model top (ahoge) ~58 px.
-Shape-shift props (hidden unless an attack shows them): scythe_r/l, whip_r, hook_l, needles_r/l, wing_r/l, hammer_r, maw_r,
-spider (six extra arms on the back).  Monster mode = mk_* black shell bones (+ red eyes, spiky black hair) shown and the
-orange "hair" bone hidden in every monster animation (m_* abilities, quad_idle/quad_walk, transform).
+"""Fen - generates assets/fpe/bbmodels/fen.bbmodel  (~3.9 blocks tall, ONE form, shape-shifting ink arms).
+References: docs/ref/confirmed/fen.jpg (main) + fen_new.jpg: very tall + thin, huge orange-red mane flowing out like a tail with
+curled flame tips, curled ahoge, bangs hiding the eyes (one eye peeking), shark grin, black tee, rolled blue denim shorts,
+bandaged legs, bare feet with black claws, forearms turning into ink-black arms that end in LONG black blade claws.
+No form change: every "monster" attack (m_*) is a normal attack of this single model.
+Shape-shift props (hidden unless an attack shows them): scythe_r/l, whip_r(+kama), hook_l, needles_r/l, wing_r/l, hammer_r, maw_r,
+spider, drill_r, pincer_r/l, wire_r/l, grapnel_r, bwing_r/l, roots_r/l, barrage, boom_r, spiral, ahblade.
 Blockbench space: Y up, ground 0, faces -Z, character's RIGHT = +X.
 Signs (file values): limb rx>0 swings forward, torso/head rx>0 leans back / looks up, ry>0 turns to the character's left,
 hanging part rz>0 swings toward +X.  Jaw rx<0 opens.
+Size: max cube top 62.5 px (~3.9 blocks, hitbox 3.2) straight from this script - no rescale needed.
 Run: python3 tools/bbgen/chars/fen.py
 """
 import math, os, sys
@@ -183,44 +181,6 @@ def blade_p(B):
     return f
 
 
-def mon_p(B):
-    R = B.R
-
-    def f(F):
-        for y in range(F.h):
-            for x in range(F.w):
-                F.px(x, y, MON_HI if R.random() < 0.05 else MON)
-        for _ in range(max(1, F.w // 6)):  # dim red veins
-            x = R.uniform(0, F.w)
-            F.line(x, R.uniform(0, F.h), x + R.uniform(-2, 2), R.uniform(0, F.h), mix(MON, MREDD, 0.45), 1)
-    return f
-
-
-def mon_face_p(B):
-    base = mon_p(B)
-
-    def f(F):
-        base(F)
-        W, H = F.w, F.h
-        for ex in (0.28 * W, 0.72 * W):  # slanted glowing red eyes
-            F.poly([(ex - 0.13 * W, 0.38 * H), (ex + 0.13 * W, 0.44 * H), (ex + 0.1 * W, 0.52 * H), (ex - 0.1 * W, 0.48 * H)], MON_RED, glow=True)
-            F.disc(ex, 0.46 * H, 0.03 * W, 0xFFE0E0, glow=True)
-        top = 0.7 * H  # jagged glowing grin
-        F.rect(0.1 * W, top, 0.8 * W, 0.12 * H, MREDD)
-        for i in range(9):
-            x0 = 0.1 * W + i * 0.8 * W / 9
-            F.poly([(x0, top), (x0 + 0.089 * W, top), (x0 + 0.045 * W, top + 0.09 * H)], 0xFFD8D8, glow=True)
-            F.poly([(x0, top + 0.12 * H), (x0 + 0.089 * W, top + 0.12 * H), (x0 + 0.045 * W, top + 0.04 * H)], 0xFFD8D8, glow=True)
-    return f
-
-
-def mon_jaw_p(F):
-    F.rect(0, 0, F.w, F.h, MON)
-    for i in range(8):
-        x0 = 0.1 * F.w + i * 0.8 * F.w / 8
-        F.poly([(x0, 0), (x0 + 0.1 * F.w, 0), (x0 + 0.05 * F.w, F.h * 0.5)], 0xFFD8D8, glow=True)
-
-
 def maw_in_p(F):
     F.rect(0, 0, F.w, F.h, MREDD)
     for x in range(0, F.w, 5):
@@ -228,9 +188,9 @@ def maw_in_p(F):
 
 
 # ================================================================== model
-MK = ("mk_pelvis", "mk_leg_r", "mk_leg_l", "mk_shin_r", "mk_shin_l", "mk_foot_r", "mk_foot_l", "mk_body", "mk_head",
-      "mk_arm_r", "mk_arm_l", "mk_fore_r", "mk_fore_l")
-PROPS = ("scythe_r", "scythe_l", "whip_r", "hook_l", "needles_r", "needles_l", "wing_r", "wing_l", "hammer_r", "maw_r", "spider")
+PROPS = ("scythe_r", "scythe_l", "whip_r", "hook_l", "needles_r", "needles_l", "wing_r", "wing_l", "hammer_r", "maw_r", "spider",
+         "drill_r", "pincer_r", "pincer_l", "wire_r", "wire_l", "kama", "grapnel_r", "bwing_r", "bwing_l", "roots_r", "roots_l",
+         "barrage", "boom_r", "spiral", "ahblade")
 SIDES = ((1, "r"), (-1, "l"))
 
 
@@ -243,13 +203,8 @@ def build(B):
     band = B.all(band_p(B))
     bandf = B.all(band_p(B, BAND, True))
     ink = B.all(ink_p(B))
-    mon = B.all(mon_p(B))
     bl = B.all(blade_p(B))
 
-    def shell(name, parent, pivot, boxes):
-        g(name, pivot, parent)
-        for i, (f, t) in enumerate(boxes):
-            c(f"{name}{i}", name, (f[0] - .3, f[1] - .3, f[2] - .3), (t[0] + .3, t[1] + .3, t[2] + .3), MON, faces=mon)
 
     g("root", (0, 0, 0))
     # ---------------- pelvis / legs (knee 15, ankle 2)
@@ -259,25 +214,21 @@ def build(B):
     c("fly", "pelvis", (-0.3, 25.2, -2.15), (0.3, 27.6, -1.95), DENIM_D)
     for s in (1, -1):
         c(f"pocket{s}", "pelvis", (1.0 * s - 0.9, 25.4, 2.0), (1.0 * s + 0.9, 27.0, 2.15), DENIM_L)
-    shell("mk_pelvis", "pelvis", (0, 27, 0), [((-3.2, 24.6, -2.0), (3.2, 28.4, 2.0))])
     for s, k in SIDES:
         x = 1.6 * s
         g("leg_" + k, (x, 26, 0), "pelvis")
         c("thigh_" + k, "leg_" + k, (x - 1.4, 19.0, -1.5), (x + 1.4, 26.2, 1.5), DENIM, faces=denim)
         c("cuff_" + k, "leg_" + k, (x - 1.65, 18.2, -1.75), (x + 1.65, 19.9, 1.75), DENIM_L, faces=B.all(cuff_p))
         c("lthigh_" + k, "leg_" + k, (x - 0.95, 15.0, -0.95), (x + 0.95, 18.4, 0.95), SKIN, faces=band)
-        shell("mk_leg_" + k, "leg_" + k, (x, 26, 0), [((x - 1.4, 14.0, -1.5), (x + 1.4, 26.2, 1.5)), ((x - 1.65, 18.2, -1.75), (x + 1.65, 19.9, 1.75))])
         g("shin_" + k, (x, 15, 0), "leg_" + k)
         c("knee_" + k, "shin_" + k, (x - 1.05, 13.6, -1.1), (x + 1.05, 15.6, 1.05), BAND, faces=bandf)
         c("calf_" + k, "shin_" + k, (x - 0.85, 2.0, -0.85), (x + 0.85, 14.0, 0.85), SKIN, faces=band)
         c("wrap_" + k, "shin_" + k, (x - 1.0, 5.0, -1.0), (x + 1.0, 9.5, 1.0), BAND, faces=bandf)
-        shell("mk_shin_" + k, "shin_" + k, (x, 15, 0), [((x - 0.9, 1.8, -0.9), (x + 0.9, 15.7, 0.9)), ((x - 1.4, 12.6, -1.5), (x + 1.4, 16.8, 1.45))])
         g("foot_" + k, (x, 2, 0), "shin_" + k)
         c("sole_" + k, "foot_" + k, (x - 1.0, 0, -3.0), (x + 1.0, 1.6, 0.9), SKIN, faces={"north": toes_p, "up": toes_p})
         c("anktape_" + k, "foot_" + k, (x - 1.05, 1.0, -1.05), (x + 1.05, 2.4, 1.05), BAND, faces=bandf)
         for i, dx in enumerate((-0.6, 0.0, 0.6)):  # black toe claws
             B.blade(f"toe{i}_{k}", "foot_" + k, (x + dx * s, 0.5, -2.9), 1.5, 0.5, 0.6, (-80, 0, 0), CLAW, tip=CLAW_HI)
-        shell("mk_foot_" + k, "foot_" + k, (x, 2, 0), [((x - 1.0, 0, -3.0), (x + 1.0, 2.2, 0.9))])
 
     # ---------------- torso (tall, thin)
     g("body", (0, 28.5, 0), "pelvis")
@@ -287,10 +238,6 @@ def build(B):
         c(f"hem{i}", "body", (x - 0.75, 27.3 + 0.3 * (i % 2), -1.75), (x + 0.75, 28.6, 1.75), SHIRT_D, rot=(0, 0, (i - 1.5) * 6))
     c("collar", "body", (-1.6, 40.7, -1.9), (1.6, 41.2, 1.2), SHIRT_HI)
     c("neck", "body", (-0.85, 40.8, -0.85), (0.85, 44.0, 0.85), SKIN_D)
-    shell("mk_body", "body", (0, 28.5, 0), [((-2.5, 27.4, -1.55), (2.5, 34.0, 1.55)), ((-3.2, 33.6, -1.8), (3.2, 41.0, 1.8)),
-                                             ((-0.85, 40.8, -0.85), (0.85, 44.0, 0.85))])
-    for i, (x, y) in enumerate(((-1.6, 39.5), (1.6, 39.5), (0, 36.5), (-1.2, 33.5), (1.2, 33.5))):  # monster back spines
-        B.blade(f"mspine{i}", "mk_body", (x, y, 2.0), 3.2 - 0.3 * i, 0.9, 0.9, (60, 0, -x * 12), MON, tip=MREDD)
 
     # ---------------- head
     g("head", (0, 43.5, 0), "body")
@@ -349,27 +296,13 @@ def build(B):
         B.blade(f"sw1f_{k}", f"sw1_{k}", (x0, y0 - 13.0, 5.0), 5.0, 1.8, 1.4, (0, 0, -125 * s), HAIR, tip=HAIR_HI)  # flame flick
         B.lock(f"sw0l_{k}", f"sw0_{k}", (x0 - 2.4 * s, y0 - 4.0, 5.0), 9.0, 2.2, 1.4, (0, 0, -18 * s), HAIR_R, tip=HAIR_D, paint=hair["north"])
 
-    # ---------------- monster head shell (black, red eyes, spiky hair) - hidden outside monster mode
-    g("mk_head", (0, 43.5, 0), "head")
-    c("mk_skull", "mk_head", (-3.5, 44.0, -3.4), (3.5, 51.5, 3.4), MON, faces={**mon, "north": mon_face_p(B)})
-    g("mjaw", (0, 44.0, 1.0), "mk_head")
-    c("mk_jawc", "mjaw", (-3.2, 42.0, -3.3), (3.2, 44.1, 1.7), MON, faces={**mon, "north": mon_jaw_p})
-    for i in range(9):
-        a = -80 + i * 20
-        B.blade(f"mspk{i}", "mk_head", (math.sin(math.radians(a)) * 3.0, 50.5, 1.0), 6.0 + 2.0 * (i % 2), 1.6, 1.4,
-                (35 + 10 * (i % 3), 0, -a * 0.9), MON, tip=MON_HI)
-    for i in range(5):
-        B.lock(f"mback{i}", "mk_head", (-3 + 1.5 * i, 48.0, 3.6), 12.0 + 3 * (i % 2), 2.0, 1.4, (30, 0, (i - 2) * 8), MON, tip=MREDD)
-
     # ---------------- arms: short sleeve, skinny upper arm, ink forearm, long blade claws to the ground
     for s, k in SIDES:
         x = 3.9 * s
         g("arm_" + k, (x, 40.5, 0), "body")
         c("sleeve_" + k, "arm_" + k, (x - 1.2, 36.8, -1.2), (x + 1.2, 41.2, 1.2), SHIRT, faces=shirt)
         c("upper_" + k, "arm_" + k, (x - 0.7, 31.0, -0.7), (x + 0.7, 37.0, 0.7), SKIN)
-        shell("mk_arm_" + k, "arm_" + k, (x, 40.5, 0), [((x - 1.2, 31.0, -1.2), (x + 1.2, 41.2, 1.2))])
         g("fore_" + k, (x, 31, 0), "arm_" + k)
-        shell("mk_fore_" + k, "fore_" + k, (x, 31, 0), [((x - 1.0, 27.5, -1.0), (x + 1.0, 32.0, 1.0))])
         c("elbow_" + k, "fore_" + k, (x - 0.85, 28.0, -0.85), (x + 0.85, 31.3, 0.85), SKIN, faces=B.all(elbow_p(B)))
         c("forearm_" + k, "fore_" + k, (x - 1.0, 22.5, -1.0), (x + 1.0, 28.4, 1.0), CLAW, faces=ink)
         for i, y in enumerate((27.0, 25.0, 23.4)):  # ragged ink spikes on the outer forearm
@@ -467,7 +400,141 @@ def build(B):
         g(k + "j", (1.2 * sx, y + 10.0, 2.0), k, rot=(-30, 0, (out + 70) * sx))
         c(k + "f", k + "j", (1.2 * sx - 0.4, y + 10.0, 1.6), (1.2 * sx + 0.4, y + 20.0, 2.4), CLAW, faces=ink)
         c(k + "t", k + "j", (1.2 * sx - 0.25, y + 19.5, 1.75), (1.2 * sx + 0.25, y + 23.0, 2.25), EDGE, glow=True)
+    shift_parts(B, ink, bl, hair)
 
+
+STEEL, STEEL_D = 0xA4A9B8, 0x5E6270
+MEMB = 0x2A0E16
+
+
+def shift_parts(B, ink, bl, hair):
+    g, c = B.g, B.c
+    # ---- drill (right): wrist collar + spinning cone of offset plates with glowing spiral grooves
+    g("drill_r", (3.9, 22.5, 0), "hand_r")
+    c("drl_coll", "drill_r", (2.1, 19.0, -1.8), (5.7, 23.0, 1.8), CLAW, faces=ink)
+    c("drl_ring", "drill_r", (1.9, 19.3, -2.0), (5.9, 20.1, 2.0), EDGE, glow=True)
+    g("drillspin", (3.9, 19.0, 0), "drill_r")
+    for i in range(9):
+        w, y0 = 5.6 * (1 - i / 9.6), 19.0 - i * 2.3
+        c(f"drl{i}", "drillspin", (3.9 - w / 2, y0 - 2.4, -w / 2), (3.9 + w / 2, y0, w / 2), CLAW if i % 2 else CLAW_HI,
+          origin=(3.9, y0 - 1, 0), rot=(0, i * 20 % 90, 0), faces=bl)
+        c(f"drg{i}", "drillspin", (3.9 + w / 2 - 0.1, y0 - 1.9, -0.35), (3.9 + w / 2 + 0.2, y0 - 0.1, 0.35), EDGE,
+          origin=(3.9, y0 - 1, 0), rot=(0, i * 20 % 90, 0), glow=True)
+    c("drltip", "drillspin", (3.6, -5.6, -0.3), (4.2, -1.0, 0.3), EDGE, glow=True)
+
+    for s, k in SIDES:
+        x = 3.9 * s
+        # ---- crushing pincer: heavy wrist block + two hinged curved jaws with teeth (open in the hand's z plane)
+        g("pincer_" + k, (x, 22.5, 0), "hand_" + k)
+        c(f"pin_base_{k}", "pincer_" + k, (x - 1.9, 17.8, -2.1), (x + 1.9, 23.0, 2.1), CLAW, faces=ink)
+        c(f"pin_band_{k}", "pincer_" + k, (x - 2.0, 19.0, -2.2), (x + 2.0, 19.7, 2.2), EDGE, glow=True)
+        for zs, jn in ((-1, "A"), (1, "B")):
+            nm = f"pin{jn}_{k}"
+            g(nm, (x, 18.4, 0.7 * zs), "pincer_" + k)
+            z0, z1 = sorted((0.3 * zs, 2.8 * zs))
+            c(nm + "a", nm, (x - 1.4, 10.6, z0), (x + 1.4, 18.6, z1), CLAW, origin=(x, 18.4, 0.7 * zs), rot=(-10 * zs, 0, 0), faces=bl)
+            z0, z1 = sorted((-0.4 * zs, 1.6 * zs))
+            c(nm + "b", nm, (x - 1.0, 7.0, z0), (x + 1.0, 11.4, z1), CLAW_RED, origin=(x, 11.0, 1.2 * zs), rot=(30 * zs, 0, 0), faces=bl)
+            c(nm + "e", nm, (x - 0.3, 6.6, -0.3), (x + 0.3, 8.0, 0.3), EDGE, origin=(x, 11.0, 1.2 * zs), rot=(30 * zs, 0, 0), glow=True)
+            for i in range(3):
+                B.blade(f"{nm}t{i}", nm, (x - 0.6 + 0.6 * i, 16.6 - 2.2 * i, 0.4 * zs), 1.5, 0.6, 0.6, (-90 * zs, 0, 0), TEETH)
+        # ---- razor wires: five steel threads from the fingertips with glowing barbs
+        g("wire_" + k, (x, 20.2, 0), "hand_" + k)
+        for i in range(5):
+            wx = x + (i - 2) * 0.45 * s
+            nm = f"wr{i}_{k}"
+            g(nm, (wx, 20.2, -0.3 + 0.15 * i), "wire_" + k, rot=(0, 0, (i - 2) * 7 * s))
+            c(nm + "c", nm, (wx - 0.17, -1.6, -0.3 + 0.15 * i - 0.17), (wx + 0.17, 20.2, -0.3 + 0.15 * i + 0.17), STEEL,
+              faces=B.all(B.edges(STEEL_D)))
+            for j in range(4):
+                c(f"{nm}b{j}", nm, (wx - 0.35, 15.5 - 5 * j, -0.3 + 0.15 * i - 0.35), (wx + 0.35, 16.2 - 5 * j, -0.3 + 0.15 * i + 0.35), EDGE,
+                  glow=True, origin=(wx, 15.8 - 5 * j, 0), rot=(45, 0, 45))
+        # ---- blade wings: mirrored fan of long blade plates + dark membrane along the forearm
+        g("bwing_" + k, (x, 31, 0), "fore_" + k)
+        c(f"bwm_{k}", "bwing_" + k, (x - 0.1, 19.0, 0.4), (x + 0.1, 31.0, 9.5), MEMB, origin=(x, 31, 0), rot=(14, 0, 0))
+        for i, (y, ln) in enumerate(((30.0, 10.0), (27.5, 13.0), (25.0, 15.5), (22.5, 18.0), (20.5, 20.0))):
+            nm = f"bwp{i}_{k}"
+            c(nm, "bwing_" + k, (x - 0.28, y - 2.2, -0.4), (x + 0.28, y, ln), CLAW, origin=(x, y, 0), rot=(6 + 8 * i, 0, 0), faces=bl)
+            c(nm + "e", "bwing_" + k, (x - 0.16, y - 2.6, -0.4), (x + 0.16, y - 2.1, ln), EDGE, origin=(x, y, 0), rot=(6 + 8 * i, 0, 0), glow=True)
+        # ---- roots: tendril bundle that plunges into the ground (rootsg_ scales the length)
+        g("roots_" + k, (x, 21.0, 0), "hand_" + k)
+        c(f"rt_base_{k}", "roots_" + k, (x - 1.5, 18.5, -1.5), (x + 1.5, 22.6, 1.5), CLAW, faces=ink)
+        g("rootsg_" + k, (x, 19.0, 0), "roots_" + k)
+        for i, (rx, rz, ln) in enumerate(((0, 0, 15), (16, 12, 12), (-16, 12, 13), (14, -14, 12), (-14, -14, 13))):
+            B.lock(f"rt{i}_{k}", "rootsg_" + k, (x, 19.0, 0), ln, 1.0, 1.0, (rx, 0, rz * s), CLAW, tip=EDGE, paint=ink["north"])
+
+    # ---- kusarigama sickle at the end of the whip chain
+    g("kama", (3.9, -15.0, 0), "wh9")
+    c("kama_h", "kama", (3.4, -20.0, -0.5), (4.4, -14.8, 0.5), CLAW_RED)
+    c("kama_b0", "kama", (3.65, -20.6, -5.0), (4.15, -19.0, 0.4), CLAW, faces=bl)
+    c("kama_b1", "kama", (3.7, -20.4, -8.6), (4.1, -19.2, -4.6), CLAW, origin=(3.9, -19.8, -4.8), rot=(-28, 0, 0), faces=bl)
+    c("kama_e0", "kama", (3.75, -21.0, -5.0), (4.05, -20.5, 0.0), EDGE, glow=True)
+    c("kama_e1", "kama", (3.78, -20.8, -8.6), (4.02, -20.3, -4.6), EDGE, origin=(3.9, -19.8, -4.8), rot=(-28, 0, 0), glow=True)
+
+    # ---- grappling hook (right): chain (grchain scales its reach) + four-fluke grapnel head (grhead)
+    g("grapnel_r", (3.9, 21.0, 0), "hand_r")
+    c("gr_cuff", "grapnel_r", (2.6, 19.6, -1.3), (5.2, 22.4, 1.3), CLAW, faces=ink)
+    g("grchain", (3.9, 20.0, 0), "grapnel_r")
+    for i in range(6):
+        y = 20.0 - 2.4 * i
+        if i % 2:
+            c(f"grl{i}", "grchain", (3.75, y - 2.8, -0.7), (4.05, y, 0.7), STEEL_D)
+        else:
+            c(f"grl{i}", "grchain", (3.2, y - 2.8, -0.15), (4.6, y, 0.15), STEEL_D)
+    g("grhead", (3.9, 5.6, 0), "grchain")
+    c("gr_shank", "grhead", (3.4, 1.4, -0.5), (4.4, 6.0, 0.5), CLAW_RED)
+    c("gr_eye", "grhead", (3.2, 5.6, -0.7), (4.6, 6.4, 0.7), STEEL)
+    for i, r in enumerate(((0, 0, 50), (0, 0, -50), (50, 0, 0), (-50, 0, 0))):
+        B.blade(f"grf{i}", "grhead", (3.9, 1.6, 0), 3.4, 0.8, 0.8, r, CLAW_RED, tip=EDGE)
+    B.lock("gr_point", "grhead", (3.9, 1.6, 0), 2.6, 0.9, 0.9, (0, 0, 0), CLAW_RED, tip=EDGE)
+
+    # ---- back barrage arms: eight ink arms arch over the shoulders and punch forward (ba{i}e = forearm + fist)
+    g("barrage", (0, 37, 2.0), "body")
+    for i in range(8):
+        s, lv = (1 if i % 2 == 0 else -1), i // 2
+        px, py, pz = 1.6 * s, 40.0 - 2.2 * lv, 2.2
+        ln = 7.0 - 0.6 * lv
+        g(f"ba{i}", (px, py, pz), "barrage", rot=(28 + 6 * lv, 0, -s * (22 + 16 * lv)))
+        c(f"ba{i}u", f"ba{i}", (px - 0.55, py, pz - 0.55), (px + 0.55, py + ln, pz + 0.55), CLAW, faces=ink)
+        ey = py + ln
+        g(f"ba{i}e", (px, ey, pz), f"ba{i}", rot=(-28 - 6 * lv, 0, s * (22 + 16 * lv) * 0.6))
+        c(f"ba{i}f", f"ba{i}e", (px - 0.5, ey - 0.5, pz - 13.0), (px + 0.5, ey + 0.5, pz + 0.3), CLAW, faces=ink)
+        c(f"ba{i}k", f"ba{i}e", (px - 0.9, ey - 0.9, pz - 14.6), (px + 0.9, ey + 0.9, pz - 12.8), CLAW_HI)
+        for j, (dx, dy) in enumerate(((-0.5, 0.4), (0.5, 0.4), (0, -0.5))):
+            B.blade(f"ba{i}c{j}", f"ba{i}e", (px + dx, ey + dy, pz - 14.4), 2.8, 0.4, 0.4, (-90, 0, 0), CLAW, tip=EDGE)
+
+    # ---- boomerang: three-bladed claw star held in the right hand (boomspin spins it)
+    g("boom_r", (3.9, 19.5, 0), "hand_r")
+    g("boomspin", (3.9, 17.0, 0), "boom_r")
+    c("bm_hub", "boomspin", (2.7, 15.8, -0.8), (5.1, 18.2, 0.8), CLAW_RED)
+    c("bm_eye", "boomspin", (3.4, 16.5, -0.95), (4.4, 17.5, 0.95), EDGE, glow=True)
+    for j in range(3):
+        a = j * 120
+        B.lock(f"bmb{j}", "boomspin", (3.9, 17.0, 0), 12.0, 3.2, 0.6, (0, 0, a), CLAW, tip=EDGE, paint=claw_p)
+        r = math.radians(a)
+        bx, by = 3.9 + math.sin(r) * 9.5, 17.0 - math.cos(r) * 9.5
+        B.blade(f"bmh{j}", "boomspin", (bx, by, 0), 4.0, 1.2, 0.5, (0, 0, a + 115), CLAW, tip=EDGE)
+
+    # ---- spiral lance: both arms twist into a double helix of tendrils around a glowing core (spiralspin)
+    g("spiral", (3.9, 20.0, 0), "hand_r")
+    c("sp_cuff", "spiral", (2.3, 18.6, -1.6), (5.5, 22.6, 1.6), CLAW, faces=ink)
+    g("spiralspin", (3.9, 19.0, 0), "spiral")
+    c("sp_core", "spiralspin", (3.5, -14.0, -0.4), (4.3, 19.0, 0.4), EDGE, glow=True)
+    for h in range(2):
+        for i in range(16):
+            ang = math.radians(i * 40 + h * 180)
+            r = 4.2 * (1 - i / 18.0)
+            y = 18.0 - i * 2.0
+            px, pz = 3.9 + r * math.cos(ang), r * math.sin(ang)
+            sz = 2.0 - 0.07 * i
+            c(f"sph{h}_{i}", "spiralspin", (px - sz / 2, y - 1.0, pz - sz / 2), (px + sz / 2, y + 1.0, pz + sz / 2), CLAW if (i + h) % 2 else CLAW_HI,
+              origin=(px, y, pz), rot=(0, -(i * 40 + h * 180) % 90, 24), faces=ink)
+
+    # ---- ahoge blade: the ahoge hardens into a long curved hair-blade
+    g("ahblade", (0.4, 52.4, -0.6), "ahoge")
+    B.blade("ahb0", "ahblade", (0.4, 52.6, -0.6), 7.5, 1.8, 0.7, (-55, 0, -4), HAIR, tip=HAIR_HI, paint=hair["north"])
+    B.blade("ahb1", "ahblade", (0.4, 56.6, -6.4), 5.5, 1.3, 0.6, (-95, 0, -4), HAIR_R, tip=EDGE, paint=hair["north"])
+    c("ahbe", "ahblade", (0.25, 52.4, -0.9), (0.55, 59.8, -0.6), EDGE, origin=(0.4, 52.6, -0.6), rot=(-55, 0, -4), glow=True)
 
 # ================================================================== animation
 def m3(v):
@@ -486,38 +553,20 @@ REST = {"body": (-6, 0, 0), "head": (6, 0, 0), "jaw": (0, 0, 0),
         "arm_r": (4, 0, 6), "arm_l": (4, 0, -6), "fore_r": (6, 0, 0), "fore_l": (6, 0, 0), "hand_r": (4, 0, 0), "hand_l": (4, 0, 0),
         "leg_r": (8, 0, 2), "leg_l": (8, 0, -2), "shin_r": (-14, 0, 0), "shin_l": (-14, 0, 0), "foot_r": (6, 0, 0), "foot_l": (6, 0, 0)}
 RESTP = {"pelvis": (0, -drop(8, 14), 0)}
-# monster: hunched, knees bent, long arms hanging forward
-MREST = {"body": (-38, 0, 0), "head": (34, 0, 0), "jaw": (-10, 0, 0),
-         "arm_r": (30, 0, 14), "arm_l": (30, 0, -14), "fore_r": (12, 0, 0), "fore_l": (12, 0, 0), "hand_r": (6, 0, 0), "hand_l": (6, 0, 0),
-         "leg_r": (36, 0, 8), "leg_l": (36, 0, -8), "shin_r": (-62, 0, 0), "shin_l": (-62, 0, 0), "foot_r": (26, 0, 0), "foot_l": (26, 0, 0)}
-MRESTP = {"pelvis": (0, -drop(36, 62), 0)}
-ELONG = 1.35
-MSCALE = 1.1  # monster form looms a little larger
+ELONG = 1.35  # feral attacks: the ink forearms stretch
 
 
 class F(A):
-    def __init__(self, B, name, ticks, loop=False, monster=False):
-        A.__init__(self, B, name, ticks, MREST if monster else REST, PROPS, loop)
-        self.monster = monster
-        self.prest = dict(MRESTP if monster else RESTP)
+    def __init__(self, B, name, ticks, loop=False):
+        A.__init__(self, B, name, ticks, REST, PROPS, loop)
+        self.prest = dict(RESTP)
 
     def done(self, base_layer=False, additive=False):
         if not additive:
-            if self.monster:
-                if "hair" not in self.tr: self.scl("hair", (0, *HIDE))
-                for b in ("fore_r", "fore_l"):
-                    if "scale" not in self.tr.get(b, {}): self.scl(b, (0, 1, ELONG, 1))
-                if "scale" not in self.tr.get("root", {}): self.scl("root", (0, MSCALE, MSCALE, MSCALE))
-            else:
-                for b in MK:
-                    if "scale" not in self.tr.get(b, {}): self.scl(b, (0, *HIDE))
             if base_layer:
                 for p in PROPS:
                     if "scale" not in self.tr.get(p, {}): self.scl(p, (0, *HIDE))
-        if not additive and (not self.monster or self.name == "transform"): self._mane_comp()
-        if self.monster and not additive and "hface" not in self.tr: self.scl("hface", (0, *HIDE))
-        if "jaw" in self.tr: self.tr["mjaw"] = {"rotation": list(self.tr["jaw"]["rotation"])}
-        elif self.monster and not additive: self.rot("mjaw", (0, *self.rest["jaw"]))
+            self._mane_comp()
         return A.done(self, base_layer or additive)
 
     def _mane_comp(self, gain=0.75):
@@ -553,7 +602,7 @@ class F(A):
         al = a if al is None else al
         kl = k if kl is None else kl
         d = min(drop(a, k), drop(al, kl))
-        sp = 2 if not self.monster else 8
+        sp = 2
         self.at(t, leg_r=(a, 0, sp + spread), shin_r=(-k, 0, 0), foot_r=(k - a, 0, 0),
                 leg_l=(al, 0, -sp - spread), shin_l=(-kl, 0, 0), foot_l=(kl - al, 0, 0))
         if setpos: self.pos("pelvis", (t, 0, -d + up, fwd))
@@ -617,12 +666,31 @@ class F(A):
         return self
 
 
+    def spin(self, bone, keys, axis=1, base=(0, 0, 0)):
+        """continuous spin: keys (t, angle) piecewise-linear, sampled every tick so catmullrom never shortcuts.
+        End on a multiple of 360 at the last tick so the loop back to rest is seamless."""
+        def ang(t):
+            for (t0, a0), (t1, a1) in zip(keys, keys[1:]):
+                if t0 <= t <= t1: return a0 + (a1 - a0) * (t - t0) / max(1e-6, t1 - t0)
+            return keys[-1][1]
+        out = []
+        for t in range(int(keys[0][0]), int(keys[-1][0]) + 1):
+            v = list(base); v[axis] += ang(t)
+            out.append((t, *v))
+        return self.rot(bone, *out)
+
+    def stretch(self, t0, t1, amt=ELONG, ramp=4):
+        """feral attacks: ink forearms elongate"""
+        for b in ("fore_r", "fore_l"):
+            self.scl(b, (0, 1, 1, 1), (t0, 1, 1, 1), (t0 + ramp, 1, amt, 1), (t1 - ramp, 1, amt, 1), (t1, 1, 1, 1), (self.ticks, 1, 1, 1))
+        return self
+
 Z0 = (0, 0, 0)
 
 
 def anims(B):
-    def mk(name, ticks, loop=False, monster=False):
-        return F(B, name, ticks, loop, monster)
+    def mk(name, ticks, loop=False):
+        return F(B, name, ticks, loop)
 
     # ================= idle (80): tall looming sway, breathing, head-cock, claw twitches, mane flowing
     a = mk("idle", 80, loop=True)
@@ -652,32 +720,9 @@ def anims(B):
     a.sec([(0, 4, 3), (6, 2, 0), (12, 4, -3), (18, 2, 0), (24, 4, 3)], delay=2)
     a.done(additive=True)
 
-    # ================= quad_idle (60): monster mode hunch - shoulders heaving, twitching head, claws flexing
-    a = mk("quad_idle", 60, loop=True, monster=True)
-    for t, j in ((0, 0), (15, 1), (30, 0), (45, -1), (60, 0)):
-        b = abs(j)
-        a.full(t, body=(-38 - 3 * b, 4 * j, 0), head=(34 + 3 * b, -6 * j, 4 * j), jaw=(-10 - 6 * b, 0, 0),
-               arm_r=(30 + 4 * b, 0, 14 + 2 * j), arm_l=(30 + 4 * b, 0, -14 + 2 * j))
-        a.pos("pelvis", (t, 0, -drop(36, 62) - 0.6 * b, 0))
-    a.at(20, head=(40, 20, 30)).at(22, head=(36, -10, -20)).at(25, head=(37, 0, 0))  # jerky twitch
-    a.claws(0, 0, spread=6).claws(10, 26, spread=6).claws(14, -10, spread=10).claws(30, 0, spread=6).claws(44, 30, "l").claws(48, -8, "l", 8).claws(60, 0, spread=6)
-    a.scl("fore_r", (0, 1, ELONG, 1)).scl("fore_l", (0, 1, ELONG, 1))
-    a.done(base_layer=True)
-
-    # ================= quad_walk (24, additive): skittering spider-like gait, arms reaching forward to pull
-    a = mk("quad_walk", 24, loop=True, monster=True)
-    for t, sw in ((0, 1), (6, 0), (12, -1), (18, 0), (24, 1)):
-        a.rot("leg_r", (t, 24 * sw, 0, 0)).rot("leg_l", (t, -24 * sw, 0, 0))
-        a.rot("shin_r", (t, -20 * max(0, -sw), 0, 0)).rot("shin_l", (t, -20 * max(0, sw), 0, 0))
-        a.rot("arm_r", (t, 40 * sw, 0, 0)).rot("arm_l", (t, -40 * sw, 0, 0))
-        a.rot("fore_r", (t, -16 * sw, 0, 0)).rot("fore_l", (t, 16 * sw, 0, 0))
-    a.rot("body", (0, -6, 10, 0), (6, -10, 0, 0), (12, -6, -10, 0), (18, -10, 0, 0), (24, -6, 10, 0))
-    a.rot("head", (0, 4, -10, 4), (6, 8, 0, 0), (12, 4, 10, -4), (18, 8, 0, 0), (24, 4, -10, 4))
-    a.pos("pelvis", (0, 0, -1, 0), (6, 0, 0.6, 0), (12, 0, -1, 0), (18, 0, 0.6, 0), (24, 0, -1, 0))
-    a.done(additive=True)
-
     abilities(mk)
     monster_abilities(mk)
+    shift_abilities(mk)
 
     # ================= death (40): stagger, knees buckle, topple forward, claws twitch (any form reverts to the girl)
     a = mk("death", 40)
@@ -962,47 +1007,10 @@ def abilities(mk):
     a.sec([(0, 0, 0), (5, -3, 0), (8, 10, 0), (12, 4, 0), (15, -8, 0), (20, 3, 0), (30, 0, 0)])
     a.done()
 
-    # ================= transform (60): doubles over 0-12, convulses 12-28, ink floods her 20-34 (shell grows, mane burns away),
-    #                   unfolds into the monster 34-44, ROAR 46
-    a = mk("transform", 60, monster=True)
-    a.scl("hair", (0, 1, 1, 1), (20, 1, 1, 1), (28, 1, 1.1, 1), (34, *HIDE), (60, *HIDE))
-    a.scl("hface", (0, 1, 1, 1), (31, 1, 1, 1), (33, *HIDE), (60, *HIDE))
-    for b in MK:
-        a.scl(b, (0, *HIDE), (20, *HIDE), (26, 0.8, 0.8, 0.8), (32, 1.08, 1.08, 1.08), (34, 1, 1, 1), (60, 1, 1, 1))
-    for b in ("fore_r", "fore_l"):
-        a.scl(b, (0, 1, 1, 1), (30, 1, 1, 1), (40, 1, ELONG + 0.1, 1), (44, 1, ELONG, 1), (60, 1, ELONG, 1))
-    a.scl("root", (0, 1, 1, 1), (30, 1, 1, 1), (42, MSCALE + 0.05, MSCALE + 0.05, MSCALE + 0.05), (46, MSCALE, MSCALE, MSCALE), (60, MSCALE, MSCALE, MSCALE))
-    a.at(0, body=REST["body"], head=REST["head"], jaw=(0, 0, 0))
-    a.arms(0, (4, 0, 6), (6, 0, 0), (4, 0, 0))
-    a.legs(0, 8, 14)
-    a.at(8, body=(-60, 0, 0), head=(-10, 0, 0), jaw=(-16, 0, 0))
-    a.arms(8, (60, 30, -10), (90, 0, 0), (20, 0, 0))
-    a.legs(8, 40, 70)
-    for i, t in enumerate(range(12, 30, 3)):
-        j = 1 if i % 2 else -1
-        a.at(t, body=(-64 + 6 * j, 8 * j, 6 * j), head=(-4 + 10 * j, 14 * j, -12 * j), jaw=(-20 - 10 * (i % 2), 0, 0))
-        a.arms(t, (70 + 10 * j, 30, -10 + 10 * j), (100, 0, 0), (30, 0, 0), al=(70 - 10 * j, 30, -10 - 10 * j))
-        a.legs(t, 44, 78)
-    a.at(34, body=(-20, 0, 0), head=(20, 0, 0), jaw=(-30, 0, 0))
-    a.arms(34, (40, 0, 60), (20, 0, 0), (0, 0, 0))
-    a.legs(34, 30, 50)
-    a.at(40, body=(0, 0, 0), head=(46, 0, 0), jaw=(-50, 0, 0))
-    a.arms(40, (-10, 0, 80), (20, 0, 0), (-20, 0, 0))
-    a.legs(40, 20, 34, up=0.5)
-    for t, j in ((44, 1), (47, -1), (50, 1), (53, -1)):
-        a.at(t, body=(4, 2 * j, 0), head=(56 + 2 * j, 3 * j, 2 * j), jaw=(-56, 0, 0))
-        a.arms(t, (-20, 0, 90 + 4 * j), (16, 0, 0), (-24, 0, 0))
-    a.at(58, body=MREST["body"], head=MREST["head"], jaw=MREST["jaw"])
-    a.arms(58, MREST["arm_r"], MREST["fore_r"], MREST["hand_r"])
-    a.legs(58, 36, 62)
-    a.claws(8, 40).claws(14, -20, spread=10).claws(18, 40).claws(22, -20, spread=10).claws(26, 40).claws(40, -30, spread=14).claws(56, 0, spread=6)
-    a.sec([(0, 0, 0), (8, 8, 0), (12, 6, 4), (15, 6, -4), (18, 6, 4), (21, 6, -4), (24, 6, 4), (27, 6, -4), (34, 0, 0), (60, 0, 0)])
-    a.done()
-
 
 def monster_abilities(mk):
     # ================= m_frenzy (48): six savage alternating slashes 10..35 (each lunging), crossing finisher 42
-    a = mk("m_frenzy", 48, monster=True)
+    a = mk("m_frenzy", 48)
     a.at(4, body=(-50, 0, 0), head=(46, 0, 0), jaw=(-40, 0, 0))
     a.arms(4, (-30, 0, 40), (40, 0, 0), (10, 0, 0))
     a.legs(4, 50, 90)
@@ -1025,10 +1033,12 @@ def monster_abilities(mk):
     a.at(46, body=(-46, 0, 0), head=(34, 0, 0), jaw=(-16, 0, 0))
     a.arms(46, (40, 0, 20), (14, 0, 0))
     a.claws(4, -26, spread=12).claws(10, 30).claws(20, 30).claws(39, -26, spread=12).claws(42, 40).claws(48, 0, spread=6)
+    a.stretch(3, 46)
+    a.sec([(0, 0, 0), (4, -4, 0), (10, 6, 4), (15, 6, -4), (20, 6, 4), (25, 6, -4), (30, 6, 4), (35, 6, -4), (39, -6, 0), (42, 12, 0), (48, 0, 0)])
     a.done()
 
     # ================= m_impale (40): rears up 0-12, both claws plunge into the ground 14, rip forward 16-31 (spike line), wrench out
-    a = mk("m_impale", 40, monster=True)
+    a = mk("m_impale", 40)
     a.at(6, body=(-6, 0, 0), head=(46, 0, 0), jaw=(-46, 0, 0))
     a.arms(6, (186, 0, 20), (10, 0, 0), (-20, 0, 0))
     a.legs(6, 20, 30, up=0.6)
@@ -1047,10 +1057,12 @@ def monster_abilities(mk):
     a.arms(34, (124, 0, 24), (20, 0, 0), (-10, 0, 0))
     a.legs(34, 40, 70)
     a.claws(6, -26, spread=12).claws(12, -26, spread=12).claws(14, 46).claws(31, 46).claws(34, -10).claws(38, 0, spread=6)
+    a.stretch(4, 38, 1.5)
+    a.sec([(0, 0, 0), (6, -4, 0), (11, -8, 0), (14, 12, 0), (17, 8, 3), (23, 8, -3), (29, 8, 3), (34, -2, 0), (40, 0, 0)])
     a.done()
 
     # ================= m_lunge (32): coils low 0-8, LAUNCHES 9 (all limbs forward), mauls 10-20, skids to a stop 22
-    a = mk("m_lunge", 32, monster=True)
+    a = mk("m_lunge", 32)
     a.at(4, body=(-60, 0, 0), head=(56, 0, 0), jaw=(-20, 0, 0))
     a.arms(4, (10, 0, 30), (30, 0, 0), (20, 0, 0))
     a.legs(4, 76, 136, fwd=1.2)
@@ -1072,10 +1084,12 @@ def monster_abilities(mk):
     a.arms(27, (40, 0, 20), (14, 0, 0))
     a.legs(27, 40, 70)
     a.claws(8, 30).claws(9, -26, spread=12).claws(12, 40).claws(15, -10).claws(18, 40).claws(26, 0, spread=6)
+    a.stretch(5, 28)
+    a.sec([(0, 0, 0), (4, 4, 0), (8, 6, 0), (9, 14, 0), (12, 12, 3), (15, 12, -3), (18, 12, 3), (22, -6, 0), (27, 2, 0), (32, 0, 0)])
     a.done()
 
     # ================= m_tendrils (50): hunch + shudder 0-12, ERUPTION 14 (extra arms + ground tendrils), thrash 16-30, recoil
-    a = mk("m_tendrils", 50, monster=True)
+    a = mk("m_tendrils", 50)
     a.scl("spider", (0, *HIDE), (11.99, *HIDE), (14, 1.6, 1.6, 1.6), (16, 1.4, 1.4, 1.4), (44, 1.4, 1.4, 1.4), (46, *HIDE), (50, *HIDE))
     for t, j in ((3, 1), (6, -1), (9, 1), (12, -1)):
         a.at(t, body=(-70 + 2 * j, 4 * j, 4 * j), head=(20, 6 * j, 0), jaw=(-6, 0, 0))
@@ -1098,10 +1112,12 @@ def monster_abilities(mk):
     a.arms(36, (40, 0, 30), (20, 0, 0))
     a.legs(36, 40, 70)
     a.claws(3, 40).claws(14, -30, spread=14).claws(30, -26, spread=14).claws(38, 0, spread=6)
+    a.stretch(10, 42)
+    a.sec([(0, 0, 0), (3, 6, 3), (6, 6, -3), (9, 6, 3), (12, 6, -3), (14, -12, 0), (18, -6, 5), (22, -6, -5), (26, -6, 5), (30, -6, -5), (36, 4, 0), (50, 0, 0)])
     a.done()
 
     # ================= m_reap (36): black scythes, crouch-twist 0-9, SPIN 10-14 (hit 12), second SPIN 18-22 (hit 20), unwind
-    a = mk("m_reap", 36, monster=True)
+    a = mk("m_reap", 36)
     a.morph("scythe_r", 1, 33, "r").morph("scythe_l", 1, 33, "l")
     a.rot("root", (0, 0, 0, 0), (8, 0, -30, 0), (10, 0, 30, 0), (12, 0, 190, 0), (14, 0, 330, 0), (16, 0, 360, 0),
           (18, 0, 400, 0), (20, 0, 550, 0), (22, 0, 690, 0), (25, 0, 726, 0), (30, 0, 720, 0), (36, 0, 720, 0))
@@ -1118,17 +1134,377 @@ def monster_abilities(mk):
     a.at(26, body=(-50, 0, 0), head=(40, 0, 0), jaw=(-20, 0, 0))
     a.arms(26, (50, 0, 40), (20, 0, 0))
     a.legs(26, 46, 80)
+    a.claws(8, 20).claws(12, -10, spread=10).claws(26, 0)
+    a.sec([(0, 0, 0), (8, 4, -4), (10, 2, 10), (12, 4, 16), (14, 4, 16), (16, 4, 6), (18, 4, 10), (20, 4, 16), (22, 4, 16), (26, 2, 0), (36, 0, 0)])
     a.done()
 
 
+def shift_abilities(mk):
+    # ================= drill (36): right arm twists into a drill 1-6, cock back 6-9, THRUST 10 (dash), grind 12-22, BURST 24, pull out
+    a = mk("drill", 36)
+    a.morph("drill_r", 1, 33, "r", grow=5)
+    a.spin("drillspin", [(0, 0), (3, 0), (9, 300), (24, 2700), (30, 3060), (36, 3240)])
+    a.at(3, body=(-8, -10, 0), head=(10, 8, 0), jaw=(-10, 0, 0))
+    a.arm(3, "r", (30, 0, 20), (30, 0, 0)).arm(3, "l", (20, 0, -10), (20, 0, 0))
+    a.at(8, body=(-14, -38, -4), head=(12, 30, 0), jaw=(-24, 0, 0))
+    a.arm(8, "r", (-30, -10, 30), (100, 0, 0), (0, 0, 0)).arm(8, "l", (60, 20, -20), (40, 0, 0))
+    a.legs(3, 16, 26).legs(8, -10, 20, 50, 90, fwd=0.5)
+    a.at(10, body=(-34, 24, 6), head=(4, -16, 0), jaw=(-40, 0, 0))
+    a.arm(10, "r", (94, 6, 0), (-4, 0, 0), (0, 0, 0)).arm(10, "l", (-30, 0, -30), (30, 0, 0))
+    a.legs(10, 64, 104, -24, 10, fwd=-2.5)
+    for i, t in enumerate(range(12, 23, 2)):
+        j = 1 if i % 2 else -1
+        a.at(t, body=(-34 + 2 * j, 24 + 2 * j, 6), head=(4 + 3 * j, -16, 2 * j), jaw=(-44 - 4 * j, 0, 0))
+        a.arm(t, "r", (92 + 2 * j, 6, 2 * j), (0, 0, 0), (0, 0, 0))
+        a.legs(t, 62, 102, -22, 12, fwd=-2.5)
+    a.at(24, body=(-42, 22, 8), head=(2, -14, 0), jaw=(-56, 0, 0))
+    a.arm(24, "r", (98, 4, 0), (-8, 0, 0), (0, 0, 0))
+    a.legs(24, 70, 112, -28, 10, fwd=-3)
+    a.at(28, body=(-18, 6, 0), head=(12, -4, 0), jaw=(-20, 0, 0))
+    a.arm(28, "r", (50, -10, 20), (40, 0, 0)).arm(28, "l", (10, 0, -20), (20, 0, 0))
+    a.legs(28, 30, 50).legs(33, 12, 18)
+    a.at(33, body=(-8, 0, 0), head=(8, 0, 0))
+    a.arm(33, "r", (14, 0, 10), (16, 0, 0))
+    a.claws(8, 30, "l").claws(10, -20, "l", 10).claws(28, 0, "l")
+    a.sec([(0, 0, 0), (8, -4, -3), (10, 12, 3), (14, 7, 1), (18, 7, -1), (22, 7, 1), (24, 12, 3), (28, -3, 0), (36, 0, 0)])
+    a.done()
+
+    # ================= crusher (40): both arms become crushing claws 1-6, spread open 10, CLAMP 12 (grab), lift 16,
+    #                   CRUSH 20 (squeeze), heave 24, SLAM 28, release
+    a = mk("crusher", 40)
+    a.morph("pincer_r", 1, 37, "r", grow=5).morph("pincer_l", 1, 37, "l", grow=5)
+    for k in ("r", "l"):
+        for jn, sg in (("A", 1), ("B", -1)):
+            a.rot(f"pin{jn}_{k}", *[(t, v * sg, 0, 0) for t, v in ((0, 0), (6, 10), (10, 44), (11.5, 48), (12, -6), (14, 2), (19, 4), (20, -10),
+                                                                   (21, 4), (27, 0), (29, 30), (33, 36), (37, 0), (40, 0))])
+    a.at(5, body=(-6, 0, 0), head=(18, 0, 0), jaw=(-30, 0, 0))
+    a.arms(5, (60, 0, 40), (30, 0, 0), (0, 0, 0))
+    a.at(10, body=(-20, 0, 0), head=(12, 0, 0), jaw=(-46, 0, 0))
+    a.arms(10, (100, -50, 30), (10, 0, 0), (0, 0, 0))
+    a.legs(5, 20, 30).legs(10, 40, 70)
+    a.at(12, body=(-34, 0, 0), head=(4, 0, 0), jaw=(-10, 0, 0))
+    a.arms(12, (92, 14, -4), (0, 0, 0), (0, 0, 0))
+    a.legs(12, 34, 56, fwd=-1.5)
+    a.at(16, body=(4, 0, 0), head=(30, 0, 0), jaw=(-36, 0, 0))
+    a.arms(16, (150, 10, 0), (10, 0, 0), (0, 0, 0))
+    a.legs(16, 6, 10, up=0.4)
+    a.at(19, body=(6, 0, 0), head=(32, 0, 0), jaw=(-40, 0, 0)).arms(19, (160, 10, 0), (8, 0, 0))
+    a.at(20, body=(9, 0, 3), head=(34, 0, 0), jaw=(-54, 0, 0)).arms(20, (156, 13, -3), (4, 0, 0))
+    a.at(22, body=(8, 0, -3), head=(34, 0, 0)).arms(22, (164, 9, 2), (8, 0, 0))
+    a.at(25, body=(14, 0, 0), head=(36, 0, 0), jaw=(-30, 0, 0)).arms(25, (178, 8, 0), (16, 0, 0))
+    a.legs(25, 0, 10, up=0.8)
+    a.at(28, body=(-56, 0, 0), head=(10, 0, 0), jaw=(-24, 0, 0))
+    a.arms(28, (62, 10, 0), (0, 0, 0), (20, 0, 0))
+    a.legs(28, 70, 120, fwd=-2)
+    a.at(31, body=(-52, 0, 0), head=(14, 0, 0)).arms(31, (58, 10, 0), (4, 0, 0))
+    a.legs(31, 66, 116, fwd=-2)
+    a.at(36, body=(-14, 0, 0), head=(10, 0, 0), jaw=(-6, 0, 0)).arms(36, (20, 0, 14), (20, 0, 0))
+    a.legs(36, 14, 20)
+    a.sec([(0, 0, 0), (5, -2, 0), (10, 4, 0), (12, 8, 0), (16, -6, 0), (20, -6, 3), (22, -6, -3), (25, -8, 0), (28, 14, 0), (32, 4, 0), (40, 0, 0)])
+    a.done()
+
+    # ================= lattice (38): fingers spin out razor wire 1-11, arms cross 9, RIP OPEN 13 (horizontal lattice),
+    #                   overhead 18, DOWN-CUT 22, cinch / YANK 28 (pulls victims in), retract
+    a = mk("lattice", 38)
+    a.morph("wire_r", 1, 35, "r", grow=4).morph("wire_l", 1, 35, "l", grow=4)
+    for k in ("r", "l"):
+        for i in range(5):
+            a.scl(f"wr{i}_{k}", (0, 1, 0.3, 1), (5, 1, 0.5, 1), (11, 1, 2.3, 1), (30, 1, 2.3, 1), (35, 1, 0.5, 1), (38, 1, 0.5, 1))
+            sp = (i - 2) * 6
+            a.rot(f"wr{i}_{k}", (0, 0, 0, 0), (9, 0, 0, sp * 0.5), (12, -20, 0, sp), (14, 30, 0, sp * 1.6), (17, 10, 0, sp), (20, -30, 0, sp * 0.6),
+                  (22, 20, 0, sp), (24, 30, 0, sp * 1.4), (28, -40, 0, sp * 0.4), (31, -10, 0, sp * 0.2), (38, 0, 0, 0))
+    a.at(4, body=(-4, 0, 0), head=(14, 0, 0), jaw=(-14, 0, 0))
+    a.arms(4, (40, 0, 20), (40, 0, 0))
+    a.at(9, body=(-16, 0, 0), head=(6, 0, 0), jaw=(-8, 0, 0))
+    a.arms(9, (100, 70, 10), (30, 0, 0), (0, 0, 0))
+    a.at(11, body=(-18, 0, 0)).arms(11, (104, 78, 8), (34, 0, 0))
+    a.legs(9, 36, 64)
+    a.at(13, body=(-6, 0, 0), head=(20, 0, 0), jaw=(-50, 0, 0))
+    a.arms(13, (92, -86, 0), (0, 0, 0), (0, 0, 0))
+    a.legs(13, 20, 30, up=0.3)
+    a.at(15, body=(-4, 0, 0)).arms(15, (90, -98, 0), (-4, 0, 0))
+    a.at(18, body=(8, 0, 0), head=(30, 0, 0), jaw=(-30, 0, 0))
+    a.arms(18, (176, -10, 20), (10, 0, 0))
+    a.legs(18, 10, 16, up=0.4)
+    a.at(22, body=(-40, 0, 0), head=(10, 0, 0), jaw=(-44, 0, 0))
+    a.arms(22, (50, -8, 8), (0, 0, 0), (0, 0, 0))
+    a.legs(22, 50, 90, fwd=-1.5)
+    a.at(24, body=(-38, 0, 0)).arms(24, (44, -8, 8), (0, 0, 0))
+    a.at(26, body=(-20, 0, 0), head=(14, 0, 0), jaw=(-20, 0, 0)).arms(26, (80, -30, 20), (10, 0, 0))
+    a.at(28, body=(10, 0, 0), head=(26, 0, 0), jaw=(-40, 0, 0))
+    a.arms(28, (30, 30, 30), (110, 0, 0), (0, 0, 0))
+    a.legs(26, 30, 50).legs(28, -6, 10, 30, 50)
+    a.at(31, body=(8, 0, 0)).arms(31, (26, 30, 30), (120, 0, 0))
+    a.at(35, body=(-6, 0, 0), head=(8, 0, 0), jaw=(0, 0, 0)).arms(35, (10, 0, 10), (20, 0, 0))
+    a.legs(35, 10, 16)
+    a.claws(9, -10, spread=24).claws(13, -24, spread=30).claws(22, -24, spread=30).claws(28, 40).claws(34, 0)
+    a.sec([(0, 0, 0), (9, 3, 0), (13, -4, 0), (15, -4, 0), (18, -6, 0), (22, 10, 0), (26, 2, 0), (28, -8, 0), (38, 0, 0)])
+    a.done()
+
+    # ================= kusari (44): whip arm + sickle (kusarigama) - whirl overhead 6-12, SWEEP 14, BACKHAND 22, overhead CHOP 30, YANK 34
+    a = mk("kusari", 44)
+    a.hide("claws_r", 1, 41)
+    a.scl("whip_r", (0, *HIDE), (0.99, *HIDE), (5, 1, 1, 1), (9, 1, 1.2, 1), (13, 1, 1.6, 1), (30, 1, 1.7, 1), (34, 1, 1.3, 1), (38, 1, 1, 1),
+          (40, *HIDE), (44, *HIDE))
+    a.show("kama", 4, 41, grow=3)
+    a.spin("hand_r", [(0, 0), (6, 0), (12, 1080), (44, 1080)], base=(4, 0, 0))
+    a.at(3, body=(-6, -14, 0), head=(12, 8, 0))
+    a.arm(3, "r", (60, 0, 30), (40, 0, 0)).arm(3, "l", (20, 0, -20), (20, 0, 0))
+    a.at(7, body=(4, -10, -4), head=(22, 6, 0), jaw=(-20, 0, 0))
+    a.arm(7, "r", (176, 0, 12), (10, 0, 0)).arm(7, "l", (30, 0, -30), (40, 0, 0))
+    a.at(12, body=(2, 10, 4), head=(20, -6, 0)).arm(12, "r", (172, 0, 14), (10, 0, 0))
+    a.legs(7, 10, 16, up=0.3)
+    a.at(13, body=(-10, -30, -4), head=(12, 20, 0), jaw=(-30, 0, 0)).arm(13, "r", (110, -80, 20), (0, 0, 0))
+    a.at(15, body=(-26, 30, 6), head=(6, -20, 0), jaw=(-44, 0, 0)).arm(15, "r", (90, 40, 0), (0, 0, 0))
+    a.at(17, body=(-24, 44, 6), head=(8, -26, 0)).arm(17, "r", (86, 90, 0), (0, 0, 0))
+    a.legs(13, 0, 10, 30, 50).legs(15, 40, 70, -6, 10, fwd=-1)
+    a.at(20, body=(-20, 40, 4), head=(12, -26, 0), jaw=(-20, 0, 0)).arm(20, "r", (96, 96, 10), (30, 0, 0))
+    a.at(22, body=(-24, -30, -6), head=(8, 20, 0), jaw=(-44, 0, 0)).arm(22, "r", (90, -20, 0), (0, 0, 0))
+    a.at(24, body=(-22, -44, -6), head=(10, 26, 0)).arm(24, "r", (88, -90, 0), (0, 0, 0))
+    a.legs(20, 30, 50, 10, 20).legs(22, -6, 10, 40, 70, fwd=-1)
+    a.at(27, body=(12, -10, 0), head=(30, 6, 0), jaw=(-30, 0, 0)).arm(27, "r", (200, -10, 10), (20, 0, 0))
+    a.legs(27, 10, 16, up=0.4)
+    a.at(30, body=(-44, 0, 0), head=(8, 0, 0), jaw=(-40, 0, 0)).arm(30, "r", (70, 0, 4), (0, 0, 0))
+    a.arm(30, "l", (-20, 0, -40), (30, 0, 0))
+    a.legs(30, 50, 90, fwd=-1.6)
+    a.at(34, body=(-6, -14, 0), head=(20, 10, 0), jaw=(-24, 0, 0)).arm(34, "r", (20, 0, 30), (100, 0, 0))
+    a.legs(34, -4, 10, 30, 56)
+    a.at(40, body=(-6, 0, 0), head=(8, 0, 0), jaw=(0, 0, 0)).arm(40, "r", (16, 0, 10), (16, 0, 0)).arm(40, "l", (10, 0, -10), (10, 0, 0))
+    a.legs(40, 10, 16)
+    a.wave("wh", 10, [(0, 0, 0), (5, -10, 10), (7, -20, 50), (12, -20, 50), (13, 0, 30), (14, 10, -10), (16, 0, -30), (18, 0, -20), (20, 0, 30),
+                      (22, 0, 10), (24, 0, -30), (27, -30, 0), (29, -40, 0), (30, 10, 0), (32, 20, 0), (34, -30, 0), (37, -10, 0), (44, 0, 0)], 0.5)
+    a.sec([(0, 0, 0), (7, -4, 0), (12, -4, 2), (14, 6, 5), (17, 4, 6), (22, 6, -5), (24, 4, -6), (27, -6, 0), (30, 12, 0), (34, -4, 0), (44, 0, 0)])
+    a.done()
+
+    # ================= grapple (40): right arm grows a grappling hook 2-6, wind 7, THROW 9, anchor 10, REEL herself in 11-18,
+    #                   left-claw RAKE on arrival 20, land 24
+    a = mk("grapple", 40)
+    a.show("grapnel_r", 2, 37, grow=3).hide("claws_r", 2, 37)
+    a.scl("grchain", (0, 1, 1, 1), (8, 1, 1, 1), (10, 1, 5, 1), (12, 1, 5.2, 1), (13, 1, 5, 1), (19, 1, 0.8, 1), (21, 1, 1, 1), (40, 1, 1, 1))
+    a.scl("grhead", (0, 1, 1, 1), (8, 1, 1, 1), (10, 1, 0.2, 1), (12, 1, 0.19, 1), (13, 1, 0.2, 1), (19, 1, 1.25, 1), (21, 1, 1, 1), (40, 1, 1, 1))
+    a.at(3, body=(-8, -20, 0), head=(12, 14, 0), jaw=(-10, 0, 0))
+    a.arm(3, "r", (40, -20, 30), (50, 0, 0))
+    a.at(7, body=(-4, -40, -6), head=(14, 34, 0), jaw=(-16, 0, 0))
+    a.arm(7, "r", (-40, -10, 30), (90, 0, 0), (0, 0, 0)).arm(7, "l", (60, 10, -20), (20, 0, 0))
+    a.legs(7, 0, 10, 40, 70)
+    a.at(9, body=(-26, 16, 4), head=(6, -10, 0), jaw=(-34, 0, 0))
+    a.arm(9, "r", (96, 4, 0), (0, 0, 0), (0, 0, 0)).arm(9, "l", (-20, 0, -30), (20, 0, 0))
+    a.legs(9, 40, 70, -10, 10, fwd=-1)
+    a.at(11, body=(-40, 6, 0), head=(30, -4, 0), jaw=(-30, 0, 0)).arm(11, "r", (120, 0, 0), (0, 0, 0))
+    a.legs(11, 20, 60, -10, 30, up=1.5)
+    for t, j in ((13, 1), (16, -1)):
+        a.at(t, body=(-64 + 2 * j, 0, 3 * j), head=(54, 0, 0), jaw=(-40, 0, 0))
+        a.arm(t, "r", (158, 0, 0), (0, 0, 0)).arm(t, "l", (170, 0, -10), (10, 0, 0))
+        a.legs(t, -10, 60, 10, 90, up=2.5)
+    a.at(18, body=(-50, -10, 0), head=(44, 8, 0), jaw=(-50, 0, 0))
+    a.arm(18, "r", (110, 0, 10), (30, 0, 0)).arm(18, "l", (210, 0, -20), (20, 0, 0))
+    a.legs(18, 30, 90, 30, 90, up=2.0)
+    a.at(20, body=(-40, 20, 4), head=(30, -10, 0), jaw=(-50, 0, 0))
+    a.arm(20, "l", (80, 0, 0), (0, 0, 0), (20, 0, 0)).arm(20, "r", (60, 0, 30), (40, 0, 0))
+    a.legs(20, 40, 80, 20, 60, up=1.0)
+    a.at(24, body=(-44, 10, 0), head=(30, 0, 0), jaw=(-20, 0, 0))
+    a.arm(24, "r", (60, 0, 20), (30, 0, 0)).arm(24, "l", (50, 0, -10), (20, 0, 0))
+    a.legs(24, 66, 120)
+    a.at(30, body=(-20, 0, 0), head=(16, 0, 0), jaw=(-8, 0, 0)).legs(30, 30, 50)
+    a.at(36, body=(-8, 0, 0), head=(8, 0, 0)).arms(36, (10, 0, 10), (14, 0, 0)).legs(36, 12, 18)
+    a.claws(16, -24, "l", 10).claws(20, 40, "l").claws(28, 0, "l")
+    a.sec([(0, 0, 0), (7, -4, -2), (9, 8, 2), (11, 10, 0), (13, 16, 2), (16, 16, -2), (18, 6, 0), (20, 12, 3), (24, -8, 0), (30, 2, 0), (40, 0, 0)])
+    a.done()
+
+    # ================= wingrake (46): arms unfurl into mirrored blade-wings 1-8 (screech), crouch 11, LEAP 12, low glide 13-24
+    #                   (wings slice everything), SPIN 26-30 (buzzsaw hit 28), land 32
+    a = mk("wingrake", 46)
+    a.morph("bwing_r", 1, 42, None, grow=6).morph("bwing_l", 1, 42, None, grow=6)
+    a.at(5, body=(-6, 0, 0), head=(16, 0, 0), jaw=(-24, 0, 0)).arms(5, (10, 0, 60), (10, 0, 0), (0, 0, 0))
+    a.at(8, body=(-4, 0, 0), head=(22, 0, 0), jaw=(-40, 0, 0)).arms(8, (0, 0, 94), (0, 0, 0))
+    a.at(11, body=(-40, 0, 0), head=(36, 0, 0), jaw=(-10, 0, 0)).arms(11, (-20, 0, 80), (0, 0, 0))
+    a.legs(8, 10, 16).legs(11, 70, 126, fwd=1)
+    a.at(12, body=(-60, 0, 0), head=(50, 0, 0), jaw=(-30, 0, 0)).arms(12, (-10, 0, 96), (0, 0, 0))
+    a.legs(12, -10, 10, up=3)
+    for i, t in enumerate((14, 17, 20, 23)):
+        j = 1 if i % 2 else -1
+        a.at(t, body=(-76, 0, 8 * j), head=(64, 0, -4 * j), jaw=(-34, 0, 0))
+        a.arms(t, (-4, 4 * j, 90 + 4 * j), (0, 0, 0), al=(-4, -4 * j, 90 - 4 * j))
+        a.legs(t, -24, 20, up=4.5)
+    a.at(25, body=(-76, 0, 0), head=(64, 0, 0), jaw=(-50, 0, 0)).arms(25, (-6, 0, 92), (0, 0, 0))
+    a.spin("root", [(0, 0), (25, 0), (32, 360), (46, 360)])
+    a.at(28, body=(-70, 0, 0), head=(58, 0, 0), jaw=(-56, 0, 0)).arms(28, (0, 0, 96), (0, 0, 0))
+    a.legs(28, -10, 30, up=3)
+    a.at(32, body=(-50, 0, 0), head=(30, 0, 0), jaw=(-14, 0, 0)).arms(32, (60, 0, 40), (10, 0, 0))
+    a.legs(32, 70, 130)
+    a.at(36, body=(-44, 0, 0), head=(28, 0, 0)).legs(36, 64, 120)
+    a.at(42, body=(-14, 0, 0), head=(10, 0, 0), jaw=(0, 0, 0)).arms(42, (10, 0, 30), (10, 0, 0)).legs(42, 20, 30)
+    a.claws(8, -20, spread=10).claws(30, -20, spread=10).claws(32, 30).claws(40, 0)
+    a.sec([(0, 0, 0), (8, -2, 0), (11, 4, 0), (12, 10, 0), (14, 14, 3), (17, 14, -3), (20, 14, 3), (23, 14, -3), (26, 12, 14), (30, 12, 14),
+           (32, -10, 0), (36, 4, 0), (46, 0, 0)])
+    a.done()
+
+    # ================= rootspikes (44): arms sprout root-tendrils 3-7, REAR up 9, PLUNGE into the ground 12, roots writhe 14-24
+    #                   (spikes erupt under the target ~20), RIP them up 26 (ring of spikes around her), recover
+    a = mk("rootspikes", 44)
+    a.morph("roots_r", 3, 40, "r", grow=4).morph("roots_l", 3, 40, "l", grow=4)
+    for k in ("r", "l"):
+        a.scl("rootsg_" + k, (0, 1, 1, 1), (11, 1, 1, 1), (13, 1, 2.3, 1), (25, 1, 2.4, 1), (27, 1, 1.3, 1), (40, 1, 1, 1), (44, 1, 1, 1))
+    a.at(4, body=(4, 0, 0), head=(30, 0, 0), jaw=(-40, 0, 0)).arms(4, (150, 0, 30), (20, 0, 0))
+    a.at(9, body=(10, 0, 0), head=(36, 0, 0), jaw=(-56, 0, 0)).arms(9, (196, 0, 20), (10, 0, 0), (-10, 0, 0))
+    a.legs(4, 10, 16).legs(9, 6, 10, up=0.6)
+    a.at(12, body=(-70, 0, 0), head=(40, 0, 0), jaw=(-20, 0, 0)).arms(12, (70, 0, 12), (0, 0, 0), (10, 0, 0))
+    a.legs(12, 70, 124, fwd=-1)
+    for i, t in enumerate(range(14, 25, 2)):
+        j = 1 if i % 2 else -1
+        a.at(t, body=(-70 + 3 * j, 4 * j, 3 * j), head=(42 - 4 * j, -6 * j, 4 * j), jaw=(-24 - 10 * (i % 2), 0, 0))
+        a.arms(t, (70 + 6 * j, 0, 12), (0, 0, 0), (10, 0, 0), al=(70 - 6 * j, 0, 12))
+        a.legs(t, 70, 124, fwd=-1)
+    a.at(26, body=(8, 0, 0), head=(40, 0, 0), jaw=(-60, 0, 0)).arms(26, (150, 0, 40), (20, 0, 0), (-20, 0, 0))
+    a.legs(26, 10, 16, up=0.5)
+    a.at(28, body=(10, 0, 0), head=(42, 0, 0)).arms(28, (160, 0, 50), (20, 0, 0))
+    a.at(33, body=(-14, 0, 0), head=(16, 0, 0), jaw=(-14, 0, 0)).arms(33, (40, 0, 30), (20, 0, 0)).legs(33, 30, 50)
+    a.at(40, body=(-6, 0, 0), head=(8, 0, 0), jaw=(0, 0, 0)).arms(40, (10, 0, 10), (10, 0, 0)).legs(40, 10, 16)
+    a.sec([(0, 0, 0), (4, -6, 0), (9, -8, 0), (12, 14, 0), (16, 10, 3), (20, 10, -3), (24, 10, 3), (26, -10, 0), (30, -4, 0), (44, 0, 0)])
+    a.done()
+
+    # ================= barrage (44): eight ink arms burst from her back 2-8, rapid punches 10..30 (every 2 ticks),
+    #                   all-arm FINISHER 34, retract
+    a = mk("barrage", 44)
+    a.show("barrage", 2, 41, grow=5)
+    pk = {i: [] for i in range(8)}
+    for j, t in enumerate(range(10, 31, 2)):
+        pk[[0, 5, 2, 7, 4, 1, 6, 3][j % 8]].append(t)
+    for i in range(8):
+        keys, rk = [(0, 0, 0, 0), (8, 0, 0, 0)], [(0, 0, 0, 0), (2, 40, 0, 0), (8, 0, 0, 0)]
+        for t in pk[i]:
+            keys += [(t - 1.5, 0, 0, 2.0), (t, 0, -1.0, -9.0), (t + 1.5, 0, 0, 0)]
+            rk += [(t, -14, 0, 0), (t + 1.5, 0, 0, 0)]
+        keys += [(32, 0, 1.0, 3.0), (34, 0, -1.0, -11.0), (37, 0, -0.8, -10.0), (41, 0, 0, 0), (44, 0, 0, 0)]
+        rk += [(32, 20, 0, 0), (34, -20, 0, 0), (38, -14, 0, 0), (41, 30, 0, 0), (44, 0, 0, 0)]
+        a.pos(f"ba{i}e", *sorted(keys))
+        a.rot(f"ba{i}", *sorted(rk))
+    a.at(3, body=(-30, 0, 0), head=(30, 0, 0), jaw=(-50, 0, 0)).arms(3, (-20, 0, 40), (30, 0, 0))
+    a.at(8, body=(-24, 0, 0), head=(24, 0, 0), jaw=(-30, 0, 0)).arms(8, (40, 0, 30), (70, 0, 0))
+    a.legs(3, 30, 50).legs(8, 40, 70)
+    for n, t in enumerate(range(10, 31, 2)):
+        j = 1 if n % 2 else -1
+        a.at(t, body=(-26, 8 * j, 2 * j), head=(22, -6 * j, 0), jaw=(-36 - 6 * (n % 2), 0, 0))
+        if n % 2 == 0: a.arm(t, "r", (92, 10, 0), (0, 0, 0)).arm(t, "l", (40, 0, -30), (80, 0, 0))
+        else: a.arm(t, "l", (92, 10, 0), (0, 0, 0)).arm(t, "r", (40, 0, 30), (80, 0, 0))
+        a.legs(t, 44, 76, fwd=-0.6)
+    a.at(32, body=(4, 0, 0), head=(30, 0, 0), jaw=(-50, 0, 0)).arms(32, (150, 0, 40), (20, 0, 0))
+    a.legs(32, 10, 16, up=0.4)
+    a.at(34, body=(-44, 0, 0), head=(10, 0, 0), jaw=(-30, 0, 0)).arms(34, (90, 8, -4), (0, 0, 0), (0, 0, 0))
+    a.legs(34, 50, 90, fwd=-1.6)
+    a.at(38, body=(-36, 0, 0), head=(14, 0, 0)).arms(38, (80, 8, 0), (6, 0, 0))
+    a.at(42, body=(-10, 0, 0), head=(8, 0, 0), jaw=(0, 0, 0)).arms(42, (20, 0, 14), (20, 0, 0)).legs(42, 12, 18)
+    a.claws(8, 30).claws(32, -20, spread=10).claws(34, 40).claws(42, 0)
+    a.sec([(0, 0, 0), (3, -6, 0), (8, -2, 0), (12, 4, 3), (16, 4, -3), (20, 4, 3), (24, 4, -3), (28, 4, 3), (32, -8, 0), (34, 12, 0), (44, 0, 0)])
+    a.done()
+
+    # ================= boomerang (44): right hand grows a three-bladed claw star 1-5, wind 10, THROW 13, sprint after it 15-22,
+    #                   left-claw SLASH 24, CATCH the returning star 32
+    a = mk("boomerang", 44)
+    a.scl("boom_r", (0, *HIDE), (0.99, *HIDE), (4, 1, 1, 1), (12.5, 1, 1, 1), (13, *HIDE), (30.5, *HIDE), (32, 1.15, 1.15, 1.15),
+          (34, 1, 1, 1), (40, 1, 1, 1), (42, *HIDE), (44, *HIDE))
+    a.hide("claws_r", 1, 42)
+    a.spin("boomspin", [(0, 0), (5, 0), (12, 720), (31, 720), (32, 1000), (36, 1440), (44, 1440)], axis=2)
+    a.at(4, body=(-6, -10, 0), head=(12, 6, 0)).arm(4, "r", (40, -10, 40), (40, 0, 0))
+    a.at(10, body=(-10, -60, -6), head=(12, 46, 0), jaw=(-14, 0, 0))
+    a.arm(10, "r", (20, -80, 60), (60, 0, 0), (0, 0, 0)).arm(10, "l", (70, 30, -20), (20, 0, 0))
+    a.legs(10, -6, 10, 40, 70)
+    a.at(13, body=(-24, 40, 6), head=(4, -30, 0), jaw=(-40, 0, 0))
+    a.arm(13, "r", (92, 60, 0), (0, 0, 0), (0, 0, 0)).arm(13, "l", (-20, 0, -30), (20, 0, 0))
+    a.legs(13, 40, 70, -10, 10, fwd=-1)
+    a.at(15, body=(-26, 48, 6)).arm(15, "r", (80, 90, 0), (0, 0, 0))
+    for t, j in ((17, 1), (19, -1), (21, 1)):
+        a.at(t, body=(-40, 6 * j, 0), head=(36, 0, 0), jaw=(-30, 0, 0))
+        a.arm(t, "r", (-30, 0, 20), (30, 0, 0))
+        a.legs(t, 50 if j > 0 else -30, 90 if j > 0 else 30, -30 if j > 0 else 50, 30 if j > 0 else 90, fwd=-1.2)
+    a.arm(17, "l", (-30, 0, -20), (30, 0, 0))
+    a.at(22, body=(-30, 20, 0), head=(26, -14, 0), jaw=(-30, 0, 0)).arm(22, "l", (140, -70, 40), (20, 0, 0))
+    a.at(24, body=(-36, -40, -6), head=(10, 26, 0), jaw=(-46, 0, 0)).arm(24, "l", (90, 80, 0), (0, 0, 0))
+    a.legs(24, 30, 50, 50, 90, fwd=-1.6)
+    a.at(28, body=(-30, -30, 0), head=(14, 16, 0)).arm(28, "l", (70, 90, 0), (10, 0, 0))
+    a.at(31, body=(-14, -20, 0), head=(20, -30, 0), jaw=(-20, 0, 0)).arm(31, "r", (100, -50, 40), (20, 0, 0), (0, 0, 0))
+    a.arm(31, "l", (30, 30, -10), (40, 0, 0))
+    a.at(32, body=(-16, -24, -2)).arm(32, "r", (84, -46, 40), (30, 0, 0))
+    a.at(34, body=(-12, -10, 0), head=(14, -10, 0), jaw=(-30, 0, 0)).arm(34, "r", (70, -30, 30), (60, 0, 0))
+    a.legs(28, 30, 50).legs(32, 20, 30)
+    a.at(40, body=(-8, 0, 0), head=(8, 0, 0), jaw=(0, 0, 0)).arms(40, (16, 0, 10), (20, 0, 0)).legs(40, 10, 16)
+    a.claws(22, -20, "l", 10).claws(24, 40, "l").claws(30, 0, "l")
+    a.sec([(0, 0, 0), (10, -4, -4), (13, 8, 5), (15, 6, 6), (17, 12, 2), (19, 12, -2), (21, 12, 2), (24, 8, -5), (28, 2, 0), (32, -4, -3), (44, 0, 0)])
+    a.done()
+
+    # ================= spiral (40): arms twist into a spiral lance 2-8 (deep crouch), LAUNCH 10, corkscrew flight 11-21
+    #                   (drilling multi-hits), BURST 22 (helix unravels), land 24
+    a = mk("spiral", 40)
+    a.show("spiral", 2, 36, grow=6)
+    a.hide("claws_r", 2, 36)
+    a.spin("spiralspin", [(0, 0), (2, 0), (9, 360), (22, 3240), (30, 3780), (40, 3960)])
+    a.scl("spiralspin", (0, 1, 1, 1), (21, 1, 1, 1), (22, 1.5, 1.3, 1.5), (24, 1, 1, 1), (40, 1, 1, 1))
+    a.at(4, body=(-10, 0, 0), head=(10, 0, 0), jaw=(-10, 0, 0)).arms(4, (60, 10, 10), (40, 0, 0))
+    a.at(8, body=(-30, -20, 0), head=(20, 16, 0), jaw=(-30, 0, 0)).arms(8, (94, 14, -6), (0, 0, 0), (0, 0, 0))
+    a.legs(4, 20, 30).legs(8, 70, 126, fwd=1, setpos=False)
+    rp = -drop(8, 14)
+    a.rot("pelvis", (0, 0, 0, 0), (9, 0, 0, 0), (10, -62, 0, 0))
+    for i, t in enumerate(range(12, 22, 2)):
+        a.rot("pelvis", (t, -62, 0, 8 if i % 2 else -8))
+    a.rot("pelvis", (22, -50, 0, 0), (24, -20, 0, 0), (30, 0, 0, 0))
+    a.at(10, body=(-12, 0, 0), head=(58, 0, 0), jaw=(-50, 0, 0)).arms(10, (164, 10, -4), (0, 0, 0), (0, 0, 0))
+    fly = dict(shin_r=(-10, 0, 0), shin_l=(-10, 0, 0), foot_r=(30, 0, 0), foot_l=(30, 0, 0))
+    a.at(10, leg_r=(-8, 0, 2), leg_l=(-8, 0, -2), **fly)
+    for i, t in enumerate(range(12, 22, 2)):
+        j = 1 if i % 2 else -1
+        a.at(t, body=(-12, 0, 4 * j), head=(58, 0, -4 * j), jaw=(-54, 0, 0)).arms(t, (164 + 2 * j, 10, -4), (0, 0, 0))
+        a.at(t, leg_r=(-8 + 6 * j, 0, 2), leg_l=(-8 - 6 * j, 0, -2), **fly)
+    a.pos("pelvis", (0, 0, rp, 0), (8, 0, -drop(70, 126), 1), (10, 0, rp + 3, -1), (21, 0, rp + 3, -1), (22, 0, rp + 2, -1))
+    a.at(22, body=(-16, 0, 0), head=(50, 0, 0), jaw=(-64, 0, 0)).arms(22, (150, -40, 30), (0, 0, 0))
+    a.at(22, leg_r=(10, 0, 2), leg_l=(10, 0, -2), shin_r=(-30, 0, 0), shin_l=(-30, 0, 0), foot_r=(20, 0, 0), foot_l=(20, 0, 0))
+    a.at(24, body=(-30, 0, 0), head=(30, 0, 0), jaw=(-20, 0, 0)).arms(24, (60, 0, 40), (20, 0, 0))
+    a.legs(24, 60, 110).legs(30, 40, 70).legs(36, 12, 18)
+    a.at(30, body=(-20, 0, 0), head=(16, 0, 0)).at(36, body=(-8, 0, 0), head=(8, 0, 0), jaw=(0, 0, 0)).arms(36, (14, 0, 10), (14, 0, 0))
+    a.sec([(0, 0, 0), (8, -4, -2), (10, 16, 0), (12, 16, 6), (16, 16, -6), (20, 16, 6), (22, 4, 0), (24, -8, 0), (30, 2, 0), (40, 0, 0)])
+    a.done()
+
+    # ================= hairwhip (40): crouch-twist 0-8, SPIN 10-16 (the mane lashes all around, hit 13),
+    #                   cock back 21 (ahoge hardens into a blade), HEAD-STAB 24, recover
+    a = mk("hairwhip", 40)
+    a.show("ahblade", 16, 34, grow=4)
+    a.spin("root", [(0, 0), (8, -50), (10, -40), (13, 180), (16, 330), (18, 360), (40, 360)])
+    a.rot("mane0", (0, 0, 0, 0), (8, 10, 0, 0), (11, -30, 0, 0), (13, -55, 0, 0), (17, -50, 0, 0), (21, -20, 0, 0), (24, 30, 0, 0),
+          (28, 10, 0, 0), (33, -4, 0, 0), (40, 0, 0, 0))
+    for i in (1, 2, 3):
+        a.rot(f"mane{i}", (0, 0, 0, 0), (9 + i, 6, 0, 0), (12 + i, -10, 0, 0), (16 + i, -12, 0, 20), (20 + i, 10, 0, -10),
+              (25 + i, 30, 0, 0), (30 + i, -6, 0, 0), (40, 0, 0, 0))
+    for k, s in (("r", 1), ("l", -1)):
+        for i in range(3):
+            a.rot(f"sw{i}_{k}", (0, 0, 0, 0), (8 + i, 0, 0, -10 * s), (12 + i, -10, 0, 40 * s), (15 + i, -20, 0, 50 * s), (20 + i, 0, 0, 10 * s),
+                  (25 + i, 20, 0, -10 * s), (32 + i, 0, 0, 0), (40, 0, 0, 0))
+    a.rot("ahoge", (0, 0, 0, 0), (16, 0, 0, 0), (21, 16, 0, 0), (24, -10, 0, 0), (28, -8, 0, 0), (34, 0, 0, 0), (40, 0, 0, 0))
+    a.rot("bangs", (0, 0, 0, 0), (13, -14, 0, 10), (24, 16, 0, 0), (30, 4, 0, 0), (40, 0, 0, 0))
+    a.at(4, body=(-20, -30, -6), head=(14, 20, 0), jaw=(-20, 0, 0)).arms(4, (40, -30, 40), (40, 0, 0))
+    a.at(8, body=(-30, -50, -8), head=(20, 36, 0), jaw=(-30, 0, 0)).arms(8, (30, 0, 60), (30, 0, 0))
+    a.legs(4, 40, 70).legs(8, 56, 100)
+    a.at(13, body=(-14, 10, 6), head=(16, -10, 0), jaw=(-56, 0, 0)).arms(13, (10, 0, 80), (10, 0, 0))
+    a.legs(13, 20, 30, up=0.5)
+    a.at(17, body=(-10, 0, 0), head=(10, 0, 0), jaw=(-30, 0, 0)).arms(17, (20, 0, 60), (20, 0, 0)).legs(17, 24, 40)
+    a.at(21, body=(14, 0, 0), head=(40, 0, 0), jaw=(-40, 0, 0)).arms(21, (-20, 0, 40), (40, 0, 0))
+    a.legs(21, -6, 10, 30, 50)
+    a.at(24, body=(-42, 0, 0), head=(8, 0, 0), jaw=(-30, 0, 0)).arms(24, (-30, 0, 30), (20, 0, 0))
+    a.legs(24, 60, 100, -20, 10, fwd=-2.5)
+    a.at(27, body=(-38, 0, 0), head=(6, 0, 0)).legs(27, 58, 98, -18, 12, fwd=-2.5)
+    a.at(32, body=(-20, 0, 0), head=(4, 0, 0), jaw=(-10, 0, 0)).arms(32, (10, 0, 20), (20, 0, 0)).legs(32, 30, 50)
+    a.at(38, body=(-8, 0, 0), head=(6, 0, 0), jaw=(0, 0, 0)).legs(38, 12, 18)
+    a.claws(8, 20).claws(13, -20, spread=10).claws(24, 30).claws(34, 0)
+    a.done()
+
+
+
+
 def main():
-    B = Builder("fen", 1.0, False, 7)
+    B = Builder("fen", 1.0, False, 6)
     build(B)
     anims(B)
     B.m.save(os.path.join(DIR, "fen.bbmodel"))
-    tops = max(cb["to"][1] for cb in B.m.cubes)
-    print("cubes", len(B.m.cubes), "top", tops, "anims", [a["name"] for a in B.m.anims])
-
+    tops = max(cb["to"][1] for cb in B.m.cubes)  # 62.5 px = 3.9 blocks (spider arms / ahoge blade), body ~61
+    print("cubes", len(B.m.cubes), "top", tops, "anims", len(B.m.anims), [a["name"] for a in B.m.anims])
 
 if __name__ == "__main__":
     main()

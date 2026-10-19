@@ -28,6 +28,24 @@ public class MissBloomie extends FpeEntity {
 
     /** victim currently held by claw_grab (server only, cleared when the grab ends) */
     private LivingEntity held;
+    /** floor point the blade_pin victim is nailed to */
+    private Vec3 pinAt = Vec3.ZERO;
+
+    /** grab target: the current target if it is inside the cone, else the nearest valid enemy in it, else null */
+    private static LivingEntity pick(FpeEntity e, LivingEntity t, double range, double half) {
+        LivingEntity best = null;
+        for (LivingEntity v : FpeCombat.cone(e, range, half)) {
+            if (v == t) return t;
+            if (best == null || v.distanceToSqr(e) < best.distanceToSqr(e)) best = v;
+        }
+        return best;
+    }
+
+    /** true while the grabbed victim is still valid; drops it otherwise */
+    private boolean holding() {
+        if (held != null && (held.isRemoved() || !FpeUtil.canHurt(this, held))) held = null;
+        return held != null;
+    }
 
     @Override public Faction faction() { return Faction.MISS; }
 
@@ -135,44 +153,35 @@ public class MissBloomie extends FpeEntity {
                 FpeUtil.particles(e, ParticleTypes.CRIT, FpeUtil.ahead(e, 1.4, 1.4), 10, 0.3, 0.3, 0.3, 0.3);
             }
         }));
-        // 8. claw grab: snatch, hoist and squeeze, then slam into the floor
-        out.add(Ability.of("claw_grab", 40, 120).range(0, 3.2).weight(3).faceUntil(10).tick((e, t, tk) -> {
+        // 8. claw grab: snatch, hoist and squeeze, then slam into the floor (stunned)
+        out.add(Ability.of("claw_grab", 40, 130).range(0, 3.2).weight(2).faceUntil(10).tick((e, t, tk) -> {
             MissBloomie b = (MissBloomie) e;
             if (tk == 8) e.dashForward(0.35, 0.0);
             if (tk == 10) {
-                b.held = null;
-                for (LivingEntity v : FpeCombat.cone(e, 2.8, 50)) if (v == t || b.held == null) b.held = v;
+                b.held = pick(e, t, 2.8, 50);
                 if (b.held != null) {
                     FpeUtil.hit(e, b.held, e.dmg(0.6f), 0, 0);
                     FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_CRIT, 1f, 0.7f);
                 } else swish(e, 1.2f);
             }
-            if (b.held != null && tk > 10 && tk < 25) {
-                if (!b.held.isAlive()) { b.held = null; return; }
-                double lift = Math.min(1.6, (tk - 10) * 0.16);
-                Vec3 at = FpeUtil.ahead(e, 1.3, lift).add(FpeUtil.right(e).scale(0.3));
-                b.held.teleportTo(at.x, at.y, at.z);
-                b.held.setDeltaMovement(Vec3.ZERO);
-                b.held.hurtMarked = true;
+            if (tk > 10 && tk < 25 && b.holding()) {
+                FpeUtil.hold(e, b.held, 1.15, Math.min(1.3, (tk - 10) * 0.13), 0.3);
                 if (tk == 17) {
                     b.held.invulnerableTime = 0;
                     FpeUtil.hit(e, b.held, e.dmg(0.7f), 0, 0);
                     FpeCombat.bleed(e, b.held, 40);
                 }
             }
-            if (tk == 25) {
-                if (b.held != null) {
-                    LivingEntity v = b.held;
-                    Vec3 at = FpeUtil.ahead(e, 1.4, 0);
-                    v.teleportTo(at.x, at.y, at.z);
-                    v.invulnerableTime = 0;
-                    FpeUtil.hit(e, v, e.dmg(1.6f), 0.4, 0.3);
-                    slow(v, 40, 1);
-                    FpeUtil.particles(e, ParticleTypes.CLOUD, at, 14, 0.6, 0.1, 0.6, 0.05);
-                    FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 0.8f, 1.1f);
-                }
-                b.held = null;
+            if (tk == 25 && b.holding()) {
+                LivingEntity v = b.held;
+                FpeUtil.hold(e, v, 1.4, 0, 0.1);
+                v.invulnerableTime = 0;
+                FpeUtil.hit(e, v, e.dmg(1.5f), 0, 0);
+                FpeUtil.stun(v, 30);
+                FpeUtil.particles(e, ParticleTypes.CLOUD, v.position(), 14, 0.6, 0.1, 0.6, 0.05);
+                FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 0.8f, 1.1f);
             }
+            if (tk >= 25) b.held = null;
         }).end((e, t, tk) -> ((MissBloomie) e).held = null));
         // 9. slice flurry: four fast alternating box-cutter cuts, finished by an X-cut
         out.add(Ability.of("slice_flurry", 36, 70).range(0, 3.4).weight(3).faceUntil(26).tick((e, t, tk) -> {
@@ -256,6 +265,97 @@ public class MissBloomie extends FpeEntity {
                 FpeUtil.particles(e, ParticleTypes.CRIT, at, 30, 1.0, 0.1, 1.0, 0.35);
                 FpeUtil.particles(e, FpeCombat.BLOOD, at, 20, 1.0, 0.2, 1.0, 0.1);
                 FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 1.2f, 0.8f);
+            }
+        }));
+        // 15. CC - blade pin: hop in, plunge the box-cutter through the victim's foot into the floor; it is nailed in place,
+        //     she twists the blade (20) and rips it out (30); stays rooted a little longer after
+        out.add(Ability.of("blade_pin", 44, 150).range(0, 3.4).weight(2).faceUntil(10).tick((e, t, tk) -> {
+            MissBloomie b = (MissBloomie) e;
+            if (tk == 4) FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1f, 1.6f);
+            if (tk == 8) e.dashForward(0.4, 0.12);
+            if (tk == 12) {
+                b.held = pick(e, t, 2.6, 45);
+                Vec3 at = b.held != null ? b.held.position() : FpeUtil.ahead(e, 1.2, 0);
+                b.pinAt = at;
+                FpeUtil.particles(e, ParticleTypes.CRIT, at.add(0, 0.1, 0), 16, 0.3, 0.05, 0.3, 0.25);
+                FpeUtil.sound(e, SoundEvents.TRIDENT_HIT_GROUND, 1.2f, 0.7f);
+                if (b.held != null) {
+                    FpeUtil.hit(e, b.held, e.dmg(1.2f), 0, 0);
+                    FpeUtil.root(b.held, 46);
+                    FpeCombat.bleed(e, b.held, 50);
+                }
+            }
+            if (tk > 12 && tk < 30 && b.holding()) {
+                FpeUtil.holdAt(b.held, b.pinAt);
+                if (tk == 20) {
+                    b.held.invulnerableTime = 0;
+                    FpeUtil.hit(e, b.held, e.dmg(0.6f), 0, 0);
+                    FpeUtil.particles(e, FpeCombat.BLOOD, b.pinAt.add(0, 0.3, 0), 10, 0.2, 0.2, 0.2, 0.05);
+                    FpeUtil.sound(e, SoundEvents.ITEM_BREAK, 0.7f, 0.6f);
+                }
+            }
+            if (tk == 30) {
+                if (b.holding()) {
+                    b.held.invulnerableTime = 0;
+                    FpeUtil.hit(e, b.held, e.dmg(0.5f), 0, 0.25);
+                    FpeUtil.particles(e, FpeCombat.BLOOD, b.held.position().add(0, 0.4, 0), 14, 0.2, 0.3, 0.2, 0.1);
+                }
+                FpeUtil.sound(e, SoundEvents.TRIDENT_RETURN, 1f, 1.3f);
+                b.held = null;
+            }
+        }).end((e, t, tk) -> ((MissBloomie) e).held = null));
+        // 16. CC - choke lift: claw seizes the throat (weapon knocked away), hoists the victim overhead, three box-cutter
+        //     cuts while it dangles (22/30/38), then hurls it away dazed and stunned (44)
+        out.add(Ability.of("choke_lift", 56, 200).range(0, 3.0).weight(2).faceUntil(10).tick((e, t, tk) -> {
+            MissBloomie b = (MissBloomie) e;
+            if (tk == 8) e.dashForward(0.4, 0.0);
+            if (tk == 10) {
+                b.held = pick(e, t, 2.6, 45);
+                if (b.held != null) {
+                    FpeUtil.disarm(b.held);
+                    FpeUtil.hit(e, b.held, e.dmg(0.5f), 0, 0);
+                    FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_CRIT, 1f, 0.6f);
+                } else swish(e, 1.0f);
+            }
+            if (tk > 10 && tk < 44 && b.holding()) {
+                double up = Math.min(0.6, (tk - 10) * 0.075);
+                FpeUtil.hold(e, b.held, 1.0, up, 0.3);
+                if (tk % 6 == 0) FpeUtil.sound(e, SoundEvents.PLAYER_HURT_DROWN, 0.6f, 1.4f);
+                if (tk == 22 || tk == 30 || tk == 38) {
+                    b.held.invulnerableTime = 0;
+                    FpeUtil.hit(e, b.held, e.dmg(tk == 38 ? 0.9f : 0.6f), 0, 0);
+                    if (tk == 38) FpeCombat.bleed(e, b.held, 50);
+                    FpeCombat.slashArc(e, 2.0f, 110, tk == 30 ? -40 : 40, 0, 1.4, FpeCombat.SLASH_RED);
+                    swish(e, 1.2f + (tk - 22) * 0.02f);
+                }
+            }
+            if (tk == 44) {
+                if (b.holding()) {
+                    LivingEntity v = b.held;
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(e, v, e.dmg(0.8f), 0, 0);
+                    FpeUtil.fling(v, FpeUtil.forward(e), 1.3, 0.45);
+                    FpeUtil.stun(v, 30);
+                    FpeUtil.daze(v, 60);
+                    FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.2f, 0.7f);
+                }
+                b.held = null;
+            }
+        }).end((e, t, tk) -> ((MissBloomie) e).held = null));
+        // 17. CC - terror grin: hunched creep, head cranks sideways, then she lunges her grinning face forward with claws flung wide;
+        //     everyone in front is dazed (nausea/blind), frozen in fear for a moment and mobs recoil
+        out.add(Ability.of("terror_grin", 34, 140).range(0, 7).weight(2).faceUntil(16).tick((e, t, tk) -> {
+            if (tk == 4) FpeUtil.sound(e, SoundEvents.ITEM_BREAK, 0.6f, 0.5f);
+            if (tk == 16) {
+                for (LivingEntity v : FpeCombat.cone(e, 7.0, 55)) {
+                    FpeUtil.daze(v, 60);
+                    FpeUtil.stun(v, 14);
+                    if (!(v instanceof net.minecraft.world.entity.player.Player)) FpeUtil.knock(v, e.position(), 0.6, 0.1);
+                }
+                FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1.6f, 0.5f);
+                FpeUtil.sound(e, SoundEvents.ELDER_GUARDIAN_CURSE, 0.5f, 1.6f);
+                FpeUtil.particles(e, ParticleTypes.SMOKE, FpeUtil.ahead(e, 1.5, 1.6), 30, 1.2, 0.4, 1.2, 0.04);
+                FpeUtil.arc(e, ParticleTypes.SQUID_INK, e.position().add(0, 1.2, 0), e.getYRot(), 55, 3.5, 24);
             }
         }));
         // 14. ENRAGED signature: the chase - three relentless dash-cuts in a row, the last one a hamstring

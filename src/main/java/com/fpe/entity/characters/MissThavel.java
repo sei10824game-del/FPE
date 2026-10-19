@@ -27,6 +27,9 @@ import net.minecraft.world.phys.Vec3;
  */
 public class MissThavel extends FpeEntity {
     private boolean grabbed;
+    /** crowd-control victim of claw_slam / abc_cage / detention_pin (null = nobody held) */
+    private LivingEntity held;
+    private Vec3 heldFrom = Vec3.ZERO;
 
     public MissThavel(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
@@ -52,6 +55,25 @@ public class MissThavel extends FpeEntity {
     static Vec3 rotY(Vec3 v, double deg) {
         double a = Math.toRadians(deg), c = Math.cos(a), s = Math.sin(a);
         return new Vec3(v.x * c - v.z * s, v.y, v.x * s + v.z * c);
+    }
+
+    /** nearest hurtable enemy in a horizontal cone in front of e (null if none) */
+    static LivingEntity pick(FpeEntity e, double range, double halfAngle) {
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        Vec3 f = FpeUtil.forward(e);
+        for (LivingEntity v : FpeUtil.enemiesInRadius(e, e.position(), range, 2.5, 1.5)) {
+            Vec3 d = new Vec3(v.getX() - e.getX(), 0, v.getZ() - e.getZ());
+            if (d.lengthSqr() > 0.04 && Math.toDegrees(Math.acos(Mth.clamp(d.normalize().dot(f), -1, 1))) > halfAngle) continue;
+            if (d.lengthSqr() < bd) { bd = d.lengthSqr(); best = v; }
+        }
+        return best;
+    }
+
+    /** current held victim; dropped if dead / removed / no longer hurtable (e.g. switched to creative) */
+    LivingEntity victim() {
+        if (held != null && (!held.isAlive() || held.isRemoved() || !FpeUtil.canHurt(this, held))) held = null;
+        return held;
     }
 
     // ------------------------------------------------------------------ abilities
@@ -333,6 +355,137 @@ public class MissThavel extends FpeEntity {
                 FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_STRONG, 1f, 0.5f);
             }
         }));
+
+        // 14. CC - Claw slam: lunges (t6), snatches the nearest victim in front with the giant claw (t9), hoists it over her
+        //     head and squeezes (t16/t22), rears back (t29-34) and SLAMS it into the floor at t36 (stun + daze + shockwave)
+        out.add(Ability.of("claw_slam", 56, 170).range(0, 3.4).weight(2).faceUntil(8).start((e, t, tk) -> ((MissThavel) e).held = null).tick((e, t, tk) -> {
+            MissThavel b = (MissThavel) e;
+            if (tk == 2) FpeUtil.sound(e, SoundEvents.CAT_HISS, 1f, 0.7f);
+            if (tk == 6) e.dashForward(0.4, 0);
+            if (tk == 9) {
+                b.held = pick(e, 3.4, 50);
+                if (b.held != null && FpeUtil.hit(e, b.held, e.dmg(0.4f), 0, 0)) FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1f, 0.5f);
+                else { b.held = null; FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 0.6f); }
+            }
+            LivingEntity v = b.victim();
+            if (v != null && tk > 9 && tk < 36) {
+                double lift = Math.min(1, (tk - 9) / 7.0);
+                double rear = tk < 29 ? 0 : Math.min(1, (tk - 29) / 5.0);
+                FpeUtil.hold(e, v, 1.25 - 0.6 * rear, 0.3 + 1.5 * lift + 0.6 * rear, 0.45 - 0.2 * lift);
+                if (tk == 16 || tk == 22) {
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(e, v, e.dmg(0.3f), 0, 0);
+                    FpeUtil.particles(e, ParticleTypes.DAMAGE_INDICATOR, v.position().add(0, 1, 0), 4, 0.3, 0.3, 0.3, 0.1);
+                    FpeUtil.sound(e, SoundEvents.PLAYER_HURT_SWEET_BERRY_BUSH, 1f, 0.6f);
+                }
+            }
+            if (tk == 36) {
+                Vec3 at = FpeUtil.ahead(e, 1.7, 0.05);
+                if (v != null) {
+                    FpeUtil.holdAt(v, at);
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(e, v, e.dmg(1.4f), 0, 0);
+                    FpeUtil.stun(v, 30);
+                    FpeUtil.daze(v, 50);
+                } else FpeUtil.hitCone(e, 2.8, 50, e.dmg(0.9f), 0.6, 0.2);
+                b.held = null;
+                FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, at, 0, 10, 2.6f, e.dmg(0.4f)).color(0xC0302838);
+                FpeUtil.particles(e, ParticleTypes.EXPLOSION, at, 1, 0.2, 0.1, 0.2, 0);
+                FpeUtil.particles(e, ParticleTypes.LARGE_SMOKE, at, 12, 0.8, 0.1, 0.8, 0.03);
+                FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 1f, 0.55f);
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_STRONG, 1f, 0.5f);
+            }
+        }).end((e, t, tk) -> ((MissThavel) e).held = null));
+
+        // 15. CC - ABC cage: plucks all three crown blocks (t4), lobs them at the target (t12); at t16 they slam down as a
+        //     cage of pillars: everyone inside is stunned and the target is locked in the middle; she points and cackles,
+        //     then clenches the claw at t30 -> the cage crushes inwards (damage + daze); released at t38
+        out.add(Ability.of("abc_cage", 44, 190).range(2.5, 9).weight(2).faceUntil(12).start((e, t, tk) -> ((MissThavel) e).held = null).tick((e, t, tk) -> {
+            MissThavel b = (MissThavel) e;
+            if (tk == 4) FpeUtil.sound(e, SoundEvents.WOOD_HIT, 0.8f, 1.6f);
+            if (tk == 12) {
+                b.held = FpeUtil.canHurt(e, t) && e.distanceTo(t) < 10 ? t : pick(e, 9, 35);
+                b.heldFrom = b.held != null ? b.held.position() : FpeUtil.ahead(e, 4, 0);
+                for (int i = 0; i < 6; i++)
+                    FpeUtil.fx(e, FpeFx.Kind.SPIKE, b.heldFrom.add(rotY(new Vec3(1.15, 0, 0), i * 60 + 30)), 4, 30, 0.6f, 0).param(1.6f);
+                FpeUtil.sound(e, SoundEvents.SNOWBALL_THROW, 1f, 0.5f);
+            }
+            if (tk > 12 && tk < 16)
+                FpeUtil.particles(e, ParticleTypes.CRIT, e.position().add(0, 2.4, 0).lerp(b.heldFrom.add(0, 2.5, 0), (tk - 12) / 4.0), 3, 0.1, 0.1, 0.1, 0);
+            LivingEntity v = b.victim();
+            if (tk == 16) {
+                for (LivingEntity o : FpeUtil.enemiesInRadius(e, b.heldFrom, 1.5, 2.5, 1)) { FpeUtil.stun(o, 34); FpeUtil.hit(e, o, e.dmg(0.4f), 0, 0); }
+                FpeUtil.particles(e, ParticleTypes.POOF, b.heldFrom.add(0, 1, 0), 14, 0.8, 0.6, 0.8, 0.02);
+                FpeUtil.sound(e, SoundEvents.WOOD_PLACE, 1.4f, 0.5f);
+                FpeUtil.sound(e, SoundEvents.ANVIL_PLACE, 0.6f, 1.4f);
+            }
+            if (v != null && tk >= 16 && tk < 38) FpeUtil.holdAt(v, b.heldFrom);
+            if (tk == 20) FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1.2f, 0.9f);
+            if (tk == 30) {
+                for (LivingEntity o : FpeUtil.enemiesInRadius(e, b.heldFrom, 1.5, 2.5, 1)) {
+                    o.invulnerableTime = 0;
+                    FpeUtil.hit(e, o, e.dmg(e.isEnraged() ? 1.3f : 1.0f), 0, 0);
+                    FpeUtil.daze(o, 50);
+                }
+                FpeUtil.particles(e, ParticleTypes.CRIT, b.heldFrom.add(0, 1, 0), 20, 0.5, 0.6, 0.5, 0.3);
+                FpeUtil.particles(e, ParticleTypes.POOF, b.heldFrom.add(0, 1, 0), 10, 0.4, 0.4, 0.4, 0.05);
+                FpeUtil.sound(e, SoundEvents.WOOD_BREAK, 1.4f, 0.6f);
+                FpeUtil.sound(e, SoundEvents.ZOMBIE_ATTACK_WOODEN_DOOR, 1f, 0.8f);
+            }
+            if (tk == 38) b.held = null;
+        }).end((e, t, tk) -> ((MissThavel) e).held = null));
+
+        // 16. CC - Detention pin: lashes the claw out along a line (t8) and hooks the first victim, reels it in (t9-16),
+        //     slams it to the floor and pins it under the claw (t17, knocks the held item out of a player's hand), stabs it
+        //     with the left talons (t24/t30/t36) and flicks it away at t46 (dazed)
+        out.add(Ability.of("detention_pin", 60, 220).range(2.5, 7).weight(1).faceUntil(8).start((e, t, tk) -> ((MissThavel) e).held = null).tick((e, t, tk) -> {
+            MissThavel b = (MissThavel) e;
+            if (tk == 3) FpeUtil.sound(e, SoundEvents.CROSSBOW_LOADING_MIDDLE, 1f, 0.5f);
+            if (tk == 8) {
+                b.held = pick(e, 7, 22);
+                FpeUtil.particles(e, ParticleTypes.SQUID_INK, FpeUtil.ahead(e, 3.0, 1.2), 10, 1.4, 0.1, 0.1, 0.02);
+                if (b.held != null && FpeUtil.hit(e, b.held, e.dmg(0.5f), 0, 0)) {
+                    b.heldFrom = b.held.position();
+                    FpeUtil.sound(e, SoundEvents.FISHING_BOBBER_RETRIEVE, 1.2f, 0.6f);
+                } else { b.held = null; FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 0.6f); }
+            }
+            LivingEntity v = b.victim();
+            if (v != null && tk > 8 && tk < 17) {
+                double k = Math.min(1, (tk - 8) / 7.0);
+                FpeUtil.holdAt(v, b.heldFrom.lerp(FpeUtil.ahead(e, 1.4, 0.4), k).add(0, Math.sin(k * Math.PI) * 0.8, 0));
+            }
+            if (tk == 17) {
+                if (v != null) {
+                    FpeUtil.holdAt(v, FpeUtil.ahead(e, 1.4, 0));
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(e, v, e.dmg(0.6f), 0, 0);
+                    FpeUtil.disarm(v);
+                } else FpeUtil.hitCone(e, 2.4, 45, e.dmg(0.6f), 0.4, 0.1);
+                FpeUtil.particles(e, ParticleTypes.LARGE_SMOKE, FpeUtil.ahead(e, 1.4, 0.1), 10, 0.5, 0.1, 0.5, 0.03);
+                FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 0.8f, 0.7f);
+            }
+            if (v != null && tk > 17 && tk < 46) {
+                FpeUtil.hold(e, v, 1.4, 0, 0.25);
+                if (tk == 24 || tk == 30 || tk == 36) {
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(e, v, e.dmg(0.3f), 0, 0);
+                    FpeUtil.particles(e, ParticleTypes.DAMAGE_INDICATOR, v.position().add(0, 0.5, 0), 3, 0.2, 0.2, 0.2, 0.1);
+                    FpeUtil.sound(e, SoundEvents.PLAYER_HURT_SWEET_BERRY_BUSH, 1f, 0.8f);
+                }
+                if (tk == 27) FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1f, 1.1f);
+            }
+            if (tk == 46) {
+                if (v != null) {
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(e, v, e.dmg(0.6f), 0, 0);
+                    FpeUtil.fling(v, FpeUtil.forward(e), 1.1, 0.45);
+                    FpeUtil.daze(v, 40);
+                }
+                b.held = null;
+                slashArc(e, 2.0f, 120, 60, 0, 0.6, 0xE0302A3A);
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1f, 0.6f);
+            }
+        }).end((e, t, tk) -> ((MissThavel) e).held = null));
     }
 
     /** ink bleed: black hearts (wither) for a short while */

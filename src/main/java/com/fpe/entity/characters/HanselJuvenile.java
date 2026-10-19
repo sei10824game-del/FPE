@@ -29,6 +29,7 @@ import org.joml.Vector3f;
  * Melee: antler_gore, thorn_claw. Mid: vine_lash (pull), pollen_cloud, leap_stomp, root_snare. Ranged: petal_storm, seed_volley.
  * Zone: thorn_spikes (thorn line), bramble_ring. Gap closer: antler_charge. Sustain: bloom_heal.
  * Enraged: verdant_wrath (three expanding thorn rings), thorn_cage (bursting ring trap + root tentacles).
+ * Crowd control: vine_bind (vine grab, disarm, squeeze, slam -> stun + daze), stag_pin (antler pin, stomp, toss), dream_pollen (daze + drowsy stun).
  * Every tick index below matches the key poses in tools/bbgen/chars/hansel_juvenile.py.
  */
 public class HanselJuvenile extends FpeEntity {
@@ -38,6 +39,9 @@ public class HanselJuvenile extends FpeEntity {
     private static final DustParticleOptions POLLEN = new DustParticleOptions(new Vector3f(0.95f, 0.82f, 0.30f), 1.3f);
     private static final int LEAF_ARC = 0xC84E8A3A;
     private final Set<Integer> charged = new HashSet<>();
+    /** victim of the current grab (vine_bind / stag_pin); null when nothing is held */
+    private LivingEntity held;
+    private Vec3 grabFrom = Vec3.ZERO;
 
     public HanselJuvenile(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
@@ -89,6 +93,40 @@ public class HanselJuvenile extends FpeEntity {
         Vec3 n = flat.normalize().scale(Math.min(strength, flat.length() * 0.35));
         v.setDeltaMovement(n.x, 0.3, n.z);
         v.hurtMarked = true;
+    }
+
+    private boolean holding() {
+        if (held != null && (!held.isAlive() || !FpeUtil.canHurt(this, held) || held.level() != level())) held = null;
+        return held != null;
+    }
+
+    private static void release(FpeEntity e, LivingEntity t, int k) { ((HanselJuvenile) e).held = null; }
+
+    /** nearest valid enemy within `range` whose direction is inside a forward cone of `halfDeg` */
+    private LivingEntity nearestInCone(double range, double halfDeg) {
+        Vec3 f = FpeUtil.forward(this);
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        for (LivingEntity v : FpeUtil.enemiesInRadius(this, position(), range, 2, 1)) {
+            Vec3 d = v.position().subtract(position()).multiply(1, 0, 1);
+            double len = d.length();
+            if (len > 0.3 && d.scale(1 / len).dot(f) < Math.cos(Math.toRadians(halfDeg))) continue;
+            if (len < bd) { bd = len; best = v; }
+        }
+        return best;
+    }
+
+    /** nearest valid enemy whose body touches the segment from..to (vine reach) */
+    private LivingEntity nearestOnLine(Vec3 from, Vec3 to, double width) {
+        Vec3 d = to.subtract(from);
+        LivingEntity best = null;
+        double bu = 2;
+        for (LivingEntity v : FpeUtil.enemiesInRadius(this, from.lerp(to, 0.5), d.length() * 0.5 + 1, 3, 3)) {
+            Vec3 p = v.position().add(0, v.getBbHeight() * 0.5, 0);
+            double u = Math.max(0, Math.min(1, p.subtract(from).dot(d) / d.lengthSqr()));
+            if (from.add(d.scale(u)).distanceTo(p) < width + v.getBbWidth() * 0.5 + v.getBbHeight() * 0.25 && u < bu) { bu = u; best = v; }
+        }
+        return best;
     }
 
     // ------------------------------------------------------------------ abilities
@@ -287,6 +325,120 @@ public class HanselJuvenile extends FpeEntity {
                 FpeUtil.sound(e, SoundEvents.CAVE_VINES_PLACE, 1.4f, 0.6f);
             }
             if (k == 30) FpeUtil.sound(e, SoundEvents.SWEET_BERRY_BUSH_BREAK, 1.4f, 0.6f);
+        }));
+        // 15. vine_bind (GRAB): vine cast t10 snags the first enemy on the line (disarms it), reels it in t11-19,
+        //     holds it dangling in front t20-37 with squeezes t24 / t30 (root), overhead SLAM t38 (stun + daze)
+        out.add(Ability.of("vine_bind", 48, 170).range(2.5, 8).weight(2).faceUntil(10)
+                .start(HanselJuvenile::release).end(HanselJuvenile::release).tick((e, t, k) -> {
+            HanselJuvenile h = (HanselJuvenile) e;
+            if (k == 4) FpeUtil.sound(e, SoundEvents.CAVE_VINES_PLACE, 1.2f, 0.7f);
+            if (k == 9) FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 0.6f);
+            if (k == 10) {
+                Vec3 from = h.hand(), to = from.add(FpeUtil.forward(e).scale(8));
+                LivingEntity v = h.nearestOnLine(from, to, 0.9);
+                Vec3 end = v == null ? to : v.position().add(0, v.getBbHeight() * 0.5, 0);
+                for (int i = 0; i <= 12; i++) FpeUtil.particles(e, LEAF, from.lerp(end, i / 12.0), 2, 0.08, 0.08, 0.08, 0);
+                if (v != null && FpeUtil.hit(h, v, e.dmg(0.5f), 0, 0)) {
+                    h.held = v;
+                    h.grabFrom = v.position();
+                    FpeUtil.disarm(v);
+                    FpeUtil.sound(e, SoundEvents.CAVE_VINES_PICK_BERRIES, 1.2f, 0.6f);
+                }
+            }
+            if (k > 10 && k < 38 && h.holding()) {
+                Vec3 hold = e.position().add(FpeUtil.forward(e).scale(1.7)).add(FpeUtil.right(e).scale(0.35)).add(0, 1.2 + 0.08 * Math.sin(k * 0.8), 0);
+                FpeUtil.holdAt(h.held, k < 20 ? h.grabFrom.lerp(hold, (k - 10) / 10.0) : hold);
+                if (k % 3 == 0) FpeUtil.particles(e, LEAF, h.held.position().add(0, h.held.getBbHeight() * 0.5, 0), 3, 0.3, 0.4, 0.3, 0);
+                if (k == 24 || k == 30) {
+                    h.held.invulnerableTime = 0;
+                    FpeUtil.hit(h, h.held, e.dmg(0.5f), 0, 0);
+                    FpeUtil.root(h.held, 40);
+                    FpeUtil.particles(e, ParticleTypes.CRIT, h.held.position().add(0, h.held.getBbHeight() * 0.5, 0), 8, 0.3, 0.4, 0.3, 0.1);
+                    FpeUtil.sound(e, SoundEvents.SWEET_BERRY_BUSH_BREAK, 1f, 0.8f + k * 0.01f);
+                }
+            }
+            if (k == 38 && h.holding()) {
+                LivingEntity v = h.held;
+                FpeUtil.hold(e, v, 1.9, 0, 0.3);
+                v.invulnerableTime = 0;
+                FpeUtil.hit(h, v, e.dmg(1.2f), 0, 0);
+                FpeUtil.stun(v, 30);
+                FpeUtil.daze(v, 60);
+                FpeUtil.fx(h, FpeFx.Kind.RING_SHOCK, v.position().add(0, 0.1, 0), 0, 10, 2.0f, 0);
+                FpeUtil.particles(e, ParticleTypes.COMPOSTER, v.position(), 16, 0.7, 0.1, 0.7, 0.05);
+                FpeUtil.sound(e, SoundEvents.ROOTED_DIRT_BREAK, 1.4f, 0.6f);
+                h.held = null;
+            }
+        }));
+        // 16. stag_pin (GRAB): lunge t10 catches the nearest enemy on the antlers, drives it back t11-22,
+        //     rams it into the ground t24 (pin + stun), bare-foot stomp t30, antler toss t36 (fling up)
+        out.add(Ability.of("stag_pin", 44, 150).range(0, 3.4).weight(2).faceUntil(10)
+                .start(HanselJuvenile::release).end(HanselJuvenile::release).tick((e, t, k) -> {
+            HanselJuvenile h = (HanselJuvenile) e;
+            if (k == 5) FpeUtil.sound(e, SoundEvents.GOAT_SCREAMING_PREPARE_RAM, 1f, 1.2f);
+            if (k == 10) {
+                e.dashForward(0.45, 0);
+                LivingEntity v = h.nearestInCone(3.2, 50);
+                if (v != null && FpeUtil.hit(h, v, e.dmg(0.8f), 0, 0)) {
+                    h.held = v;
+                    FpeUtil.sound(e, SoundEvents.GOAT_RAM_IMPACT, 1f, 1.1f);
+                }
+            }
+            if (k > 10 && k < 36 && h.holding()) {
+                if (k <= 22) {
+                    e.dashForward(0.32, 0);
+                    FpeUtil.hold(e, h.held, 1.25, 0.45, 0);
+                    if (k % 2 == 0) FpeUtil.particles(e, ParticleTypes.COMPOSTER, e.position(), 3, 0.3, 0.05, 0.3, 0.02);
+                } else FpeUtil.hold(e, h.held, 1.45, 0, 0);
+                if (k == 24) {
+                    h.held.invulnerableTime = 0;
+                    FpeUtil.hit(h, h.held, e.dmg(0.6f), 0, 0);
+                    FpeUtil.stun(h.held, 30);
+                    FpeUtil.particles(e, ParticleTypes.COMPOSTER, h.held.position(), 14, 0.6, 0.1, 0.6, 0.05);
+                    FpeUtil.sound(e, SoundEvents.ROOTED_DIRT_BREAK, 1.2f, 0.8f);
+                }
+                if (k == 30) {
+                    h.held.invulnerableTime = 0;
+                    FpeUtil.hit(h, h.held, e.dmg(1.0f), 0, 0);
+                    FpeUtil.particles(e, LEAF, h.held.position().add(0, 0.3, 0), 10, 0.4, 0.2, 0.4, 0.05);
+                    FpeUtil.sound(e, SoundEvents.GOAT_RAM_IMPACT, 1.1f, 0.7f);
+                }
+            }
+            if (k == 36 && h.holding()) {
+                LivingEntity v = h.held;
+                v.invulnerableTime = 0;
+                FpeUtil.hit(h, v, e.dmg(0.5f), 0, 0);
+                FpeUtil.fling(v, FpeUtil.forward(e), 0.7, 0.85);
+                FpeUtil.sound(e, SoundEvents.GOAT_LONG_JUMP, 1f, 1.3f);
+                h.held = null;
+            }
+        }));
+        // 17. dream_pollen (DAZE): crown blooms 4-12, golden pollen gathered on the left palm, BLOWN t16 across a cone
+        //     -> daze (nausea + blindness) and a drowsy stun; drifting pollen t16-26
+        out.add(Ability.of("dream_pollen", 40, 160).range(0, 6.5).weight(2).faceUntil(16).tick((e, t, k) -> {
+            HanselJuvenile h = (HanselJuvenile) e;
+            if (k == 4) FpeUtil.sound(e, SoundEvents.AMETHYST_BLOCK_CHIME, 1f, 1.4f);
+            if (k > 4 && k < 15 && k % 2 == 0) {
+                FpeUtil.particles(e, POLLEN, e.position().add(0, 2.3, 0), 3, 0.4, 0.1, 0.4, 0.01);
+                FpeUtil.particles(e, POLLEN, FpeUtil.ahead(e, 0.6, 1.5).add(FpeUtil.right(e).scale(-0.3)), 2, 0.08, 0.08, 0.08, 0);
+            }
+            if (k == 15) FpeUtil.sound(e, SoundEvents.SPORE_BLOSSOM_BREAK, 1.2f, 1.5f);
+            if (k >= 16 && k <= 26) {
+                Vec3 f = FpeUtil.forward(e);
+                for (int i = 1; i <= 6; i++) FpeUtil.particles(e, POLLEN, e.position().add(0, 1.5 - i * 0.08, 0).add(f.scale(i)), 2 + i / 2, 0.15 * i, 0.12 * i, 0.15 * i, 0.01);
+                if (k % 4 == 0) FpeUtil.particles(e, ParticleTypes.END_ROD, FpeUtil.ahead(e, 3.5, 1.2), 4, 1.2, 0.5, 1.2, 0.01);
+            }
+            if (k == 16) {
+                for (LivingEntity v : FpeUtil.enemiesInRadius(e, e.position(), 6.5, 2, 1)) {
+                    Vec3 d = v.position().subtract(e.position()).multiply(1, 0, 1);
+                    if (d.lengthSqr() > 0.01 && d.normalize().dot(FpeUtil.forward(e)) < Math.cos(Math.toRadians(45))) continue;
+                    if (FpeUtil.hit(h, v, e.dmg(0.3f), 0, 0)) {
+                        FpeUtil.daze(v, 90);
+                        FpeUtil.stun(v, 25);
+                        FpeUtil.particles(e, ParticleTypes.NOTE, v.position().add(0, v.getBbHeight() + 0.3, 0), 3, 0.3, 0.1, 0.3, 0);
+                    }
+                }
+            }
         }));
     }
 }

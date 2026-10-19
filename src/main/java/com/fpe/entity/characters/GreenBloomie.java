@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fpe.entity.Ability;
+import com.fpe.entity.FpeCombat;
 import com.fpe.entity.FpeEntity;
 import com.fpe.entity.FpeFx;
 import com.fpe.entity.FpeProjectile;
@@ -30,6 +31,7 @@ import org.joml.Vector3f;
  * a GIANT syringe of green poison (left hand) and a grey briefcase (right hand).
  * Mostly melee (needle stabs / sweeps, briefcase bashes, heel kick) + toxic zone control (gas clouds that linger),
  * two sparse ranged moves (flask lob, needle spray); enraged = overdose ground injection + lethal_dose impale.
+ * Crowd control: paralytic_jab (stun), knockout_gas (daze cone), specimen_grab (disarm + hold + injections + slam).
  * Every tick index below matches the key poses in tools/bbgen/chars/green_bloomie.py.
  */
 public class GreenBloomie extends FpeEntity {
@@ -84,6 +86,24 @@ public class GreenBloomie extends FpeEntity {
         if (flat.lengthSqr() < 1.0E-4) return true;
         double ang = Math.toDegrees(Math.acos(Mth.clamp(flat.normalize().dot(FpeUtil.forward(e)), -1, 1)));
         return e.distanceTo(t) < reach && ang < halfAngle && FpeUtil.canHurt(e, t);
+    }
+
+    /** nearest valid enemy in the frontal cone (prefers the current target); null if none */
+    static LivingEntity pick(FpeEntity e, LivingEntity t, double range, double half) {
+        LivingEntity best = null;
+        for (LivingEntity v : FpeCombat.cone(e, range, half)) {
+            if (!FpeUtil.canHurt(e, v)) continue;
+            if (v == t) return t;
+            if (best == null || v.distanceToSqr(e) < best.distanceToSqr(e)) best = v;
+        }
+        return best;
+    }
+
+    /** grabbed victim, dropped as soon as it dies / despawns / becomes an ally or creative */
+    private LivingEntity held;
+    boolean holding() {
+        if (held != null && (held.isRemoved() || !FpeUtil.canHurt(this, held))) held = null;
+        return held != null;
     }
 
     void cloud(Vec3 at, double r, int life, double dmg) {
@@ -326,12 +346,9 @@ public class GreenBloomie extends FpeEntity {
                 FpeUtil.sound(e, g.impaled ? SoundEvents.TRIDENT_HIT : SoundEvents.PLAYER_ATTACK_NODAMAGE, 1.2f, 0.7f);
                 if (g.impaled) { FpeUtil.hit(e, t, e.dmg(0.5f), 0, 0); dose(t, MobEffects.POISON, 60, 0); }
             }
+            if (g.impaled && !FpeUtil.canHurt(e, t)) g.impaled = false;
             if (g.impaled && tk > 12 && tk < 40) {
-                double lift = Math.min(2.0, 0.6 + (tk - 12) * 0.08);
-                Vec3 hold = FpeUtil.ahead(e, 2.0, lift).add(FpeUtil.right(e).scale(-0.3));
-                t.setDeltaMovement(hold.subtract(t.position()).scale(0.5));
-                t.hurtMarked = true;
-                t.fallDistance = 0;
+                FpeUtil.hold(e, t, 2.0, Math.min(1.4, 0.3 + (tk - 12) * 0.07), -0.3);
                 if (tk % 4 == 0) puff(e, t.position().add(0, t.getBbHeight() * 0.5, 0), 4, 0.3);
             }
             if (tk == 30) {
@@ -353,6 +370,86 @@ public class GreenBloomie extends FpeEntity {
                 arc(e, 3.0f, 120, -30, 1.4, GREEN_ARC);
                 FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.2f, 0.7f);
             }
+        }));
+
+        // ---------------------------------------------------------- crowd control
+        // 14. Paralytic jab (STUN): dart-grip aim (0-8), needle into the neck t11, empties the paralytic 11-17 -> victim frozen
+        out.add(Ability.of("paralytic_jab", 30, 140).range(0, 3.4).weight(2).faceUntil(9).tick((e, t, tk) -> {
+            if (tk == 4) FpeUtil.sound(e, SoundEvents.BREWING_STAND_BREW, 0.8f, 1.8f);
+            if (tk == 9) e.dashForward(0.3, 0);
+            if (tk == 11) {
+                LivingEntity v = pick(e, t, 3.3, 40);
+                if (v != null) {
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(e, v, e.dmg(0.6f), 0, 0);
+                    FpeUtil.stun(v, 50);
+                    dose(v, MobEffects.POISON, 40, 0);
+                    puff(e, v.position().add(0, v.getBbHeight() * 0.8, 0), 6, 0.15);
+                    FpeUtil.sound(e, SoundEvents.TRIDENT_HIT, 1f, 1.8f);
+                } else FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 1.4f);
+            }
+            if (tk == 15) FpeUtil.sound(e, SoundEvents.HONEY_BLOCK_SLIDE, 1f, 1.2f);
+        }));
+
+        // 15. Knockout gas (DAZE): turns side-on, lid bursts open t12, three pumps of gas t14 / t20 / t26 in a cone (nausea + blindness),
+        //     a lingering cloud where it pooled; lid snaps shut t32
+        out.add(Ability.of("knockout_gas", 42, 160).range(1.5, 6.0).weight(2).faceUntil(12).tick((e, t, tk) -> {
+            if (tk == 9) FpeUtil.sound(e, SoundEvents.IRON_TRAPDOOR_OPEN, 0.8f, 1.6f);
+            if (tk == 12) FpeUtil.sound(e, SoundEvents.CHEST_OPEN, 1f, 1.4f);
+            if (tk == 14 || tk == 20 || tk == 26) {
+                for (LivingEntity v : FpeCombat.cone(e, 5.5, 35)) {
+                    if (!FpeUtil.canHurt(e, v)) continue;
+                    v.invulnerableTime = 0;
+                    if (FpeUtil.hit(e, v, e.dmg(0.2f), 0.1, 0) && tk == 14) FpeUtil.daze(v, 90);
+                }
+                for (int i = 1; i <= 5; i++) puff(e, FpeUtil.ahead(e, i * 1.0, 1.2).add(FpeUtil.right(e).scale(0.4)), 6, 0.2 + i * 0.12);
+                FpeUtil.sound(e, SoundEvents.FIRE_EXTINGUISH, 1f, 0.8f);
+            }
+            if (tk == 26) ((GreenBloomie) e).cloud(FpeUtil.ahead(e, 3.2, 0.05), 2.0, 50, 0.2);
+            if (tk == 32) FpeUtil.sound(e, SoundEvents.CHEST_CLOSE, 1f, 1.4f);
+        }));
+
+        // 16. Specimen grab (GRAB + DISARM): drops the briefcase, snatches the victim by the collar t10 (weapon knocked away), hoists it up,
+        //     injects it three times t20 / t28 / t36 (paralytic), heaves it overhead and slams it down t44 (stunned), picks the case back up
+        out.add(Ability.of("specimen_grab", 64, 200).range(0, 3.0).weight(2).faceUntil(9)
+                .start((e, t, tk) -> ((GreenBloomie) e).held = null)
+                .end((e, t, tk) -> ((GreenBloomie) e).held = null).tick((e, t, tk) -> {
+            GreenBloomie g = (GreenBloomie) e;
+            if (tk == 4) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_IRON, 1f, 0.8f);
+            if (tk == 8) e.dashForward(0.3, 0);
+            if (tk == 10) {
+                g.held = pick(e, t, 2.8, 50);
+                if (g.held != null) {
+                    FpeUtil.hit(e, g.held, e.dmg(0.4f), 0, 0);
+                    FpeUtil.disarm(g.held);
+                    FpeUtil.stun(g.held, 40);
+                    FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_CRIT, 1f, 0.8f);
+                } else FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 0.9f);
+            }
+            if (tk > 10 && tk < 44 && g.holding()) {
+                double up = tk <= 18 ? 0.2 + (tk - 10) * 0.1 : tk < 38 ? 1.0 : 1.0 + (tk - 37) * 0.15;
+                FpeUtil.hold(e, g.held, 1.15, up, 0.35);
+                if (tk == 20 || tk == 28 || tk == 36) {
+                    g.held.invulnerableTime = 0;
+                    FpeUtil.hit(e, g.held, e.dmg(0.35f), 0, 0);
+                    dose(g.held, MobEffects.POISON, 60, 0);
+                    FpeUtil.stun(g.held, 40);
+                    puff(e, g.held.position().add(0, g.held.getBbHeight() * 0.5, 0), 5, 0.2);
+                    FpeUtil.sound(e, SoundEvents.TRIDENT_HIT, 0.9f, 1.6f);
+                }
+            }
+            if (tk == 44 && g.holding()) {
+                LivingEntity v = g.held;
+                FpeUtil.hold(e, v, 1.4, 0, 0.2);
+                v.invulnerableTime = 0;
+                FpeUtil.hit(e, v, e.dmg(1.1f), 0, 0);
+                FpeUtil.fling(v, FpeUtil.forward(e), 0.4, 0.25);
+                FpeUtil.stun(v, 30);
+                FpeUtil.particles(e, ParticleTypes.CLOUD, v.position(), 14, 0.6, 0.1, 0.6, 0.05);
+                FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 0.7f, 1.2f);
+            }
+            if (tk >= 44) g.held = null;
+            if (tk == 55) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_IRON, 0.8f, 1.1f);
         }));
     }
 

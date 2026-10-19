@@ -19,6 +19,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
@@ -27,14 +28,16 @@ import org.joml.Vector3f;
  * tall black boots and a green-acid sprayer canister with a hose. Melee focus: canister club, nozzle jabs,
  * mane whips, hose lash, kicks, bites; short-range acid spray, acid puddle/mortar zone control;
  * enraged: spinning toxic overdrive and hair spikes erupting from the floor.
+ * Crowd control: grin_bite (hold + bite), hose_lasso (pull + choke + throw), specimen_pin (pin + face spray), glove_snatch (disarm + daze).
  * Every tick index below matches the key poses in tools/bbgen/chars/green_circle.py.
  */
 public class GreenCircle extends FpeEntity {
     private static final DustParticleOptions ACID = new DustParticleOptions(new Vector3f(0.55f, 1.0f, 0.23f), 1.3f);
     private static final DustParticleOptions ACID_S = new DustParticleOptions(new Vector3f(0.75f, 1.0f, 0.5f), 0.8f);
     private static final int GREEN_ARC = 0xD08CFF3A, BLACK_ARC = 0xE0141218, WHITE_ARC = 0xD0F0F2F4;
-    private boolean grabbed;
-    private Vec3 puddle;
+    /** victim currently lassoed / choked / pinned / bitten (null = nobody) */
+    private LivingEntity held;
+    private Vec3 puddle, snag;
 
     public GreenCircle(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
@@ -82,6 +85,43 @@ public class GreenCircle extends FpeEntity {
         if (flat.lengthSqr() < 1.0E-4) return true;
         double ang = Math.toDegrees(Math.acos(Mth.clamp(flat.normalize().dot(FpeUtil.forward(e)), -1, 1)));
         return e.distanceTo(t) < reach && ang < halfAngle && FpeUtil.canHurt(e, t);
+    }
+
+    /** nearest valid enemy whose box crosses the segment (null if none) */
+    static LivingEntity pickLine(FpeEntity e, Vec3 from, Vec3 to, double r) {
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        for (LivingEntity v : e.level().getEntitiesOfClass(LivingEntity.class, new AABB(from, to).inflate(r + 1), x -> FpeUtil.canHurt(e, x))) {
+            AABB bb = v.getBoundingBox().inflate(r);
+            if (!bb.clip(from, to).isPresent() && !bb.contains(from)) continue;
+            double d = v.distanceToSqr(e);
+            if (d < bd) { bd = d; best = v; }
+        }
+        return best;
+    }
+
+    /** nearest valid enemy in a horizontal cone in front of her (null if none) */
+    static LivingEntity pickCone(FpeEntity e, double reach, double halfAngle) {
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        for (LivingEntity v : FpeUtil.enemiesInRadius(e, e.position(), reach, 2.5, 1)) {
+            if (!inFront(e, v, reach + v.getBbWidth() * 0.5 + 0.4, halfAngle)) continue;
+            double d = v.distanceToSqr(e);
+            if (d < bd) { bd = d; best = v; }
+        }
+        return best;
+    }
+
+    /** grab still valid? drops the victim when it died / became invalid (creative, ally, removed) or got far away */
+    boolean grabbing() {
+        if (held != null && (!FpeUtil.canHurt(this, held) || held.distanceTo(this) > 12)) held = null;
+        return held != null;
+    }
+
+    /** hose particles from her right glove to a point */
+    static void hoseLine(FpeEntity e, Vec3 to) {
+        Vec3 from = FpeUtil.ahead(e, 0.4, 1.6).add(FpeUtil.right(e).scale(0.45));
+        for (int i = 1; i <= 7; i++) FpeUtil.particles(e, ParticleTypes.CRIT, from.lerp(to, i / 8.0), 1, 0, 0, 0, 0);
     }
 
     // ------------------------------------------------------------------ abilities
@@ -245,37 +285,35 @@ public class GreenCircle extends FpeEntity {
             if (tk == 22) e.setDeltaMovement(e.getDeltaMovement().scale(0.2));
         }));
 
-        // 10. Grin bite: glove grab t10, pulls the victim to her teeth, chomps t20 + t28 (drains), shoves t34
+        // 10. Grin bite (CC grab): glove grab t10, holds the victim at her teeth (stunned), chomps t20 + t28 (drains), shoves t34
         out.add(Ability.of("grin_bite", 40, 130).range(0, 3.4).weight(2).faceUntil(10)
-                .start((e, t, tk) -> ((GreenCircle) e).grabbed = false).tick((e, t, tk) -> {
+                .start((e, t, tk) -> ((GreenCircle) e).held = null).tick((e, t, tk) -> {
             GreenCircle g = (GreenCircle) e;
             if (tk == 8) e.dashForward(0.45, 0);
             if (tk == 10) {
-                g.grabbed = inFront(e, t, 3.5, 60);
-                FpeUtil.sound(e, g.grabbed ? SoundEvents.ARMOR_EQUIP_LEATHER : SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 0.7f);
-                if (g.grabbed) FpeUtil.hit(e, t, e.dmg(0.3f), 0, 0);
+                LivingEntity v = pickCone(e, 3.0, 55);
+                if (v != null && FpeUtil.hit(e, v, e.dmg(0.3f), 0, 0)) g.held = v;
+                FpeUtil.sound(e, g.held != null ? SoundEvents.ARMOR_EQUIP_LEATHER : SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 0.7f);
             }
-            if (g.grabbed && tk > 10 && tk < 34) {
-                Vec3 hold = FpeUtil.ahead(e, 1.0, 0.5);
-                t.setDeltaMovement(hold.subtract(t.position()).scale(0.5));
-                t.hurtMarked = true;
-                t.fallDistance = 0;
+            if (tk > 10 && tk < 34 && g.grabbing()) {
+                FpeUtil.hold(e, g.held, 0.95, 0.45, 0);
+                if (tk % 5 == 1) FpeUtil.stun(g.held, 6);
                 if (tk == 20 || tk == 28) {
-                    t.invulnerableTime = 0;
-                    if (FpeUtil.hit(e, t, e.dmg(0.9f), 0, 0)) e.heal(e.dmg(0.4f));
-                    FpeUtil.particles(e, ParticleTypes.DAMAGE_INDICATOR, t.position().add(0, 1.4, 0), 5, 0.3, 0.3, 0.3, 0.1);
+                    g.held.invulnerableTime = 0;
+                    if (FpeUtil.hit(e, g.held, e.dmg(0.9f), 0, 0)) e.heal(e.dmg(0.4f));
+                    FpeUtil.particles(e, ParticleTypes.DAMAGE_INDICATOR, g.held.position().add(0, 1.4, 0), 5, 0.3, 0.3, 0.3, 0.1);
                     FpeUtil.sound(e, SoundEvents.EVOKER_FANGS_ATTACK, 1f, 1.3f);
                 }
             }
             if (tk == 34) {
-                if (g.grabbed) {
-                    t.invulnerableTime = 0;
-                    FpeUtil.hit(e, t, e.dmg(0.6f), 1.6, 0.4);
+                if (g.grabbing()) {
+                    g.held.invulnerableTime = 0;
+                    FpeUtil.hit(e, g.held, e.dmg(0.6f), 1.6, 0.4);
                 } else FpeUtil.hitCone(e, 2.5, 50, e.dmg(0.6f), 1.2, 0.3);
                 FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1f, 1.1f);
-                g.grabbed = false;
+                g.held = null;
             }
-        }).end((e, t, tk) -> ((GreenCircle) e).grabbed = false));
+        }).end((e, t, tk) -> ((GreenCircle) e).held = null));
 
         // 11. Acid mortar: points the sprayer skyward, pumps it and lobs 3 acid globs t12/t16/t20 that splash down on the target area
         out.add(Ability.of("acid_mortar", 40, 120).range(5, 16).weight(2).tick((e, t, tk) -> {
@@ -345,6 +383,134 @@ public class GreenCircle extends FpeEntity {
                 FpeUtil.sound(e, SoundEvents.EVOKER_FANGS_ATTACK, 1.2f, 0.8f);
             }
         }));
+
+        // 14. Hose lasso (CC grab): windmills the hose overhead t2-t9, casts it t10 (line 9.5), reels the snared victim in
+        //     hand-over-hand t11-t20 (yanks t12/t15/t18), chokes it with the hose, lifted in front of her t21-t45
+        //     (stunned, squeezes t26/t33/t40, dazed t33), hoists it t46-49 and hurls it away t50
+        out.add(Ability.of("hose_lasso", 64, 170).range(3.5, 9.5).weight(2).faceUntil(10)
+                .start((e, t, tk) -> ((GreenCircle) e).held = null).tick((e, t, tk) -> {
+            GreenCircle g = (GreenCircle) e;
+            if (tk == 2 || tk == 6) FpeUtil.sound(e, SoundEvents.FISHING_BOBBER_THROW, 1f, 0.5f);
+            if (tk == 10) {
+                Vec3 from = e.position().add(0, 1.4, 0);
+                Vec3 to = from.add(FpeUtil.forward(e).scale(9.5));
+                LivingEntity v = pickLine(e, from, to, 0.6);
+                if (v != null && FpeUtil.hit(e, v, e.dmg(0.5f), 0, 0)) {
+                    g.held = v;
+                    g.snag = v.position();
+                    FpeUtil.root(v, 12);
+                    FpeUtil.sound(e, SoundEvents.LEASH_KNOT_PLACE, 1.2f, 0.7f);
+                    hoseLine(e, v.position().add(0, v.getBbHeight() * 0.7, 0));
+                } else {
+                    for (int i = 1; i <= 9; i++) FpeUtil.particles(e, ParticleTypes.CRIT, from.add(FpeUtil.forward(e).scale(i)), 1, 0.05, 0.05, 0.05, 0.02);
+                    FpeUtil.sound(e, SoundEvents.FISHING_BOBBER_RETRIEVE, 1f, 0.7f);
+                }
+            }
+            if (tk > 10 && tk <= 20 && g.grabbing()) {
+                float k = Mth.clamp((tk - 10) / 10f, 0, 1);
+                k = k * k * (3 - 2 * k);
+                FpeUtil.holdAt(g.held, g.snag.lerp(FpeUtil.ahead(e, 1.0, 0.3), k));
+                hoseLine(e, g.held.position().add(0, g.held.getBbHeight() * 0.7, 0));
+                if (tk == 12 || tk == 15 || tk == 18) FpeUtil.sound(e, SoundEvents.LEASH_KNOT_BREAK, 1f, 0.7f + tk * 0.02f);
+            }
+            if (tk > 20 && tk <= 45 && g.grabbing()) {
+                FpeUtil.hold(e, g.held, 0.95, tk >= 24 ? 0.65 : 0.5, 0);
+                if (tk % 5 == 1) FpeUtil.stun(g.held, 7);
+                if (tk == 26 || tk == 33 || tk == 40) {
+                    g.held.invulnerableTime = 0;
+                    FpeUtil.hit(e, g.held, e.dmg(0.3f), 0, 0);
+                    if (tk == 33) FpeUtil.daze(g.held, 50);
+                    FpeUtil.particles(e, ParticleTypes.DAMAGE_INDICATOR, g.held.position().add(0, g.held.getBbHeight(), 0), 4, 0.2, 0.2, 0.2, 0.05);
+                    FpeUtil.sound(e, SoundEvents.PLAYER_HURT_SWEET_BERRY_BUSH, 1f, 0.6f);
+                }
+                if (tk == 30) FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1f, 0.8f);
+            }
+            if (tk > 45 && tk < 50 && g.grabbing()) FpeUtil.hold(e, g.held, 0.7, 1.0, -0.4);
+            if (tk == 50 && g.grabbing()) {
+                g.held.invulnerableTime = 0;
+                FpeUtil.hit(e, g.held, e.dmg(0.8f), 1.7, 0.55);
+                FpeUtil.stun(g.held, 15);
+                arc(e, 2.6f, 160, -20, 1.6, WHITE_ARC);
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.2f, 0.7f);
+            }
+            if (tk >= 50) g.held = null;
+        }).end((e, t, tk) -> ((GreenCircle) e).held = null));
+
+        // 15. Specimen pin (CC grab): low leg reap + glove shove t7 drops the victim, boot stomp pins it t12-t38 (stunned),
+        //     sprays acid in its face t18-t34 (daze t20 + poison), punts it away t42
+        out.add(Ability.of("specimen_pin", 52, 150).range(0, 3.2).weight(2).faceUntil(7)
+                .start((e, t, tk) -> ((GreenCircle) e).held = null).tick((e, t, tk) -> {
+            GreenCircle g = (GreenCircle) e;
+            if (tk == 5) e.dashForward(0.35, 0);
+            if (tk == 7) {
+                LivingEntity v = pickCone(e, 3.0, 50);
+                if (v != null && FpeUtil.hit(e, v, e.dmg(0.4f), 0, 0)) {
+                    g.held = v;
+                    FpeUtil.stun(v, 8);
+                    FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 0.7f);
+                } else FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 0.8f);
+            }
+            if (tk > 7 && tk <= 38 && g.grabbing()) {
+                FpeUtil.hold(e, g.held, 1.35, 0, 0.2);
+                if (tk % 5 == 2) FpeUtil.stun(g.held, 7);
+                if (tk == 12) {
+                    g.held.invulnerableTime = 0;
+                    FpeUtil.hit(e, g.held, e.dmg(0.6f), 0, 0);
+                    FpeUtil.particles(e, ParticleTypes.CRIT, g.held.position().add(0, 0.5, 0), 10, 0.3, 0.2, 0.3, 0.2);
+                    FpeUtil.particles(e, ParticleTypes.CLOUD, g.held.position().add(0, 0.1, 0), 6, 0.4, 0.05, 0.4, 0.02);
+                    FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 0.6f, 1.2f);
+                }
+                if (tk >= 18 && tk <= 34) {
+                    Vec3 face = g.held.position().add(0, g.held.getBbHeight() * 0.8, 0);
+                    Vec3 from = nozzle(e, 0.9);
+                    for (int i = 1; i <= 3; i++) FpeUtil.particles(e, ACID, from.lerp(face, i / 3.0), 2, 0.08, 0.08, 0.08, 0.01);
+                    if (tk % 2 == 0) FpeUtil.sound(e, SoundEvents.FIRE_EXTINGUISH, 0.5f, 1.6f);
+                    if (tk % 4 == 2) {
+                        g.held.invulnerableTime = 0;
+                        if (FpeUtil.hit(e, g.held, e.dmg(0.12f), 0, 0)) acid(g.held, 60);
+                    }
+                    if (tk == 20) FpeUtil.daze(g.held, 60);
+                }
+            }
+            if (tk == 42) {
+                if (g.grabbing()) {
+                    g.held.invulnerableTime = 0;
+                    FpeUtil.hit(e, g.held, e.dmg(0.7f), 1.9, 0.45);
+                } else FpeUtil.hitCone(e, 2.6, 45, e.dmg(0.7f), 1.5, 0.3);
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1f, 0.8f);
+                g.held = null;
+            }
+        }).end((e, t, tk) -> ((GreenCircle) e).held = null));
+
+        // 16. Glove snatch (CC disarm): nozzle feint t3, the free glove snatches the weapon out of the victim's hand t7
+        //     (disarm + weakness), squirts it in the eyes t12 (daze), tosses the loot over her shoulder and backhands t17
+        out.add(Ability.of("glove_snatch", 30, 140).range(0, 3.2).weight(2).faceUntil(12)
+                .start((e, t, tk) -> ((GreenCircle) e).held = null).tick((e, t, tk) -> {
+            GreenCircle g = (GreenCircle) e;
+            if (tk == 5) e.dashForward(0.3, 0);
+            if (tk == 7) {
+                LivingEntity v = pickCone(e, 3.0, 50);
+                if (v != null && FpeUtil.hit(e, v, e.dmg(0.4f), 0, 0)) {
+                    g.held = v;
+                    FpeUtil.disarm(v);
+                    v.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80, 0));
+                    FpeUtil.sound(e, SoundEvents.ITEM_PICKUP, 1.2f, 0.6f);
+                } else FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 0.8f);
+            }
+            if (tk == 12) {
+                puff(e, nozzle(e, 1.6), 10, 0.25);
+                if (g.grabbing() && inFront(e, g.held, 3.6, 60)) {
+                    FpeUtil.daze(g.held, 50);
+                    acid(g.held, 40);
+                }
+                FpeUtil.sound(e, SoundEvents.SLIME_SQUISH_SMALL, 1f, 1.5f);
+            }
+            if (tk == 17) {
+                if (FpeUtil.hitCone(e, 2.8, 60, e.dmg(0.6f), 0.9, 0.2) > 0) FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_STRONG, 1f, 1.2f);
+                arc(e, 2.2f, 120, 10, 1.5, WHITE_ARC);
+                g.held = null;
+            }
+        }).end((e, t, tk) -> ((GreenCircle) e).held = null));
     }
 
     // ------------------------------------------------------------------ sounds

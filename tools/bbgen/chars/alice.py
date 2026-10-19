@@ -342,6 +342,25 @@ def build(B):
                     w = 0.6 - i * 0.07
                     c(f"whips{i}", prev, (x - w / 2, y - 2.3, -w / 2), (x + w / 2, y, w / 2), C.SHADOW, faces=B.all(B.edges(C.SHADOW_HI)))
                 blade("whiptip", prev, (x, 12.8 - 6 * 2.2 + 0.1, 0), 1.6, 0.6, 0.3, (180, 0, 0), C.SHADOW, C.SHADOW_HI)
+                # giant shadow hand (shadow_clutch): ink arm continuing the forearm (scaled along -Y to reach) + clawed palm
+                # (palm bone is moved along -Y to stay on the arm tip); 4 talons in a ring that open / clutch
+                g("shand", (x, 12.8, 0), "hand_r")
+                g("sharm", (x, 12.8, 0), "shand")
+                c("sharm_c", "sharm", (x - 0.6, 4.8, -0.6), (x + 0.6, 12.8, 0.6), C.SHADOW, faces=B.all(B.edges(C.SHADOW_HI)))
+                c("sharm_w", "sharm", (x - 0.8, 9.0, -0.8), (x + 0.8, 12.4, 0.8), C.SHADOW, faces=B.all(B.edges(C.SHADOW_HI)))
+                for i in range(3):  # ink wisps trailing off the arm
+                    blade(f"swisp{i}", "sharm", (x + (i - 1) * 0.5, 6.0 + i * 2.2, 0.5 - i * 0.4), 1.8, 0.4, 0.3, (30 + i * 10, 0, (i - 1) * 50), C.SHADOW, C.SHADOW_HI)
+                g("spalm", (x, 4.8, 0), "shand")
+                c("spalm_c", "spalm", (x - 2.0, 1.4, -2.0), (x + 2.0, 4.9, 2.0), C.SHADOW,
+                  faces=B.all(lambda F: (F.rect(0, 0, F.w, F.h, C.SHADOW), F.rect(1, 1, F.w - 2, 1, C.SHADOW_HI))))
+                c("spalm_k", "spalm", (x - 1.5, 0.8, -1.5), (x + 1.5, 1.6, 1.5), C.SHADOW_HI)
+                for i, ang in enumerate((45, 135, 225, 315)):
+                    ux, uz = math.cos(math.radians(ang)), math.sin(math.radians(ang))
+                    fx, fz = x + ux * 1.6, uz * 1.6
+                    g(f"sfing{i}", (fx, 1.8, fz), "spalm")
+                    B.lock(f"sfc{i}", f"sfing{i}", (fx, 1.8, fz), 6.0 if i != 3 else 4.6, 0.9, 0.8, (0, 0, 0), C.SHADOW, C.SHADOW_HI,
+                           paint=B.edges(C.SHADOW_HI))
+                    blade(f"sfk{i}", f"sfing{i}", (fx, 1.0, fz), 0.9, 0.9, 0.8, (180, 0, 0), C.SHADOW_HI)
         else:
             c("sleeve_" + k, "arm_" + k, (x - 1.0, 17.6, -1.05), (x + 1.0, 25.6, 1.05), C.COAT, faces={"north": B.folds(C.COAT, C.COAT_D, C.COAT_HI, 1)})
             c("shpad_" + k, "arm_" + k, (x - 1.15, 23.6, -1.15), (x + 1.15, 25.9, 1.15), C.COAT)
@@ -558,7 +577,20 @@ WR = {"wing_r0": (20, 0, -45), "wing_r1": (28, 0, -78), "wing_r2": (36, 0, -112)
       "wing_l0": (20, 0, 45), "wing_l1": (28, 0, 78), "wing_l2": (36, 0, 112)}
 REST1 = {"arm_r": (2, 0, 5), "fore_r": (8, 0, 0), "arm_l": (2, 0, -5), "fore_l": (8, 0, 0), "head": (0, 0, -4),
          "leg_l": (-3, 0, -1), "leg_r": (2, 0, 1), **WR}
-PROPS1 = ("wings", "claws_r", "claws_l", "whip0")
+PROPS1 = ("wings", "claws_r", "claws_l", "whip0", "shand")
+SF = [(math.cos(math.radians(a)), math.sin(math.radians(a))) for a in (45, 135, 225, 315)]
+
+
+def sgrip(a, t, f):
+    """shadow-hand talons: f>0 splay open, f<0 clutch shut"""
+    for i, (ux, uz) in enumerate(SF):
+        a.rot(f"sfing{i}", (t, -uz * f, 0, ux * f))
+
+
+def sreach(a, *keys):
+    """shadow arm length: keys (t, s) -> arm scaled s along its axis, palm kept on the tip (arm base length 8 px)"""
+    a.scl("sharm", *[(t, 1, s, 1) for (t, s) in keys])
+    a.pos("spalm", *[(t, 0, -8 * (s - 1), 0) for (t, s) in keys])
 
 
 def wings_at(a, t, spread=1.0, lift=0.0, **over):
@@ -847,6 +879,74 @@ def anims_p1(B):
     a.cloth([(0, 0, 0, 0), (8, 4, 0, 6), (14, 4, 0, 0, 20), (20, 0, 0, 0, 6), (40, 0, 0, 0)], delay=1)
     a.done()
 
+    # ---------------------------------------------------------------- shadow_clutch (60): ink pools in the palm 2-9, arm cocked back 10,
+    # THRUST 12-14 (shadow arm shoots ~5 blocks out, talons open) SNATCH 14, reel in 14-24, hold aloft, SQUEEZE 28 & 37, hoist 42, SLAM 46, recover
+    a = mk("shadow_clutch", 60).show("shand", 3, 54, grow=3)
+    a.at(0, chest=(0, 0, 0), head=r["head"], arm_r=r["arm_r"], fore_r=r["fore_r"], arm_l=r["arm_l"], fore_l=r["fore_l"], P_body=(0, 0, 0))
+    a.at(5, chest=(2, -10, 0), head=(6, 8, -2), arm_r=(30, 0, 16), fore_r=(50, 0, 0), arm_l=(10, 0, -14), P_body=(0, -0.2, 0.2))
+    a.at(10, chest=(6, -30, 0), head=(4, 22, 0), arm_r=(60, -10, 30), fore_r=(70, 0, 0), arm_l=(40, 0, -30), fore_l=(30, 0, 0), P_body=(0, -0.6, 0.8))
+    a.at(12, chest=(-8, 18, 0), head=(-2, -14, 0), arm_r=(84, 0, 4), fore_r=(0, 0, 0), arm_l=(-20, 0, -26), fore_l=(10, 0, 0), P_body=(0, -0.8, -1.4))
+    a.at(14, chest=(-12, 24, 0), head=(-4, -18, 0), arm_r=(86, 0, 2), P_body=(0, -1.0, -1.8))
+    a.at(17, chest=(-6, 20, 0), head=(-6, -14, 0), arm_r=(88, 0, 4), fore_r=(6, 0, 0))
+    a.at(24, chest=(8, 10, 0), head=(6, -8, -4), arm_r=(96, 0, 6), fore_r=(4, 0, 0), arm_l=(10, 0, -20), fore_l=(20, 0, 0), P_body=(0, -0.2, 0.4))
+    for t in (28, 37):  # squeeze: hunch into it, arm shudders, cruel head tilt
+        a.at(t - 2, chest=(6, 6, 0), head=(8, -6, -6), arm_r=(98, 0, 6), fore_r=(0, 0, 0))
+        a.at(t, chest=(-6, 12, 3), head=(-4, -10, 8), arm_r=(90, 4, 2), fore_r=(16, 0, 0), arm_l=(30, 0, -36), fore_l=(70, 0, 0), P_body=(0, -0.5, -0.2))
+        a.at(t + 3, chest=(4, 8, -1), head=(6, -6, -4), arm_r=(96, 0, 6), fore_r=(6, 0, 0), arm_l=(12, 0, -20), fore_l=(24, 0, 0), P_body=(0, -0.2, 0.2))
+    a.at(42, chest=(14, -6, 0), head=(16, 4, 0), arm_r=(168, 0, 10), fore_r=(10, 0, 0), arm_l=(40, 0, -40), fore_l=(20, 0, 0), P_body=(0, 0.4, 0.6))
+    a.at(44, chest=(-10, 6, 0), arm_r=(120, 0, 6))
+    a.at(46, chest=(-36, 10, 0), head=(26, -6, 0), arm_r=(52, 0, 4), fore_r=(0, 0, 0), arm_l=(-10, 0, -40), fore_l=(10, 0, 0), P_body=(0, -4.0, -1.4))
+    a.at(50, chest=(-32, 8, 0), head=(24, -4, 0), arm_r=(54, 0, 6), P_body=(0, -3.6, -1.2))
+    a.at(55, chest=(-8, 2, 0), head=(4, 0, -2), arm_r=(16, 0, 8), fore_r=(20, 0, 0), arm_l=(6, 0, -8), fore_l=(14, 0, 0), P_body=(0, -0.6, -0.2))
+    a.at(60, chest=(0, 0, 0), head=r["head"], arm_r=r["arm_r"], fore_r=r["fore_r"], arm_l=r["arm_l"], fore_l=r["fore_l"], P_body=(0, 0, 0))
+    sreach(a, (0, 0.4), (3, 0.4), (9, 0.9), (11, 1.0), (13, 7.5), (14, 8.2), (16, 7.6), (20, 4.0), (24, 1.6), (41, 1.6), (42, 1.3), (44, 1.8), (46, 2.1), (52, 1.8), (56, 0.6), (60, 0.4))
+    sgrip(a, 0, 0); sgrip(a, 9, 10); sgrip(a, 12, 40); sgrip(a, 13.5, 46); sgrip(a, 14.5, -24); sgrip(a, 16, -18)
+    for t in (28, 37):
+        sgrip(a, t - 2, -16); sgrip(a, t, -34); sgrip(a, t + 3, -18)
+    sgrip(a, 45, -18); sgrip(a, 47, 36); sgrip(a, 52, 20); sgrip(a, 60, 0)
+    a.rot("shand", (0, 0, 0, 0), (12, 0, 0, 0), (14, -6, 0, 0), (24, 2, 0, 0), (28, 6, 0, 6), (31, 2, 0, -2), (37, 6, 0, -6), (40, 2, 0, 2),
+          (42, 10, 0, 0), (46, -20, 0, 0), (52, -14, 0, 0), (60, 0, 0, 0))
+    a.rot("leg_r", (0, *r["leg_r"]), (10, 14, 0, 2), (12, -24, 0, 2), (24, -16, 0, 2), (42, -10, 0, 2), (46, -34, 0, 4), (52, -30, 0, 4), (60, *r["leg_r"]))
+    a.rot("leg_l", (0, *r["leg_l"]), (10, -12, 0, -2), (12, 22, 0, -2), (24, 12, 0, -2), (42, 6, 0, -2), (46, 30, 0, -4), (52, 28, 0, -4), (60, *r["leg_l"]))
+    a.rot("shin_r", (0, 0, 0, 0), (12, -10, 0, 0), (24, -6, 0, 0), (46, -24, 0, 0), (52, -22, 0, 0), (60, 0, 0, 0))
+    a.rot("shin_l", (0, 0, 0, 0), (12, -14, 0, 0), (24, -8, 0, 0), (46, -70, 0, 0), (52, -66, 0, 0), (60, 0, 0, 0))
+    a.hair([(0, 0, 0, 0), (10, 8, 0, 6), (13, -14, 0, -8), (17, -6, 0, -4), (24, 4, 0, 0), (28, -4, 0, 4), (37, -4, 0, -4), (42, 8, 0, 0),
+            (46, 22, 0, 4), (50, -6, 0, 0), (60, 0, 0, 0)])
+    a.cloth([(0, 0, 0, 0), (10, 4, 0, 4), (13, -10, 0, -6), (24, 0, 0, 0, 2), (28, -2, 0, 0, 4), (37, -2, 0, 0, 4), (42, -4, 0, 0),
+             (46, 12, 0, 0, 16), (52, 4, 0, 0, 8), (60, 0, 0, 0)])
+    a.done()
+
+    # ---------------------------------------------------------------- shadow_pin (50): arms flung up, rise on toes 0-10, DROP into a squat and drive
+    # both palms into her shadow 14 (hands burst up under the victims), grind 16-28, CLENCH 30 (squeeze), strain, RIP arms up 44 (victims hurled), recover
+    a = mk("shadow_pin", 50).show("claws_r", 8, 46).show("claws_l", 8, 46)
+    a.scl("claws_r", (0, *HIDE), (7.99, *HIDE), (10, 1, 1, 1), (13, 1.3, 1.5, 1.3), (44, 1.3, 1.5, 1.3), (45.5, 1, 1, 1), (46, *HIDE), (50, *HIDE))
+    a.scl("claws_l", (0, *HIDE), (7.99, *HIDE), (10, 1, 1, 1), (13, 1.3, 1.5, 1.3), (44, 1.3, 1.5, 1.3), (45.5, 1, 1, 1), (46, *HIDE), (50, *HIDE))
+    a.at(0, chest=(0, 0, 0), head=r["head"], arm_r=r["arm_r"], fore_r=r["fore_r"], arm_l=r["arm_l"], fore_l=r["fore_l"], P_root=(0, 0, 0))
+    a.at(6, chest=(4, 0, 0), head=(10, 0, 0), arm_r=(160, 0, 34), fore_r=(20, 0, 0), arm_l=(160, 0, -34), fore_l=(20, 0, 0), P_root=(0, 0.6, 0.2))
+    a.at(10, chest=(6, 0, 0), head=(14, 0, 0), arm_r=(168, 0, 30), fore_r=(10, 0, 0), arm_l=(168, 0, -30), fore_l=(10, 0, 0), P_root=(0, 0.9, 0.2))
+    a.at(12, chest=(-10, 0, 0), arm_r=(120, 0, 14), arm_l=(120, 0, -14))
+    a.at(14, chest=(-44, 0, 0), head=(36, 0, 0), arm_r=(46, 0, 10), fore_r=(0, 0, 0), arm_l=(46, 0, -10), fore_l=(0, 0, 0), P_root=(0, -6.0, -1.0))
+    for t in (17, 20, 23, 26):
+        j = 1 if t % 2 else -1
+        a.at(t, chest=(-42, 2 * j, 2 * j), head=(34, -4 * j, 3 * j), arm_r=(47, 0, 10 + j), arm_l=(47, 0, -10 + j), P_root=(0, -5.8, -1.0))
+    a.at(28, chest=(-46, 0, 0), head=(30, 0, 0), arm_r=(44, 0, 12), arm_l=(44, 0, -12), P_root=(0, -6.0, -1.0))
+    a.at(30, chest=(-36, 0, 0), head=(44, 0, -8), arm_r=(52, 0, 8), fore_r=(24, 0, 0), arm_l=(52, 0, -8), fore_l=(24, 0, 0), P_root=(0, -5.6, -1.0))
+    a.at(33, chest=(-40, 0, 2), head=(40, 4, -6), arm_r=(48, 0, 10), fore_r=(18, 0, 0), arm_l=(48, 0, -10), fore_l=(18, 0, 0))
+    a.at(40, chest=(-42, 0, -2), head=(38, -4, -6), arm_r=(46, 0, 10), fore_r=(20, 0, 0), arm_l=(46, 0, -10), fore_l=(20, 0, 0), P_root=(0, -5.8, -1.0))
+    a.at(42, chest=(-48, 0, 0), head=(30, 0, 0), arm_r=(40, 0, 10), arm_l=(40, 0, -10), P_root=(0, -6.2, -1.1))
+    a.at(44, chest=(20, 0, 0), head=(26, 0, 0), arm_r=(178, 0, 24), fore_r=(6, 0, 0), arm_l=(178, 0, -24), fore_l=(6, 0, 0), P_root=(0, 0.6, 0.2))
+    a.at(46, chest=(16, 0, 0), head=(20, 0, 0), arm_r=(170, 0, 28), arm_l=(170, 0, -28), P_root=(0, 0.4, 0.2))
+    a.at(50, chest=(0, 0, 0), head=r["head"], arm_r=r["arm_r"], fore_r=r["fore_r"], arm_l=r["arm_l"], fore_l=r["fore_l"], P_root=(0, 0, 0))
+    for k in ("claws_r", "claws_l"):
+        a.rot(k, (0, 0, 0, 0), (13, 20, 0, 0), (28, 20, 0, 0), (30, -80, 0, 0), (42, -80, 0, 0), (44, -20, 0, 0), (50, 0, 0, 0))
+    for s, k in ((1, "r"), (-1, "l")):
+        a.rot("leg_" + k, (0, *r["leg_" + k]), (10, -4, 0, 2 * s), (14, 80, 0, 22 * s), (42, 80, 0, 22 * s), (44, -6, 0, 6 * s), (50, *r["leg_" + k]))
+        a.rot("shin_" + k, (0, 0, 0, 0), (10, 0, 0, 0), (14, -120, 0, 0), (42, -120, 0, 0), (44, 0, 0, 0), (50, 0, 0, 0))
+        a.rot("foot_" + k, (0, 0, 0, 0), (8, 26, 0, 0), (12, 0, 0, 0), (14, 40, 0, 0), (42, 40, 0, 0), (44, 20, 0, 0), (47, 0, 0, 0), (50, 0, 0, 0))
+    a.hair([(0, 0, 0, 0), (10, -10, 0, 0), (14, 26, 0, 0), (18, 8, 0, 4), (24, 8, 0, -4), (30, -10, 0, 0), (34, 6, 0, 0), (42, 8, 0, 0), (44, -24, 0, 0), (48, 4, 0, 0), (50, 0, 0, 0)])
+    a.cloth([(0, 0, 0, 0), (10, -4, 0, 0, 2), (14, 8, 0, 0, 26), (28, 6, 0, 0, 22), (30, 4, 0, 0, 26), (42, 6, 0, 0, 22), (44, -8, 0, 0, 4), (50, 0, 0, 0)])
+    a.done()
+
     # ---------------------------------------------------------------- transform (130; phase-1 model plays 0-90): clutch head, convulse (40/62/80), wings tear out, swell
     a = mk("transform", 130).show("wings", 38, 130, grow=4).show("claws_r", 60, 130).show("claws_l", 60, 130)
     a.scl("root", (0, 1, 1, 1), (40, 1, 1, 1), (62, 1.08, 1.08, 1.08), (80, 1.2, 1.2, 1.2), (90, 1.5, 1.5, 1.5), (130, 1.5, 1.5, 1.5))
@@ -1078,6 +1178,44 @@ def anims_p2(B):
     a.legs([(0, 10, 0, 6), (16, 20, 0, 8), (24, 6, 0, 6), (46, 30, 0, 12), (56, 10, 0, 6)], [(0, -16, 0, 0), (16, -36, 0, 0), (24, -10, 0, 0), (46, -50, 0, 0), (56, -16, 0, 0)])
     a.hair([(0, 0, 0, 0), (16, 10, 0, 0), (26, -6, 0, 10), (36, -6, 0, -10), (42, -14, 0, 0), (46, 22, 0, 0), (56, 0, 0, 0)])
     a.cloth([(0, 0, 0, 0), (16, -6, 0, 0, 4), (26, 2, 0, 6, 6), (36, 2, 0, -6, 6), (46, 10, 0, 0, 20), (56, 0, 0, 0)])
+    a.done()
+
+    # ---------------------------------------------------------------- tentacle_bind (70): rear back, tentacles coil overhead 0-12, PLUNGE into the floor 16,
+    # bind 20 (claws snap shut), puppeteer-hoist 20-30, SQUEEZE 34 & 44 (claws crush, tentacles jolt), haul overhead 50, SLAM 54, rip out 58-64, recover
+    a = mk("tentacle_bind", 70)
+    a.at(0, chest=r["chest"], head=r["head"], arm_r=r["arm_r"], fore_r=r["fore_r"], arm_l=r["arm_l"], fore_l=r["fore_l"], P_body=(0, 0, 0))
+    a.at(8, chest=(8, 0, 0), head=(26, 0, 0), arm_r=(40, 0, 70), fore_r=(30, 0, 0), arm_l=(40, 0, -70), fore_l=(30, 0, 0), P_body=(0, 0.8, 0.6))
+    a.at(12, chest=(12, 0, 0), head=(30, 0, 0), arm_r=(50, 0, 80), fore_r=(20, 0, 0), arm_l=(50, 0, -80), fore_l=(20, 0, 0), P_body=(0, 1.0, 0.8))
+    a.at(16, chest=(-34, 0, 0), head=(36, 0, 0), arm_r=(80, 0, 20), fore_r=(0, 0, 0), arm_l=(80, 0, -20), fore_l=(0, 0, 0), P_body=(0, -2.4, -1.2))
+    a.at(20, chest=(-30, 0, 0), head=(34, 0, 0), arm_r=(92, 0, 14), fore_r=(10, 0, 0), arm_l=(92, 0, -14), fore_l=(10, 0, 0), P_body=(0, -2.0, -1.0))
+    a.at(30, chest=(0, 0, 0), head=(36, 0, -6), arm_r=(140, 0, 44), fore_r=(30, 0, 0), arm_l=(140, 0, -44), fore_l=(30, 0, 0), P_body=(0, 0.2, 0))
+    for t in (34, 44):
+        a.at(t - 2, chest=(2, 0, 0), head=(36, 0, -6), arm_r=(142, 0, 46), fore_r=(24, 0, 0), arm_l=(142, 0, -46), fore_l=(24, 0, 0), P_body=(0, 0.2, 0))
+        a.at(t, chest=(-16, 0, 2), head=(26, 8, 8), arm_r=(122, 0, 30), fore_r=(70, 0, 0), arm_l=(122, 0, -30), fore_l=(70, 0, 0), P_body=(0, -0.6, -0.3))
+        a.at(t + 4, chest=(-2, 0, -1), head=(34, -4, -4), arm_r=(138, 0, 42), fore_r=(36, 0, 0), arm_l=(138, 0, -42), fore_l=(36, 0, 0), P_body=(0, 0, 0))
+    a.at(50, chest=(16, 0, 0), head=(34, 0, 0), arm_r=(196, 0, 14), fore_r=(30, 0, 0), arm_l=(196, 0, -14), fore_l=(30, 0, 0), P_body=(0, 1.0, 0.6))
+    a.at(52, chest=(-20, 0, 0), arm_r=(130, 0, 12), arm_l=(130, 0, -12))
+    a.at(54, chest=(-56, 0, 0), head=(42, 0, 0), arm_r=(56, 0, 10), fore_r=(0, 0, 0), arm_l=(56, 0, -10), fore_l=(0, 0, 0), P_body=(0, -3.6, -1.4))
+    a.at(58, chest=(-50, 0, 0), head=(38, 0, 0), arm_r=(60, 0, 12), arm_l=(60, 0, -12), P_body=(0, -3.2, -1.2))
+    a.at(64, chest=(-26, 0, 0), head=(20, 0, 0), arm_r=(30, 0, 30), fore_r=(40, 0, 0), arm_l=(20, 0, -20), fore_l=(30, 0, 0), P_body=(0, -1.0, -0.4))
+    a.at(70, chest=r["chest"], head=r["head"], arm_r=r["arm_r"], fore_r=r["fore_r"], arm_l=r["arm_l"], fore_l=r["fore_l"], P_body=(0, 0, 0))
+    claws(a, 0, 0); claws(a, 12, -30, 30); claws(a, 18, -30, 34); claws(a, 20, 80, 4); claws(a, 30, 70, 4)
+    for t in (34, 44):
+        claws(a, t - 2, 66); claws(a, t, 100); claws(a, t + 4, 72)
+    claws(a, 50, 80); claws(a, 54, 90); claws(a, 58, -20, 24); claws(a, 70, 0)
+    tents(a, [(0, 0, 26, None), (8, -60, 44, 1.3), (12, -70, 50, 1.2), (15, 120, 10, 0.9), (17, 205, -8, 0.7), (20, 200, -4, 0.7),
+              (30, 186, -10, 0.7), (34, 196, 8, 0.6), (38, 188, -6, 0.7), (44, 196, 8, 0.6), (48, 186, -8, 0.7),
+              (50, 176, -12, 0.7), (54, 212, -2, 0.7), (58, 210, 0, 0.7), (62, -40, 40, 1.3), (70, 0, 26, None)], lag=1)
+    tail(a, [(0, 0, 0, 0), (12, 0, -24, 16), (16, 0, 30, -20), (30, 20, 10, -10), (34, -20, 20, -24), (44, 20, 20, -24), (50, 0, -30, 20),
+             (54, 0, 40, -30), (62, 0, 10, -6), (70, 0, 0, 0)])
+    spines(a, 0, 0); spines(a, 12, -8); spines(a, 16, 18); spines(a, 30, 10); spines(a, 34, 26); spines(a, 38, 12); spines(a, 44, 26); spines(a, 48, 12)
+    spines(a, 54, 30); spines(a, 62, 8); spines(a, 70, 0)
+    a.legs([(0, 10, 0, 6), (12, 0, 0, 6), (16, 30, 0, 10), (30, 10, 0, 8), (50, 0, 0, 8), (54, 40, 0, 12), (62, 30, 0, 10), (70, 10, 0, 6)],
+           [(0, -16, 0, 0), (12, -8, 0, 0), (16, -46, 0, 0), (30, -18, 0, 0), (50, -10, 0, 0), (54, -60, 0, 0), (62, -40, 0, 0), (70, -16, 0, 0)])
+    a.hair([(0, 0, 0, 0), (12, -12, 0, 0), (16, 20, 0, 0), (22, -4, 0, 0), (30, -8, 0, 0), (34, 8, 0, 6), (40, -4, 0, 0), (44, 8, 0, -6),
+            (50, -16, 0, 0), (54, 26, 0, 0), (60, -4, 0, 0), (70, 0, 0, 0)])
+    a.cloth([(0, 0, 0, 0), (12, -6, 0, 0, 4), (16, 10, 0, 0, 16), (30, -2, 0, 0, 6), (34, 4, 0, 0, 10), (44, 4, 0, 0, 10), (50, -8, 0, 0, 4),
+             (54, 12, 0, 0, 24), (62, 4, 0, 0, 8), (70, 0, 0, 0)])
     a.done()
 
     # ---------------------------------------------------------------- wing_gust (48): huge shadow wings unfurl 2-12, BEATS 18 / 26 / 34 (forward claps), fold 44

@@ -144,4 +144,72 @@ public final class FpeUtil {
         owner.level().addFreshEntity(f);
         return f;
     }
+
+    // ------------------------------------------------------------------ crowd control (affect what the victim can DO)
+    /** Freezes the victim's movement for ticks (slowness max + no jumping + mining fatigue). Players cannot walk or jump; mobs stand still. */
+    public static void stun(LivingEntity v, int ticks) {
+        if (!canHurtLoose(v)) return;
+        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, ticks, 6, false, false));
+        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.JUMP, ticks, 200, false, false));
+        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN, ticks, 3, false, false));
+        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.WEAKNESS, ticks, 1, false, false));
+    }
+
+    /** Roots the victim in place (like stun but without weakness/fatigue: it can still hit back). */
+    public static void root(LivingEntity v, int ticks) {
+        if (!canHurtLoose(v)) return;
+        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, ticks, 6, false, false));
+        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.JUMP, ticks, 200, false, false));
+    }
+
+    /** Disorients: nausea + blindness + slowness. */
+    public static void daze(LivingEntity v, int ticks) {
+        if (!canHurtLoose(v)) return;
+        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.CONFUSION, ticks, 0));
+        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.BLINDNESS, Math.min(ticks, 60), 0));
+        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, ticks, 1));
+    }
+
+    /** Hold the victim at a world position (call EVERY tick of the grab). Zeroes its motion and teleports it; players are synced. */
+    public static void holdAt(LivingEntity victim, Vec3 pos) {
+        if (victim == null || !victim.isAlive()) return;
+        victim.setDeltaMovement(Vec3.ZERO);
+        victim.fallDistance = 0;
+        if (victim instanceof net.minecraft.server.level.ServerPlayer sp) sp.connection.teleport(pos.x, pos.y, pos.z, sp.getYRot(), sp.getXRot());
+        else victim.teleportTo(pos.x, pos.y, pos.z);
+        victim.hurtMarked = true;
+    }
+
+    /** Hold the victim relative to the grabber: forward/up/right offsets in blocks (call every tick). */
+    public static void hold(Entity grabber, LivingEntity victim, double fwd, double up, double side) {
+        Vec3 p = grabber.position().add(forward(grabber).scale(fwd)).add(right(grabber).scale(side)).add(0, up, 0);
+        holdAt(victim, p);
+    }
+
+    /** Yank the victim toward a point with the given speed (one impulse; call repeatedly for a reel-in). */
+    public static void pull(LivingEntity v, Vec3 toward, double speed) {
+        if (!canHurtLoose(v)) return;
+        Vec3 d = toward.subtract(v.position());
+        if (d.lengthSqr() < 1.0E-4) return;
+        Vec3 m = d.normalize().scale(Math.min(speed, d.length()));
+        v.setDeltaMovement(m.x, Math.max(v.getDeltaMovement().y, 0.1), m.z);
+        v.hurtMarked = true;
+    }
+
+    /** Throw the victim along a horizontal direction with an upward kick. */
+    public static void fling(LivingEntity v, Vec3 dir, double speed, double up) {
+        if (!canHurtLoose(v)) return;
+        Vec3 d = new Vec3(dir.x, 0, dir.z).normalize().scale(speed);
+        v.setDeltaMovement(d.x, up, d.z);
+        v.hurtMarked = true;
+    }
+
+    /** Makes a player drop the item in the main hand (disarm). */
+    public static void disarm(LivingEntity v) {
+        if (v instanceof Player p && !p.isCreative() && !p.getMainHandItem().isEmpty()) p.drop(p.getMainHandItem().split(1), true);
+    }
+
+    private static boolean canHurtLoose(LivingEntity v) {
+        return v != null && v.isAlive() && !(v instanceof FpeEntity) && (!(v instanceof Player p) || (!p.isCreative() && !p.isSpectator()));
+    }
 }

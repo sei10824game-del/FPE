@@ -26,14 +26,15 @@ import org.joml.Vector3f;
 
 /**
  * Mutant Claire (FPE Green, mutant 001): hunched white-hooded wolf-thing whose whole face is a jagged maw.
- * Bites, sleeve flails, satchel swings, pounces, a howl, ranged spat fangs / failed tests, ground jaws; enraged = devour + frenzy.
+ * Bites, sleeve flails, satchel swings, pounces, a terror howl (daze + flee), ranged spat fangs / failed tests, ground jaws;
+ * crowd control grabs: jaw_lock (maw hold + thrash + toss), sleeve_snare (snag/disarm, reel in, pin); enraged = devour + frenzy.
  * Every tick index below matches the key poses in tools/bbgen/chars/mutant_claire.py.
  */
 public class MutantClaire extends FpeEntity {
     private static final DustParticleOptions INK = new DustParticleOptions(new Vector3f(0.08f, 0.08f, 0.1f), 1.4f);
     private static final int WHITE_ARC = 0xD0F2F2F4, BLACK_ARC = 0xD0141418;
-    private boolean grabbed;
-    private Vec3 trapAt = Vec3.ZERO;
+    private LivingEntity held;          // victim of devour / jaw_lock / sleeve_snare (null = nothing in her grip)
+    private Vec3 trapAt = Vec3.ZERO, snagAt = Vec3.ZERO;
 
     public MutantClaire(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
@@ -81,6 +82,25 @@ public class MutantClaire extends FpeEntity {
     private Vec3 mouth() { return FpeUtil.ahead(this, 0.7, 1.35); }
 
     private Vec3 hand(boolean right) { return FpeUtil.ahead(this, 0.5, 1.4).add(FpeUtil.right(this).scale(right ? 0.45 : -0.45)); }
+
+    /** nearest valid enemy inside a horizontal cone in front of her (null = whiff) */
+    private LivingEntity pick(double range, double halfAngle) {
+        Vec3 f = FpeUtil.forward(this);
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        for (LivingEntity v : FpeUtil.enemiesInRadius(this, position(), range, 2.5, 1.5)) {
+            Vec3 d = new Vec3(v.getX() - getX(), 0, v.getZ() - getZ());
+            if (d.lengthSqr() > 0.01 && Math.toDegrees(Math.acos(Mth.clamp(d.normalize().dot(f), -1, 1))) > halfAngle) continue;
+            if (d.lengthSqr() < bd) { bd = d.lengthSqr(); best = v; }
+        }
+        return best;
+    }
+
+    /** current grip victim if still grabbable, else drops it */
+    private LivingEntity grip() {
+        if (held != null && (!held.isAlive() || held.isRemoved() || !FpeUtil.canHurt(this, held) || held.distanceToSqr(this) > 100)) held = null;
+        return held;
+    }
 
     private void fan(FpeProjectile.Kind kind, Vec3 from, LivingEntity t, int n, double spreadDeg, double speed, float dmg) {
         Vec3 dir = FpeUtil.aim(from, t, speed, 0.4);
@@ -185,9 +205,114 @@ public class MutantClaire extends FpeEntity {
                     v.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1));
                     v.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 80, 0));
                     if (e.isEnraged()) v.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 60, 0));
+                    FpeUtil.daze(v, k == 14 ? 70 : 40);
                 }
                 FpeUtil.particles(e, ParticleTypes.SONIC_BOOM, e.position().add(0, 2.2, 0), 1, 0, 0, 0, 0);
                 FpeUtil.sound(e, SoundEvents.WOLF_HOWL, 1.4f, 0.4f + k * 0.01f);
+            }
+            // terror: while she howls (14-34) everything close is driven to flee from her
+            if (k >= 14 && k <= 34 && k % 2 == 0)
+                for (LivingEntity v : FpeUtil.enemiesInRadius(e, e.position(), 6.5, 3, 1)) {
+                    Vec3 away = v.position().subtract(e.position()).multiply(1, 0, 1);
+                    if (away.lengthSqr() < 1.0E-3) away = FpeUtil.forward(e);
+                    FpeUtil.pull(v, v.position().add(away.normalize().scale(4)), 0.32);
+                    if (k % 6 == 2) FpeUtil.particles(e, ParticleTypes.SMOKE, v.position().add(0, v.getBbHeight() + 0.3, 0), 3, 0.2, 0.1, 0.2, 0.01);
+                }
+        }));
+
+        // 13. Jaw lock (grab): gapes + lunges t9, the maw CLAMPS on the nearest prey t10 and lifts it, thrashes it side to side
+        //     (gnaw hits t18/26/34), winds up 38-45 and hurls it away to her left t46 (daze). The victim is stunned while held.
+        out.add(Ability.of("jaw_lock", 60, 170).range(0, 3.0).weight(2).faceUntil(9)
+                .start((e, t, k) -> ((MutantClaire) e).held = null).end((e, t, k) -> ((MutantClaire) e).held = null).tick((e, t, k) -> {
+            MutantClaire c = (MutantClaire) e;
+            if (k == 2) FpeUtil.sound(e, SoundEvents.WOLF_GROWL, 1.2f, 0.45f);
+            if (k == 9) e.dashForward(0.6, 0.05);
+            if (k == 10) {
+                c.held = c.pick(3.2, 45);
+                FpeUtil.sound(e, SoundEvents.EVOKER_FANGS_ATTACK, 1.3f, c.held != null ? 0.6f : 1.2f);
+                if (c.held != null) {
+                    FpeUtil.hit(c, c.held, e.dmg(0.6f), 0, 0);
+                    FpeUtil.stun(c.held, 40);
+                    FpeUtil.particles(e, ParticleTypes.CRIT, c.mouth(), 12, 0.3, 0.3, 0.3, 0.2);
+                }
+            }
+            LivingEntity v = c.grip();
+            if (v == null || k <= 10) return;
+            if (k < 46) {
+                // thrash: the prey swings with the head (side peaks on the gnaw ticks), then is wound up to her right
+                double side = (k >= 14 && k <= 37) ? 0.35 * Math.sin((k - 14) * Math.PI / 4) : 0;
+                double lift = Math.min(0.5, (k - 10) * 0.08);
+                FpeUtil.hold(e, v, 1.05, lift, side + (k >= 38 ? (k - 38) * 0.07 : 0));
+                if (k == 18 || k == 26 || k == 34) {
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(c, v, e.dmg(0.45f), 0, 0);
+                    c.bleed(v, 30);
+                    FpeUtil.stun(v, 20);
+                    FpeUtil.particles(e, ParticleTypes.DAMAGE_INDICATOR, v.position().add(0, 1, 0), 4, 0.3, 0.3, 0.3, 0.1);
+                    FpeUtil.sound(e, SoundEvents.FOX_BITE, 1.3f, 0.6f);
+                    FpeUtil.sound(e, SoundEvents.WOLF_GROWL, 0.9f, 0.5f);
+                }
+            } else if (k == 46) {
+                Vec3 left = FpeUtil.right(e).scale(-1);
+                v.invulnerableTime = 0;
+                FpeUtil.hit(c, v, e.dmg(0.7f), 0, 0);
+                FpeUtil.fling(v, left.add(FpeUtil.forward(e).scale(0.6)), 1.3, 0.5);
+                FpeUtil.daze(v, 50);
+                c.held = null;
+                c.arc(2.0f, 120, 20, 1.0, BLACK_ARC);
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.3f, 0.5f);
+            }
+        }));
+
+        // 14. Sleeve snare (pull + pin + disarm): cocks the right sleeve back (0-9), LASHES it out t10 - the claws snag the
+        //     nearest prey in a line (rips the held item away), REELS it in 11-19, SLAMS it to the floor t20 and pins it under
+        //     the sleeve, left-claw rakes t24/30/36, shoves it away t42 (stun).
+        out.add(Ability.of("sleeve_snare", 52, 180).range(2.5, 9).weight(2).faceUntil(10)
+                .start((e, t, k) -> ((MutantClaire) e).held = null).end((e, t, k) -> ((MutantClaire) e).held = null).tick((e, t, k) -> {
+            MutantClaire c = (MutantClaire) e;
+            if (k == 4) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_LEATHER, 1f, 0.5f);
+            if (k == 10) {
+                Vec3 from = c.hand(true);
+                c.held = c.pick(9.0, 16);
+                Vec3 to = c.held != null ? c.held.position().add(0, c.held.getBbHeight() * 0.5, 0) : FpeUtil.ahead(e, 8.5, 1.2);
+                for (int i = 0; i <= 12; i++) FpeUtil.particles(e, ParticleTypes.WHITE_ASH, from.lerp(to, i / 12.0), 3, 0.05, 0.05, 0.05, 0);
+                FpeUtil.sound(e, SoundEvents.FISHING_BOBBER_THROW, 1.3f, 0.5f);
+                if (c.held != null) {
+                    c.snagAt = c.held.position();
+                    FpeUtil.hit(c, c.held, e.dmg(0.4f), 0, 0);
+                    FpeUtil.disarm(c.held);
+                    FpeUtil.sound(e, SoundEvents.FISHING_BOBBER_RETRIEVE, 1.4f, 0.6f);
+                }
+            }
+            LivingEntity v = c.grip();
+            if (v == null || k <= 10) return;
+            Vec3 pin = FpeUtil.ahead(e, 1.4, 0);
+            if (k < 20) {
+                double p = (k - 10) / 9.0;
+                FpeUtil.holdAt(v, c.snagAt.lerp(pin, p * p).add(0, Math.sin(p * Math.PI) * 0.8, 0));
+            } else if (k < 42) {
+                FpeUtil.holdAt(v, new Vec3(pin.x, c.groundY(pin.x, pin.z, e.getY()), pin.z));
+                if (k == 20) {
+                    FpeUtil.hit(c, v, e.dmg(0.6f), 0, 0);
+                    FpeUtil.stun(v, 30);
+                    FpeUtil.particles(e, ParticleTypes.POOF, pin, 10, 0.5, 0.1, 0.5, 0.03);
+                    FpeUtil.sound(e, SoundEvents.GENERIC_SMALL_FALL, 1.3f, 0.6f);
+                    FpeUtil.sound(e, SoundEvents.RAVAGER_STEP, 1f, 0.7f);
+                }
+                if (k == 24 || k == 30 || k == 36) {
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(c, v, e.dmg(0.4f), 0, 0);
+                    FpeUtil.stun(v, 12);
+                    FpeUtil.particles(e, ParticleTypes.CRIT, pin.add(0, 0.4, 0), 8, 0.3, 0.2, 0.3, 0.2);
+                    FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_SWEEP, 0.9f, 1.2f);
+                }
+            } else if (k == 42) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(c, v, e.dmg(0.7f), 0, 0);
+                FpeUtil.fling(v, FpeUtil.forward(e), 1.1, 0.35);
+                FpeUtil.stun(v, 20);
+                c.held = null;
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.2f, 0.6f);
             }
         }));
 
@@ -262,35 +387,33 @@ public class MutantClaire extends FpeEntity {
 
         // 11. Devour (enraged signature): sleeve grab t12, hoists prey to the maw, chomps t24/32/40, flings t50
         out.add(Ability.of("devour", 60, 160).range(0, 3.2).weight(4).when(FpeEntity::isEnraged).faceUntil(11)
-                .start((e, t, k) -> ((MutantClaire) e).grabbed = false).tick((e, t, k) -> {
+                .start((e, t, k) -> ((MutantClaire) e).held = null).end((e, t, k) -> ((MutantClaire) e).held = null).tick((e, t, k) -> {
             MutantClaire c = (MutantClaire) e;
             if (k == 10) e.dashForward(0.5, 0);
             if (k == 12) {
-                Vec3 to = t.position().subtract(e.position());
-                double ang = Math.toDegrees(Math.acos(Mth.clamp(new Vec3(to.x, 0, to.z).normalize().dot(FpeUtil.forward(e)), -1, 1)));
-                c.grabbed = e.distanceTo(t) < 3.4 && ang < 60 && FpeUtil.canHurt(e, t);
-                FpeUtil.sound(e, c.grabbed ? SoundEvents.WOOL_PLACE : SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 0.6f);
-                if (c.grabbed) FpeUtil.hit(c, t, e.dmg(0.4f), 0, 0);
+                c.held = c.pick(3.4, 60);
+                FpeUtil.sound(e, c.held != null ? SoundEvents.WOOL_PLACE : SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 0.6f);
+                if (c.held != null) { FpeUtil.hit(c, c.held, e.dmg(0.4f), 0, 0); FpeUtil.stun(c.held, 40); }
             }
-            if (c.grabbed && k > 12 && k < 50) {
-                double lift = Math.min(1.3, (k - 12) * 0.12);
-                Vec3 hold = FpeUtil.ahead(e, 1.2, lift);
-                t.setDeltaMovement(hold.subtract(t.position()).scale(0.5));
-                t.hurtMarked = true;
-                t.fallDistance = 0;
+            LivingEntity v = c.grip();
+            if (v == null || k <= 12) return;
+            if (k < 50) {
+                FpeUtil.hold(e, v, 1.2, Math.min(1.3, (k - 12) * 0.12), 0);
                 if (k == 24 || k == 32 || k == 40) {
-                    t.invulnerableTime = 0;
-                    FpeUtil.hit(c, t, e.dmg(0.7f), 0, 0);
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(c, v, e.dmg(0.7f), 0, 0);
                     c.heal(2.0f);
-                    c.bleed(t, 40);
-                    FpeUtil.particles(e, ParticleTypes.DAMAGE_INDICATOR, t.position().add(0, 1, 0), 5, 0.3, 0.3, 0.3, 0.1);
+                    c.bleed(v, 40);
+                    FpeUtil.stun(v, 20);
+                    FpeUtil.particles(e, ParticleTypes.DAMAGE_INDICATOR, v.position().add(0, 1, 0), 5, 0.3, 0.3, 0.3, 0.1);
                     FpeUtil.sound(e, SoundEvents.GENERIC_EAT, 1.3f, 0.6f);
                     FpeUtil.sound(e, SoundEvents.EVOKER_FANGS_ATTACK, 1f, 1.2f);
                 }
-            }
-            if (k == 50 && c.grabbed) {
-                t.invulnerableTime = 0;
-                FpeUtil.hit(c, t, e.dmg(0.8f), 2.0, 0.6);
+            } else if (k == 50) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(c, v, e.dmg(0.8f), 0, 0);
+                FpeUtil.fling(v, FpeUtil.forward(e), 1.6, 0.6);
+                c.held = null;
                 FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.3f, 0.5f);
             }
         }));

@@ -29,6 +29,7 @@ import org.joml.Vector3f;
  * Right hand = white skull-puppet maw, left hand = black toothed bag-monster.
  * Skull snaps, double chomp, bag-monster spin, tongue lash (pull), goo spit (homing ink), tooth volley, lunge bite,
  * ink puddle with fangs, grin scream, maw trap (fling + yank), puppet feint; enraged = devour (lifesteal) + mutation burst.
+ * Crowd control: bag swallow (grab + chew + spit), tongue reel (pull in, hold, bite, slam), goo pin (pinned under the bag, disarm).
  * Every tick index below matches the key poses in tools/bbgen/chars/mutant_lana.py.
  */
 public class MutantLana extends FpeEntity {
@@ -38,6 +39,9 @@ public class MutantLana extends FpeEntity {
     private static final int BONE_ARC = 0xC8F2F2F6;
     private int grabbedId = -1;
     private Vec3 puddleAt = Vec3.ZERO;
+    /** victim of a grab / hold (bag_swallow, tongue_reel, goo_pin); held only while the ability ticks */
+    private LivingEntity held;
+    private Vec3 heldFrom = Vec3.ZERO;
 
     public MutantLana(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
@@ -104,6 +108,33 @@ public class MutantLana extends FpeEntity {
             FpeUtil.projectile(this, kind, from, new Vec3(dir.x * c - dir.z * s, dir.y, dir.x * s + dir.z * c), dmg);
         }
     }
+
+    /** nearest hurtable enemy in sight inside a forward cone (range blocks, half angle degrees), or null */
+    private LivingEntity pickVictim(double range, double halfDeg) {
+        Vec3 f = FpeUtil.forward(this);
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        for (LivingEntity v : FpeUtil.enemiesInRadius(this, position(), range, 2.5, 1.5)) {
+            Vec3 d = new Vec3(v.getX() - getX(), 0, v.getZ() - getZ());
+            if (d.lengthSqr() > 0.01 && Math.toDegrees(Math.acos(Mth.clamp(d.normalize().dot(f), -1, 1))) > halfDeg) continue;
+            if (!hasLineOfSight(v) || d.lengthSqr() >= bd) continue;
+            bd = d.lengthSqr();
+            best = v;
+        }
+        return best;
+    }
+
+    /** grab still valid: alive, hurtable (not creative/spectator/ally) and not escaped (pearl etc.) */
+    private boolean holding() {
+        return held != null && held.isAlive() && !held.isRemoved() && FpeUtil.canHurt(this, held) && held.distanceToSqr(this) < 144;
+    }
+
+    /** hold the victim at p unless that would push it into blocks (low ceilings): then it stays where it is */
+    private void safeHold(LivingEntity v, Vec3 p) {
+        FpeUtil.holdAt(v, level().noCollision(v, v.getBoundingBox().move(p.subtract(v.position()))) ? p : v.position());
+    }
+
+    private static void clearHeld(FpeEntity e) { ((MutantLana) e).held = null; }
 
     private void spikeRing(Vec3 c, int n, double r, int warm, float dmg, float height, double phase) {
         for (int i = 0; i < n; i++) {
@@ -318,6 +349,147 @@ public class MutantLana extends FpeEntity {
                 l.spikeRing(e.position(), 12, 4.0, 0, e.dmg(1.0f), 1.5f, Math.PI / 12);
                 FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, e.position(), 0, 12, 5.0f, 0).color(INK_ARC);
                 FpeUtil.sound(e, SoundEvents.SLIME_BLOCK_BREAK, 1.4f, 0.5f);
+            }
+        }));
+
+        // 14. Bag swallow (GRAB): crouch + bag gapes 0-8, lunge t9, SNAP t10 - the bag-monster swells and swallows the victim,
+        //     hoisted in front of her; CHEWS t20 / t28 / t36 (heal her), heaves back 40-43 and SPITS it out t44 (dazed, weapon gone)
+        out.add(Ability.of("bag_swallow", 56, 200).range(0, 2.6).weight(2).faceUntil(10)
+                .start((e, t, k) -> clearHeld(e)).end((e, t, k) -> clearHeld(e)).tick((e, t, k) -> {
+            MutantLana l = (MutantLana) e;
+            if (k == 3) FpeUtil.sound(e, SoundEvents.SLIME_SQUISH, 1f, 0.6f);
+            if (k == 9) e.dashForward(0.3, 0);
+            if (k == 10) {
+                l.held = l.pickVictim(2.9, 50);
+                l.chompSound(0.6f);
+                l.ink(l.bag().add(FpeUtil.forward(e).scale(0.6)), 14, 0.4);
+                if (l.held != null) {
+                    l.heldFrom = l.held.position();
+                    FpeUtil.hit(l, l.held, e.dmg(0.5f), 0, 0);
+                    FpeUtil.daze(l.held, 50);                 // swallowed: dark + dizzy inside the bag
+                    FpeUtil.sound(e, SoundEvents.GENERIC_EAT, 1.2f, 0.6f);
+                }
+            }
+            if (k <= 10 || k > 44) return;
+            if (!l.holding()) { l.held = null; return; }
+            LivingEntity v = l.held;
+            Vec3 top = FpeUtil.ahead(e, 1.0, 0.55).add(FpeUtil.right(e).scale(-0.25));
+            Vec3 p;
+            if (k <= 16) { double s = (k - 10) / 6.0; p = l.heldFrom.lerp(top, s * s * (3 - 2 * s)); }
+            else if (k < 40) p = top.add(0, (k % 8 == 4) ? -0.12 : 0, 0);            // jolts with every chew
+            else p = top.add(0, 0.25 * (k - 39), 0).add(FpeUtil.forward(e).scale(-0.15 * (k - 39)));  // heaved back for the spit
+            l.safeHold(v, p);
+            if (k % 5 == 1) FpeUtil.stun(v, 8);
+            if (k == 20 || k == 28 || k == 36) {
+                v.invulnerableTime = 0;
+                if (FpeUtil.hit(l, v, e.dmg(0.4f), 0, 0)) e.heal(2f);
+                l.ink(v.position().add(0, v.getBbHeight() * 0.5, 0), 10, 0.4);
+                FpeUtil.sound(e, SoundEvents.GENERIC_EAT, 1.2f, 0.5f + (k - 20) * 0.01f);
+                FpeUtil.sound(e, SoundEvents.EVOKER_FANGS_ATTACK, 0.6f, 0.7f);
+            }
+            if (k == 44) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(l, v, e.dmg(0.8f), 0, 0);
+                FpeUtil.disarm(v);
+                FpeUtil.fling(v, FpeUtil.forward(e), 1.0, 0.45);
+                FpeUtil.daze(v, 50);
+                l.ink(v.position().add(0, 0.8, 0), 22, 0.6);
+                FpeUtil.sound(e, SoundEvents.SLIME_BLOCK_BREAK, 1.2f, 0.6f);
+                FpeUtil.sound(e, SoundEvents.LLAMA_SPIT, 1.2f, 0.6f);
+                l.held = null;
+            }
+        }));
+
+        // 15. Tongue reel (PULL + HOLD): bag levelled 0-10, tongue SHOOTS t12 and wraps the victim, reeled in 13-21,
+        //     held wrapped at the bag while the skull BITES t26 / t32, hoisted 34-37 and SLAMMED into the floor t38 (stunned)
+        out.add(Ability.of("tongue_reel", 46, 160).range(3, 9).weight(2).faceUntil(12)
+                .start((e, t, k) -> clearHeld(e)).end((e, t, k) -> clearHeld(e)).tick((e, t, k) -> {
+            MutantLana l = (MutantLana) e;
+            if (k == 6) FpeUtil.sound(e, SoundEvents.FROG_TONGUE, 1f, 0.5f);
+            if (k == 12) {
+                l.held = l.pickVictim(9.5, 20);
+                Vec3 from = l.bag();
+                Vec3 to = l.held != null ? l.held.position().add(0, l.held.getBbHeight() * 0.5, 0) : from.add(FpeUtil.forward(e).scale(8));
+                for (int i = 1; i <= 10; i++) FpeUtil.particles(e, INK, from.lerp(to, i / 10.0), 2, 0.06, 0.06, 0.06, 0.01);
+                FpeUtil.sound(e, SoundEvents.FROG_TONGUE, 1.3f, 0.8f);
+                if (l.held != null) {
+                    l.heldFrom = l.held.position();
+                    FpeUtil.hit(l, l.held, e.dmg(0.4f), 0, 0);
+                    FpeUtil.root(l.held, 12);
+                    FpeUtil.sound(e, SoundEvents.SLIME_ATTACK, 1f, 0.6f);
+                }
+            }
+            if (k <= 12 || k > 38) return;
+            if (!l.holding()) { l.held = null; return; }
+            LivingEntity v = l.held;
+            Vec3 front = FpeUtil.ahead(e, 1.1, 0.1).add(FpeUtil.right(e).scale(-0.2));
+            Vec3 p;
+            if (k <= 21) { double s = (k - 12) / 9.0; p = l.heldFrom.lerp(front, s * s).add(0, 0.6 * Math.sin(Math.PI * s), 0); }
+            else if (k < 34) p = front;
+            else if (k < 38) p = front.add(0, 0.35 * (k - 33), 0);
+            else p = front.add(0, -0.1, 0);
+            l.safeHold(v, p);
+            if (k % 5 == 3) FpeUtil.stun(v, 8);
+            if (k == 26 || k == 32) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(l, v, e.dmg(0.45f), 0, 0);
+                FpeUtil.particles(e, BONE, v.position().add(0, v.getBbHeight() * 0.6, 0), 8, 0.2, 0.2, 0.2, 0.05);
+                l.chompSound(1.5f);
+            }
+            if (k == 38) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(l, v, e.dmg(1.0f), 0, 0);
+                FpeUtil.stun(v, 30);
+                FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, v.position().add(0, 0.1, 0), 0, 9, 2.2f, 0).color(INK_ARC);
+                l.ink(v.position().add(0, 0.2, 0), 20, 0.7);
+                FpeUtil.sound(e, SoundEvents.SLIME_BLOCK_FALL, 1.3f, 0.5f);
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1f, 0.7f);
+                l.held = null;
+            }
+        }));
+
+        // 16. Goo pin (PIN): bag hoisted overhead 0-9, hops t10, SLAMS the bag down on the victim t13 - pinned to the floor in goo
+        //     13-33 (cannot move), skull pecks t20 / t26, the goo rips the weapon away t23, she springs off t34 (dazed)
+        out.add(Ability.of("goo_pin", 44, 140).range(0, 3.0).weight(2).faceUntil(11)
+                .start((e, t, k) -> clearHeld(e)).end((e, t, k) -> clearHeld(e)).tick((e, t, k) -> {
+            MutantLana l = (MutantLana) e;
+            if (k == 4) FpeUtil.sound(e, SoundEvents.SLIME_JUMP, 1f, 0.6f);
+            if (k == 10) e.dashForward(0.32, 0.25);
+            if (k == 13) {
+                Vec3 at = FpeUtil.ahead(e, 0.9, 0);
+                FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, at.add(0, 0.05, 0), 0, 10, 2.2f, 0).color(INK_ARC);
+                l.ink(at.add(0, 0.2, 0), 26, 0.9);
+                FpeUtil.sound(e, SoundEvents.SLIME_BLOCK_FALL, 1.4f, 0.5f);
+                l.held = l.pickVictim(3.2, 55);
+                if (l.held != null) {
+                    l.heldFrom = at;
+                    FpeUtil.hit(l, l.held, e.dmg(0.7f), 0, 0);
+                }
+            }
+            if (k > 13 && k <= 33 && k % 3 == 0) FpeUtil.particles(e, ParticleTypes.SQUID_INK, FpeUtil.ahead(e, 0.9, 0.1), 4, 0.5, 0.05, 0.5, 0.01);
+            if (k < 13 || k > 34) return;
+            if (!l.holding()) { l.held = null; return; }
+            LivingEntity v = l.held;
+            if (k < 34) {
+                l.safeHold(v, l.heldFrom);
+                if (k % 5 == 3) FpeUtil.stun(v, 8);
+            }
+            if (k == 20 || k == 26) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(l, v, e.dmg(0.35f), 0, 0);
+                l.chompSound(1.6f);
+            }
+            if (k == 23) {
+                FpeUtil.disarm(v);
+                FpeUtil.sound(e, SoundEvents.ITEM_BREAK, 0.8f, 0.7f);
+                l.ink(v.position().add(0, 0.6, 0), 10, 0.3);
+            }
+            if (k == 34) {
+                FpeUtil.daze(v, 50);
+                FpeUtil.stun(v, 15);
+                e.dashForward(-0.45, 0.3);
+                FpeUtil.sound(e, SoundEvents.SLIME_SQUISH, 1f, 1.2f);
+                l.held = null;
             }
         }));
     }

@@ -1,7 +1,6 @@
 package com.fpe.entity.characters;
 
 import java.util.List;
-import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -15,30 +14,28 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Fen - a towering (3.6 block) feral girl whose ink-black arms reshape at will into monstrous weapons:
- * scythes, a whip, needle fans, wings, shields, a mace, a fanged maw, a hooked chain and six extra spider arms.
- * Below 50 % health (or with stance 1) she becomes the black, red-eyed MONSTER (stance 1, m_* abilities).
+ * Fen - a towering (3.9 block) feral girl whose ink-black arms reshape at will into monstrous weapons:
+ * scythes, whip + sickle, needle fans, wings, shields, a mace, a fanged maw, hooked chains, spider / barrage arms, a drill,
+ * crushing pincers, razor wire, blade wings, root tendrils, a claw-star boomerang, a spiral lance and an ahoge blade.
+ * ONE form (no transformation): the feral m_* attacks are normal attacks; m_frenzy / m_tendrils only while enraged.
  */
 public class Fen extends FpeEntity {
-    private static final UUID MONSTER_SPEED = UUID.fromString("5e1f7a62-3c0b-4f1e-9a7d-6f0c2b8e4a11");
-    private static final int DARK = 0xE0141018, RED = 0xE08A1020, BLOOD = 0xE0D02030;
+    private static final int DARK = 0xE0141018, RED = 0xE08A1020, BLOOD = 0xE0D02030, HAIRC = 0xE0F39232;
 
     private boolean struck, guarding;
-    private int monsterT;
+    @Nullable private Vec3 anchor;
     @Nullable private LivingEntity grabbed;
 
     public Fen(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
@@ -50,31 +47,16 @@ public class Fen extends FpeEntity {
     public static AttributeSupplier.Builder attributes() { return baseAttributes(260, 11, 0.33, 8, 0.6); }
 
     @Override public double preferredDistance() { return 1.8; }
-    @Override protected int restTicks() { return monster() ? 5 : isEnraged() ? 8 : 14; }
+    @Override protected int restTicks() { return isEnraged() ? 7 : 13; }
 
-    private boolean monster() { return getStance() == 1; }
-    private static Ability human(String id, int dur, int cd) { return Ability.of(id, dur, cd).when(e -> e.getStance() == 0); }
-    private static Ability beast(String id, int dur, int cd) { return Ability.of(id, dur, cd).when(e -> e.getStance() == 1); }
-
-    // ------------------------------------------------------------------ monster mode
     @Override
     public void tick() {
         super.tick();
         setMaxUpStep(1.1f);
         if (level().isClientSide || !isAlive()) return;
-        if (!monster() && monsterT == 0 && getHealth() <= getMaxHealth() * 0.5f && !"transform".equals(currentAbilityId())) {
-            cancelAbility();
-            forceAbility("transform");
-        }
-        String cur = currentAbilityId();
-        if (monsterT > 0 && !monster() && !"transform".equals(cur)) setStance(1); // transform interrupted (target lost)
-        if (guarding && !"guard".equals(cur)) guarding = false;
-        AttributeInstance sp = getAttribute(Attributes.MOVEMENT_SPEED);
-        if (sp != null && monster() != (sp.getModifier(MONSTER_SPEED) != null)) {
-            if (monster()) sp.addTransientModifier(new AttributeModifier(MONSTER_SPEED, "fen monster", 0.3, AttributeModifier.Operation.MULTIPLY_TOTAL));
-            else sp.removeModifier(MONSTER_SPEED);
-        }
-        if (monster() && tickCount % 4 == 0) FpeUtil.particles(this, ParticleTypes.SQUID_INK, position().add(0, 1.6, 0), 1, 0.3, 0.8, 0.3, 0.01);
+        if (getStance() != 0) setStance(0); // old saves from the removed monster form
+        if (guarding && !"guard".equals(currentAbilityId())) guarding = false;
+        if (isEnraged() && tickCount % 5 == 0) FpeUtil.particles(this, ParticleTypes.SQUID_INK, position().add(0, 1.8, 0), 1, 0.3, 0.8, 0.3, 0.01);
     }
 
     @Override
@@ -112,6 +94,20 @@ public class Fen extends FpeEntity {
         v.hurtMarked = true;
     }
 
+    /** cone hit that ignores hurt-invulnerability, for rapid multi-hit attacks */
+    private int rake(double range, double halfDeg, float dmg, double knock, double up) {
+        Vec3 f = FpeUtil.forward(this);
+        double cos = Math.cos(Math.toRadians(halfDeg));
+        int n = 0;
+        for (LivingEntity v : FpeUtil.enemiesInRadius(this, position(), range + getBbWidth() * 0.5, 3, 1)) {
+            Vec3 d = v.position().subtract(position()).multiply(1, 0, 1);
+            if (d.lengthSqr() > 0.01 && d.normalize().dot(f) < cos) continue;
+            v.invulnerableTime = 0;
+            if (FpeUtil.hit(this, v, dmg, knock, up)) n++;
+        }
+        return n;
+    }
+
     private void spikeLine(int i, float h, float dmg) {
         Vec3 p = FpeUtil.ahead(this, 2.0 + i * 1.6, 0);
         FpeUtil.fx(this, FpeFx.Kind.SPIKE, p, 3, 22, 1.1f, dmg).param(h);
@@ -120,9 +116,8 @@ public class Fen extends FpeEntity {
 
     @Override
     protected void registerAbilities(List<Ability> out) {
-        // ================================================================== HUMAN FORM (stance 0)
         // scythe - both arms become mantis scythes: X-cross sweep 14, double overhead chop 24
-        out.add(human("scythe", 40, 60).range(0, 5.5).weight(4)
+        out.add(Ability.of("scythe", 40, 60).range(0, 5.5).weight(4)
                 .tick((e, t, k) -> {
                     if (k == 2) FpeUtil.sound(this, SoundEvents.ARMOR_EQUIP_NETHERITE, 1.2f, 0.5f);
                     if (k == 13) dashForward(0.35, getDeltaMovement().y);
@@ -140,7 +135,7 @@ public class Fen extends FpeEntity {
                     }
                 }));
         // lash - right arm becomes a long whip: crack at 13 (line 9 blocks, yanks the target), sweeping lash 22
-        out.add(human("lash", 36, 70).range(3, 10).weight(3).closer()
+        out.add(Ability.of("lash", 36, 70).range(3, 10).weight(3).closer()
                 .tick((e, t, k) -> {
                     if (k == 3) FpeUtil.sound(this, SoundEvents.SLIME_SQUISH, 1f, 0.5f);
                     if (k == 13) {
@@ -159,7 +154,7 @@ public class Fen extends FpeEntity {
                     }
                 }));
         // needles - forearms split into needle fans: volleys at 12 and 18, enraged double volley 24
-        out.add(human("needles", 34, 80).range(4, 14).weight(2)
+        out.add(Ability.of("needles", 34, 80).range(4, 14).weight(2)
                 .tick((e, t, k) -> {
                     if (k == 2) FpeUtil.sound(this, SoundEvents.TRIDENT_RETURN, 1f, 0.6f);
                     if (k == 12) { fan(FpeProjectile.Kind.KNIFE, hand(true, 1.0, 2.0), t, 5, 9, 1.4, dmg(0.6f)); FpeUtil.sound(this, SoundEvents.TRIDENT_THROW, 1.2f, 1.3f); }
@@ -171,7 +166,7 @@ public class Fen extends FpeEntity {
                     }
                 }));
         // wingglide - arms become ink wings: leap 12, glide homing 13-26, dive slash 28
-        out.add(human("wingglide", 44, 110).range(6, 22).weight(3).closer().moving().faceUntil(26)
+        out.add(Ability.of("wingglide", 44, 110).range(6, 22).weight(3).closer().moving().faceUntil(26)
                 .start((e, t, k) -> struck = false)
                 .tick((e, t, k) -> {
                     if (k == 4) FpeUtil.sound(this, SoundEvents.PHANTOM_FLAP, 1.4f, 0.5f);
@@ -197,7 +192,7 @@ public class Fen extends FpeEntity {
                     }
                 }));
         // guard - wing-shields wrap in front (frontal damage -85 %) 6-26, then burst open 28 (knock back)
-        out.add(human("guard", 40, 140).range(0, 6).weight(2)
+        out.add(Ability.of("guard", 40, 140).range(0, 6).weight(2)
                 .start((e, t, k) -> guarding = false)
                 .tick((e, t, k) -> {
                     if (k == 5) { guarding = true; FpeUtil.sound(this, SoundEvents.ARMOR_EQUIP_NETHERITE, 1.2f, 0.4f); }
@@ -211,7 +206,7 @@ public class Fen extends FpeEntity {
                 })
                 .end((e, t, k) -> guarding = false));
         // hammer - right arm swells into a spiked mace: overhead SLAM 20 (shockwave + spike line)
-        out.add(human("hammer", 42, 90).range(0, 5.5).weight(3)
+        out.add(Ability.of("hammer", 42, 90).range(0, 5.5).weight(3)
                 .tick((e, t, k) -> {
                     if (k == 3) FpeUtil.sound(this, SoundEvents.ANVIL_PLACE, 0.8f, 0.5f);
                     if (k == 19) dashForward(0.3, getDeltaMovement().y);
@@ -224,7 +219,7 @@ public class Fen extends FpeEntity {
                     if (k >= 22 && k <= 28 && (k - 22) % 3 == 0) spikeLine(1 + (k - 22) / 3, 0.9f, dmg(0.8f));
                 }));
         // spider - six spider arms burst from the back: flurry 12-28, all-arm pin 34 (slows)
-        out.add(human("spider", 46, 120).range(0, 5).weight(2)
+        out.add(Ability.of("spider", 46, 120).range(0, 5).weight(2)
                 .tick((e, t, k) -> {
                     if (k == 3) FpeUtil.sound(this, SoundEvents.SPIDER_AMBIENT, 1.4f, 0.5f);
                     if (k >= 12 && k <= 28 && k % 4 == 0) {
@@ -242,7 +237,7 @@ public class Fen extends FpeEntity {
                     }
                 }));
         // hook - hooked chain arm thrown 10 (reach 12), yanks the victim in 14-20, right claw slash 22
-        out.add(human("hook", 40, 100).range(4, 13).weight(3).closer().faceUntil(11)
+        out.add(Ability.of("hook", 40, 100).range(4, 13).weight(3).closer().faceUntil(11)
                 .start((e, t, k) -> grabbed = null)
                 .tick((e, t, k) -> {
                     if (k == 6) FpeUtil.sound(this, SoundEvents.CHAIN_PLACE, 1.2f, 0.6f);
@@ -267,7 +262,7 @@ public class Fen extends FpeEntity {
                 })
                 .end((e, t, k) -> grabbed = null));
         // maw - right arm opens into a fanged jaw: lunge bite 10 grabs, chomps 18 / 26 / 34, flings 39
-        out.add(human("maw", 44, 120).range(0, 3.8).weight(2)
+        out.add(Ability.of("maw", 44, 120).range(0, 3.8).weight(2)
                 .start((e, t, k) -> grabbed = null)
                 .tick((e, t, k) -> {
                     if (k == 4) FpeUtil.sound(this, SoundEvents.RAVAGER_ROAR, 0.8f, 1.5f);
@@ -291,7 +286,7 @@ public class Fen extends FpeEntity {
                 })
                 .end((e, t, k) -> grabbed = null));
         // pounce - crouch, leap 8, claws-first landing rake 12-18
-        out.add(human("pounce", 30, 70).range(3.5, 12).weight(3).closer().faceUntil(8)
+        out.add(Ability.of("pounce", 30, 70).range(3.5, 12).weight(3).closer().faceUntil(8)
                 .start((e, t, k) -> struck = false)
                 .tick((e, t, k) -> {
                     if (k == 2) FpeUtil.sound(this, SoundEvents.CAT_HISS, 1.2f, 0.5f);
@@ -308,32 +303,9 @@ public class Fen extends FpeEntity {
                         FpeUtil.particles(this, ParticleTypes.POOF, position(), 10, 0.6, 0.05, 0.6, 0.05);
                     }
                 }));
-        // transform - forced at <50 % hp: ink swallows her, becomes the black monster (stance 1) at tick 34, roar 46
-        out.add(Ability.of("transform", 60, 9999).when(e -> false).blind()
-                .tick((e, t, k) -> {
-                    monsterT = 1;
-                    if (k == 1) FpeUtil.sound(this, SoundEvents.WARDEN_HEARTBEAT, 2f, 0.6f);
-                    if (k < 34 && k % 3 == 0) FpeUtil.particles(this, ParticleTypes.SQUID_INK, position().add(0, 1.8, 0), 6 + k / 3, 0.5, 1.0, 0.5, 0.04);
-                    if (k == 20) FpeUtil.sound(this, SoundEvents.WARDEN_EMERGE, 1.4f, 1.2f);
-                    if (k == 34) {
-                        setStance(1);
-                        addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1));
-                        addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 100, 1));
-                        FpeUtil.particles(this, ParticleTypes.LARGE_SMOKE, position().add(0, 1.4, 0), 40, 0.8, 1.2, 0.8, 0.05);
-                    }
-                    if (k == 46) {
-                        FpeUtil.sound(this, SoundEvents.RAVAGER_ROAR, 2f, 0.6f);
-                        FpeUtil.fx(this, FpeFx.Kind.RING_SHOCK, position().add(0, 0.1, 0), 0, 14, 7f, 0);
-                        for (LivingEntity v : FpeUtil.enemiesInRadius(this, position(), 7, 2, 1)) {
-                            FpeUtil.hit(this, v, dmg(0.5f), 1.4, 0.4);
-                            v.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 80, 0));
-                        }
-                    }
-                }));
-
-        // ================================================================== MONSTER FORM (stance 1)
+        // ================================================================== feral attacks (formerly the monster form)
         // m_frenzy - six savage alternating slashes 10..35, crossing finisher 42
-        out.add(beast("m_frenzy", 48, 70).range(0, 5).weight(4)
+        out.add(Ability.of("m_frenzy", 48, 90).range(0, 5).weight(4).when(FpeEntity::isEnraged)
                 .tick((e, t, k) -> {
                     if (k == 1) FpeUtil.sound(this, SoundEvents.RAVAGER_ROAR, 1f, 1.4f);
                     for (int i = 0; i < 6; i++) {
@@ -353,7 +325,7 @@ public class Fen extends FpeEntity {
                     }
                 }));
         // m_impale - claws plunge into the ground 14, black spikes rip toward the target 16-31 (3 lanes)
-        out.add(beast("m_impale", 40, 90).range(2, 14).weight(3).faceUntil(13)
+        out.add(Ability.of("m_impale", 40, 90).range(2, 14).weight(3).faceUntil(13)
                 .tick((e, t, k) -> {
                     if (k == 6) FpeUtil.sound(this, SoundEvents.WARDEN_ROAR, 0.8f, 1.4f);
                     if (k == 14) {
@@ -370,7 +342,7 @@ public class Fen extends FpeEntity {
                     }
                 }));
         // m_lunge - coils, launches 9, mauls everything in the path 10-20, skids 22
-        out.add(beast("m_lunge", 32, 60).range(3.5, 16).weight(3).closer().faceUntil(9)
+        out.add(Ability.of("m_lunge", 32, 60).range(3.5, 16).weight(3).closer().faceUntil(9)
                 .start((e, t, k) -> struck = false)
                 .tick((e, t, k) -> {
                     if (k == 3) FpeUtil.sound(this, SoundEvents.FOX_SCREECH, 1.4f, 0.5f);
@@ -386,7 +358,7 @@ public class Fen extends FpeEntity {
                     if (k == 22) setDeltaMovement(getDeltaMovement().scale(0.2));
                 }));
         // m_tendrils - signature: ERUPTION 14 - extra arms burst out and tendrils/spikes erupt in a ring, thrash 18-30
-        out.add(beast("m_tendrils", 50, 160).range(0, 9).weight(2).blind()
+        out.add(Ability.of("m_tendrils", 50, 160).range(0, 9).weight(3).blind().when(FpeEntity::isEnraged)
                 .tick((e, t, k) -> {
                     if (k == 2) FpeUtil.sound(this, SoundEvents.WARDEN_HEARTBEAT, 2f, 0.7f);
                     if (k == 14) {
@@ -407,7 +379,7 @@ public class Fen extends FpeEntity {
                     }
                 }));
         // m_reap - black scythes, two full spins: hits 12 and 20 all around
-        out.add(beast("m_reap", 36, 80).range(0, 5.5).weight(3)
+        out.add(Ability.of("m_reap", 36, 80).range(0, 5.5).weight(3)
                 .tick((e, t, k) -> {
                     if (k == 2) FpeUtil.sound(this, SoundEvents.ARMOR_EQUIP_NETHERITE, 1.2f, 0.4f);
                     if (k == 11 || k == 19) dashForward(0.4, getDeltaMovement().y);
@@ -418,11 +390,288 @@ public class Fen extends FpeEntity {
                         FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_SWEEP, 1.4f, 0.5f + (k - 12) * 0.03f);
                     }
                 }));
+
+        // ================================================================== shape-shift arsenal
+        // drill - right arm twists into a drill: dash THRUST 10, grinding multi-hits 12-22, burst 24 (launch)
+        out.add(Ability.of("drill", 36, 80).range(0, 6).weight(3).closer().faceUntil(10)
+                .tick((e, t, k) -> {
+                    if (k == 2) FpeUtil.sound(this, SoundEvents.GRINDSTONE_USE, 1.2f, 0.6f);
+                    if (k == 9) dashForward(0.9, getDeltaMovement().y);
+                    if (k == 10) {
+                        rake(4.2, 35, dmg(0.7f), 0.1, 0);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_STRONG, 1.2f, 0.7f);
+                    }
+                    if (k >= 12 && k <= 22 && k % 2 == 0) {
+                        rake(4.0, 35, dmg(0.32f), 0.05, 0);
+                        FpeUtil.particles(this, ParticleTypes.CRIT, hand(true, 2.6, 2.0), 6, 0.2, 0.2, 0.2, 0.3);
+                        FpeUtil.sound(this, SoundEvents.GRINDSTONE_USE, 0.9f, 0.8f + k * 0.02f);
+                    }
+                    if (k == 24) {
+                        rake(4.4, 40, dmg(1.1f), 1.6, 0.4);
+                        FpeUtil.particles(this, ParticleTypes.SQUID_INK, hand(true, 3.0, 2.0), 14, 0.3, 0.3, 0.3, 0.2);
+                        FpeUtil.sound(this, SoundEvents.GENERIC_EXPLODE, 0.6f, 1.4f);
+                    }
+                }));
+        // crusher - both arms become crushing pincers: CLAMP 12 grabs, lift, CRUSH 20, overhead SLAM 28
+        out.add(Ability.of("crusher", 40, 110).range(0, 4.8).weight(2)
+                .start((e, t, k) -> grabbed = null)
+                .tick((e, t, k) -> {
+                    if (k == 2) FpeUtil.sound(this, SoundEvents.ARMOR_EQUIP_NETHERITE, 1.2f, 0.5f);
+                    if (k == 11) dashForward(0.3, getDeltaMovement().y);
+                    if (k == 12) {
+                        FpeUtil.sound(this, SoundEvents.IRON_TRAPDOOR_CLOSE, 1.4f, 0.5f);
+                        Vec3 d = t.position().subtract(position());
+                        if (d.horizontalDistance() < 4.8 && d.multiply(1, 0, 1).normalize().dot(FpeUtil.forward(this)) > 0.5 && FpeUtil.hit(this, t, dmg(0.7f), 0, 0)) grabbed = t;
+                    }
+                    LivingEntity g = grabbed;
+                    if (g != null && g.isAlive() && k > 12 && k < 28) FpeUtil.hold(this, g, 2.2, 0.4 + Math.min(1.0, (k - 12) / 5.0) * 2.4, 0);
+                    if (k == 20 && g != null && g.isAlive()) {
+                        g.invulnerableTime = 0;
+                        FpeUtil.hit(this, g, dmg(0.9f), 0, 0);
+                        FpeUtil.particles(this, ParticleTypes.DAMAGE_INDICATOR, g.position().add(0, 1, 0), 8, 0.3, 0.3, 0.3, 0.1);
+                        FpeUtil.sound(this, SoundEvents.ZOMBIE_ATTACK_IRON_DOOR, 1f, 0.6f);
+                    }
+                    if (k == 28) {
+                        Vec3 p = FpeUtil.ahead(this, 2.2, 0.1);
+                        if (g != null && g.isAlive()) {
+                            FpeUtil.holdAt(g, p);
+                            g.invulnerableTime = 0;
+                            FpeUtil.hit(this, g, dmg(1.5f), 0.6, 0.2);
+                            FpeUtil.stun(g, 20);
+                        }
+                        grabbed = null;
+                        FpeUtil.hitRadius(this, p, 2.6, dmg(0.9f), 1.0, 0.4);
+                        FpeUtil.fx(this, FpeFx.Kind.RING_SHOCK, p, 0, 12, 3.8f, 0);
+                        FpeUtil.particles(this, ParticleTypes.EXPLOSION, p, 2, 0.3, 0.1, 0.3, 0);
+                        FpeUtil.sound(this, SoundEvents.GENERIC_EXPLODE, 1f, 0.7f);
+                    }
+                })
+                .end((e, t, k) -> grabbed = null));
+        // lattice - fingers spin out razor wire: horizontal lattice 13 (5 wires), down-cut 22, cinch 28 pulls everything in
+        out.add(Ability.of("lattice", 38, 90).range(2, 9).weight(3)
+                .tick((e, t, k) -> {
+                    if (k == 3) FpeUtil.sound(this, SoundEvents.CHAIN_PLACE, 1.2f, 1.6f);
+                    Vec3 from = position().add(0, 2.2, 0);
+                    if (k == 13) {
+                        for (int i = -2; i <= 2; i++) {
+                            Vec3 dir = FpeUtil.forward(this).yRot((float) Math.toRadians(i * 18));
+                            FpeUtil.hitLine(this, from, from.add(dir.scale(8.5)), 0.45, dmg(0.8f), 0.2, 0.1);
+                            for (int j = 2; j <= 8; j += 2) FpeUtil.particles(this, ParticleTypes.CRIT, from.add(dir.scale(j)), 1, 0, 0, 0, 0);
+                        }
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_SWEEP, 1.3f, 1.4f);
+                    }
+                    if (k == 22) {
+                        for (int i = -1; i <= 1; i++) {
+                            Vec3 s = FpeUtil.right(this).scale(i * 0.9);
+                            FpeUtil.hitLine(this, from.add(0, 1.4, 0).add(s), FpeUtil.ahead(this, 8, 0.2).add(s), 0.5, dmg(0.9f), 0.3, 0.2);
+                        }
+                        slashArc(1.2, 1.6, 4.5f, 120, RED, 88);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_CRIT, 1.3f, 1.3f);
+                    }
+                    if (k == 28) {
+                        for (LivingEntity v : FpeUtil.enemiesInRadius(this, position(), 9, 3, 1)) {
+                            if (v.position().subtract(position()).multiply(1, 0, 1).normalize().dot(FpeUtil.forward(this)) < 0.3) continue;
+                            v.invulnerableTime = 0;
+                            FpeUtil.hit(this, v, dmg(0.6f), 0, 0);
+                            FpeUtil.pull(v, FpeUtil.ahead(this, 1.6, 0), 1.3);
+                            v.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 2));
+                        }
+                        FpeUtil.sound(this, SoundEvents.FISHING_BOBBER_RETRIEVE, 1.5f, 1.2f);
+                    }
+                }));
+        // kusari - whip arm + sickle (kusarigama): stepping sweeps 14 / 22, overhead chop 30, yank 34
+        out.add(Ability.of("kusari", 44, 90).range(2.5, 9).weight(3).closer()
+                .tick((e, t, k) -> {
+                    if (k == 4) FpeUtil.sound(this, SoundEvents.CHAIN_PLACE, 1.2f, 0.6f);
+                    if (k >= 6 && k <= 12 && k % 2 == 0) FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 0.6f + k * 0.04f);
+                    if (k == 13 || k == 21) dashForward(0.45, getDeltaMovement().y);
+                    if (k == 14 || k == 22) {
+                        FpeUtil.hitCone(this, 8.0, 80, dmg(1.0f), 0.6, 0.2);
+                        FpeUtil.arc(this, ParticleTypes.SWEEP_ATTACK, position().add(0, 1.6, 0), getYRot(), 80, 6.0, 12);
+                        slashArc(1.0, 1.6, 6.5f, 160, k == 14 ? RED : DARK, k == 14 ? 10 : -10);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_SWEEP, 1.3f, k == 14 ? 0.7f : 0.9f);
+                    }
+                    if (k == 30) {
+                        Vec3 from = position().add(0, 3.0, 0);
+                        FpeUtil.hitLine(this, from, FpeUtil.ahead(this, 8.5, 0.3), 1.0, dmg(1.4f), 0.3, 0.5);
+                        slashArc(2.0, 1.2, 4.8f, 140, RED, 88);
+                        FpeUtil.particles(this, ParticleTypes.CRIT, FpeUtil.ahead(this, 7.5, 0.3), 14, 0.5, 0.2, 0.5, 0.3);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_STRONG, 1.3f, 0.6f);
+                    }
+                    if (k == 34 && distanceTo(t) < 9.5 && hasLineOfSight(t)) {
+                        FpeUtil.pull(t, FpeUtil.ahead(this, 2.0, 0), 1.4);
+                        FpeUtil.sound(this, SoundEvents.FISHING_BOBBER_RETRIEVE, 1.4f, 0.6f);
+                    }
+                }));
+        // grapple - grappling hook thrown 9, anchors 10, she REELS HERSELF in 11-18, left-claw rake on arrival 20
+        out.add(Ability.of("grapple", 40, 90).range(5, 18).weight(3).closer().faceUntil(18)
+                .start((e, t, k) -> anchor = null)
+                .tick((e, t, k) -> {
+                    if (k == 3) FpeUtil.sound(this, SoundEvents.CHAIN_PLACE, 1.2f, 0.8f);
+                    if (k == 9) FpeUtil.sound(this, SoundEvents.FISHING_BOBBER_THROW, 1.5f, 0.5f);
+                    if (k == 10) {
+                        if (distanceTo(t) <= 18.5 && hasLineOfSight(t)) {
+                            anchor = t.position();
+                            FpeUtil.hit(this, t, dmg(0.5f), 0, 0);
+                            FpeUtil.sound(this, SoundEvents.CHAIN_HIT, 1.4f, 0.6f);
+                        } else anchor = FpeUtil.ahead(this, Math.min(10, distanceTo(t)), 0);
+                        Vec3 from = position().add(0, 2.4, 0);
+                        for (int i = 1; i <= 12; i++) FpeUtil.particles(this, ParticleTypes.SMOKE, from.lerp(anchor.add(0, 1, 0), i / 12.0), 1, 0.05, 0.05, 0.05, 0);
+                    }
+                    Vec3 a = anchor;
+                    if (a != null && k >= 11 && k <= 18) {
+                        if (t.isAlive() && distanceTo(t) < 20) a = anchor = t.position();
+                        Vec3 d = a.subtract(position());
+                        if (d.horizontalDistance() > 2.4) {
+                            Vec3 v = d.multiply(1, 0, 1).normalize().scale(Math.min(1.5, d.horizontalDistance() * 0.4));
+                            setDeltaMovement(v.x, 0.12 + Mth.clamp(d.y * 0.1, -0.1, 0.3), v.z);
+                        } else setDeltaMovement(getDeltaMovement().scale(0.4));
+                        fallDistance = 0;
+                        if (k % 2 == 0) FpeUtil.sound(this, SoundEvents.CHAIN_STEP, 1f, 1.2f);
+                    }
+                    if (k == 20) {
+                        rake(3.4, 80, dmg(1.5f), 1.2, 0.4);
+                        slashArc(0.8, 1.4, 3.4f, 150, DARK, 60);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_SWEEP, 1.3f, 0.6f);
+                    }
+                    if (k == 21) setDeltaMovement(getDeltaMovement().scale(0.3));
+                })
+                .end((e, t, k) -> anchor = null));
+        // wingrake - mirrored blade-wings: leap 12, low glide slicing 14-23, buzzsaw spin 28, land 32
+        out.add(Ability.of("wingrake", 46, 120).range(5, 20).weight(3).closer().moving().faceUntil(25)
+                .tick((e, t, k) -> {
+                    if (k == 6) FpeUtil.sound(this, SoundEvents.PHANTOM_SWOOP, 1.4f, 0.6f);
+                    if (k == 12) dashToward(t.position(), Math.min(1.5, distanceTo(t) * 0.11), 0.42);
+                    if (k > 12 && k < 30) {
+                        Vec3 d = t.position().subtract(position()).multiply(1, 0, 1);
+                        Vec3 v = getDeltaMovement();
+                        Vec3 h = d.lengthSqr() > 1 ? d.normalize().scale(Math.min(1.0, d.length() * 0.14)) : Vec3.ZERO;
+                        setDeltaMovement(v.x * 0.55 + h.x * 0.45, Math.max(v.y, -0.04), v.z * 0.55 + h.z * 0.45);
+                        fallDistance = 0;
+                    }
+                    if (k >= 14 && k <= 23 && (k - 14) % 3 == 0) {
+                        rake(2.8, 180, dmg(0.5f), 0.3, 0.1);
+                        slashArc(0, 1.2, 3.0f, 120, DARK, 0);
+                        FpeUtil.sound(this, SoundEvents.PHANTOM_FLAP, 1.1f, 1.2f);
+                    }
+                    if (k == 28) {
+                        FpeUtil.hitRadius(this, position().add(0, 1.0, 0), 3.6, dmg(1.3f), 1.2, 0.4);
+                        slashArc(0, 1.1, 4.0f, 359, RED, 0);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_SWEEP, 1.5f, 0.5f);
+                    }
+                    if (k == 30) setDeltaMovement(getDeltaMovement().x * 0.4, -0.6, getDeltaMovement().z * 0.4);
+                    if (k == 32) {
+                        FpeUtil.fx(this, FpeFx.Kind.RING_SHOCK, position().add(0, 0.1, 0), 0, 8, 2.5f, 0);
+                        FpeUtil.particles(this, ParticleTypes.POOF, position(), 12, 0.8, 0.05, 0.8, 0.05);
+                    }
+                }));
+        // rootspikes - arms grow roots and PLUNGE into the ground 12: spikes erupt under the target ~20, ring around her 26
+        out.add(Ability.of("rootspikes", 44, 130).range(2.5, 14).weight(2).faceUntil(14)
+                .tick((e, t, k) -> {
+                    if (k == 4) FpeUtil.sound(this, SoundEvents.WARDEN_ROAR, 0.7f, 1.6f);
+                    if (k == 12) {
+                        rake(3.0, 70, dmg(0.9f), 0.3, 0.6);
+                        FpeUtil.particles(this, ParticleTypes.POOF, FpeUtil.ahead(this, 1.4, 0.1), 14, 0.6, 0.05, 0.6, 0.06);
+                        FpeUtil.sound(this, SoundEvents.ROOTED_DIRT_BREAK, 1.5f, 0.5f);
+                    }
+                    if (k == 14) {
+                        Vec3 c = t.position();
+                        FpeUtil.fx(this, FpeFx.Kind.SPIKE, c, 6, 20, 1.4f, dmg(1.4f)).param(1.8f);
+                        int n = isEnraged() ? 8 : 5;
+                        for (int i = 0; i < n; i++) {
+                            double a = Math.PI * 2 * i / n;
+                            FpeUtil.fx(this, FpeFx.Kind.SPIKE, c.add(Math.cos(a) * 2.2, 0, Math.sin(a) * 2.2), 9, 18, 0.9f, dmg(0.9f)).param(1.1f);
+                        }
+                        if (isEnraged()) FpeUtil.fx(this, FpeFx.Kind.TENTACLE, c, 4, 36, 1.2f, dmg(0.5f));
+                    }
+                    if (k >= 14 && k <= 24 && k % 4 == 2) FpeUtil.sound(this, SoundEvents.ROOTED_DIRT_STEP, 1.4f, 0.5f);
+                    if (k == 26) {
+                        for (int i = 0; i < 8; i++) {
+                            double a = Math.PI * 2 * i / 8 + 0.4;
+                            FpeUtil.fx(this, FpeFx.Kind.SPIKE, position().add(Math.cos(a) * 3.0, 0, Math.sin(a) * 3.0), 1, 18, 1.0f, dmg(1.0f)).param(1.3f);
+                        }
+                        FpeUtil.hitRadius(this, position().add(0, 0.5, 0), 2.5, dmg(0.8f), 1.2, 0.5);
+                        FpeUtil.sound(this, SoundEvents.ZOMBIE_BREAK_WOODEN_DOOR, 1.2f, 0.6f);
+                    }
+                }));
+        // barrage - eight ink arms burst from her back: rapid punches 10-30 (every 2 ticks), all-arm finisher 34
+        out.add(Ability.of("barrage", 44, 100).range(0, 5).weight(3)
+                .tick((e, t, k) -> {
+                    if (k == 2) FpeUtil.sound(this, SoundEvents.SPIDER_AMBIENT, 1.4f, 0.4f);
+                    if (k == 10 || k == 20) dashForward(0.25, getDeltaMovement().y);
+                    if (k >= 10 && k <= 30 && k % 2 == 0) {
+                        rake(4.4, 60, dmg(0.28f), 0.08, 0);
+                        FpeUtil.particles(this, ParticleTypes.CRIT, FpeUtil.ahead(this, 2.6, 2.4 + (k % 4) * 0.3), 3, 0.5, 0.4, 0.5, 0.2);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_WEAK, 1f, 0.6f + (k % 6) * 0.1f);
+                    }
+                    if (k == 34) {
+                        rake(4.8, 70, dmg(1.4f), 1.8, 0.5);
+                        slashArc(1.0, 2.2, 3.6f, 120, DARK, 0);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.4f, 0.5f);
+                    }
+                }));
+        // boomerang - throws a three-bladed claw star 13 (returns), sprints after it 16, left-claw slash 24, catch 32
+        out.add(Ability.of("boomerang", 44, 90).range(4, 16).weight(3).closer().faceUntil(16)
+                .tick((e, t, k) -> {
+                    if (k == 3) FpeUtil.sound(this, SoundEvents.ARMOR_EQUIP_NETHERITE, 1.2f, 1.2f);
+                    if (k == 13) {
+                        Vec3 from = hand(true, 0.8, 2.4);
+                        FpeUtil.projectile(this, FpeProjectile.Kind.AXE, from, FpeUtil.aim(from, t, 1.25, 0.3), dmg(1.0f));
+                        FpeUtil.sound(this, SoundEvents.TRIDENT_THROW, 1.4f, 0.6f);
+                    }
+                    if (k == 16) dashToward(t.position(), Math.min(1.3, distanceTo(t) * 0.13), 0.2);
+                    if (k == 24) {
+                        rake(3.8, 80, dmg(1.3f), 0.9, 0.3);
+                        slashArc(0.9, 1.8, 3.4f, 160, DARK, -15);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_SWEEP, 1.3f, 0.8f);
+                    }
+                    if (k == 32) FpeUtil.sound(this, SoundEvents.ITEM_PICKUP, 1.2f, 0.5f);
+                }));
+        // spiral - both arms twist into a spiral lance: corkscrew LAUNCH 10, drilling hits 11-21, burst 22
+        out.add(Ability.of("spiral", 40, 110).range(4, 14).weight(3).closer().faceUntil(10)
+                .tick((e, t, k) -> {
+                    if (k == 2) FpeUtil.sound(this, SoundEvents.WARDEN_HEARTBEAT, 1.6f, 1.2f);
+                    if (k == 10) {
+                        dashToward(t.position(), Math.min(1.7, Math.max(0.9, distanceTo(t) * 0.15)), 0.18);
+                        FpeUtil.sound(this, SoundEvents.TRIDENT_RIPTIDE_3, 1.4f, 0.7f);
+                    }
+                    if (k > 10 && k <= 21) {
+                        Vec3 v = getDeltaMovement();
+                        setDeltaMovement(v.x, Math.max(v.y, -0.02), v.z);
+                        fallDistance = 0;
+                        FpeUtil.particles(this, ParticleTypes.SQUID_INK, FpeUtil.ahead(this, 2.0, 1.6), 2, 0.3, 0.3, 0.3, 0.05);
+                        if (k % 2 == 1) rake(3.0, 50, dmg(0.3f), 0.15, 0.05);
+                    }
+                    if (k == 22) {
+                        rake(3.6, 70, dmg(1.3f), 1.8, 0.5);
+                        FpeUtil.fx(this, FpeFx.Kind.RING_SHOCK, FpeUtil.ahead(this, 1.5, 0.3), 0, 10, 3.0f, 0);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.4f, 0.5f);
+                        setDeltaMovement(getDeltaMovement().scale(0.2));
+                    }
+                }));
+        // hairwhip - spinning mane lash 13 (all around), the ahoge hardens into a blade: head-stab 24
+        out.add(Ability.of("hairwhip", 40, 80).range(0, 6).weight(3)
+                .tick((e, t, k) -> {
+                    if (k == 2) FpeUtil.sound(this, SoundEvents.CAT_HISS, 1.3f, 0.6f);
+                    if (k == 13) {
+                        FpeUtil.hitRadius(this, position().add(0, 1.5, 0), 4.6, dmg(1.0f), 1.0, 0.3);
+                        FpeUtil.arc(this, ParticleTypes.FLAME, position().add(0, 1.8, 0), getYRot(), 180, 3.6, 30);
+                        slashArc(0, 1.8, 4.6f, 359, HAIRC, 0);
+                        FpeUtil.sound(this, SoundEvents.PLAYER_ATTACK_SWEEP, 1.4f, 1.2f);
+                    }
+                    if (k == 17) FpeUtil.sound(this, SoundEvents.TRIDENT_RETURN, 1.2f, 1.4f);
+                    if (k == 23) dashForward(0.55, getDeltaMovement().y);
+                    if (k == 24) {
+                        FpeUtil.hitLine(this, position().add(0, 3.2, 0), FpeUtil.ahead(this, 5.2, 1.4), 0.9, dmg(1.4f), 1.2, 0.3);
+                        FpeUtil.particles(this, ParticleTypes.CRIT, FpeUtil.ahead(this, 3.5, 1.8), 12, 0.3, 0.3, 0.3, 0.3);
+                        FpeUtil.sound(this, SoundEvents.TRIDENT_HIT, 1.4f, 0.7f);
+                    }
+                }));
     }
 
     // ------------------------------------------------------------------ sounds
-    @Override protected SoundEvent getAmbientSound() { return monster() ? SoundEvents.WARDEN_AMBIENT : SoundEvents.FOX_SNIFF; }
-    @Override protected SoundEvent getHurtSound(DamageSource s) { return monster() ? SoundEvents.WARDEN_HURT : SoundEvents.FOX_HURT; }
+    @Override protected SoundEvent getAmbientSound() { return isEnraged() ? SoundEvents.WARDEN_AMBIENT : SoundEvents.FOX_SNIFF; }
+    @Override protected SoundEvent getHurtSound(DamageSource s) { return isEnraged() ? SoundEvents.WARDEN_HURT : SoundEvents.FOX_HURT; }
     @Override protected SoundEvent getDeathSound() { return SoundEvents.FOX_DEATH; }
-    @Override protected void playStepSound(BlockPos p, BlockState b) { playSound(SoundEvents.SPIDER_STEP, 0.35f, monster() ? 0.9f : 1.3f); }
+    @Override protected void playStepSound(BlockPos p, BlockState b) { playSound(SoundEvents.SPIDER_STEP, 0.35f, isEnraged() ? 0.9f : 1.3f); }
 }

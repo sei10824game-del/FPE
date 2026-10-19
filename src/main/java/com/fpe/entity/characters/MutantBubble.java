@@ -37,6 +37,9 @@ public class MutantBubble extends FpeEntity {
     private boolean trapped, shielded;
     private Vec3 slideDir = Vec3.ZERO;
     private Vec3[] geysers = new Vec3[0];
+    /** victim of a grab / hold (sleeve_bind, bubble_lift, slippery_soap); held only while the ability ticks */
+    private LivingEntity held;
+    private Vec3 heldFrom = Vec3.ZERO;
 
     public MutantBubble(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
@@ -99,6 +102,31 @@ public class MutantBubble extends FpeEntity {
             double c = Math.cos(a), s = Math.sin(a);
             FpeUtil.projectile(this, FpeProjectile.Kind.DIAMOND, from, new Vec3(dir.x * c - dir.z * s, dir.y + 0.03 * (i % 2), dir.x * s + dir.z * c), dmg);
         }
+    }
+
+    /** nearest hurtable enemy in sight inside a forward cone (range blocks, half angle degrees), or null */
+    private LivingEntity pickVictim(double range, double halfDeg) {
+        Vec3 f = FpeUtil.forward(this);
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        for (LivingEntity v : FpeUtil.enemiesInRadius(this, position(), range, 2.5, 1.5)) {
+            Vec3 d = new Vec3(v.getX() - getX(), 0, v.getZ() - getZ());
+            if (d.lengthSqr() > 0.01 && Math.toDegrees(Math.acos(Mth.clamp(d.normalize().dot(f), -1, 1))) > halfDeg) continue;
+            if (!hasLineOfSight(v) || d.lengthSqr() >= bd) continue;
+            bd = d.lengthSqr();
+            best = v;
+        }
+        return best;
+    }
+
+    /** grab still valid: alive, hurtable (not creative/spectator/ally) and not escaped (pearl etc.) */
+    private boolean holding() {
+        return held != null && held.isAlive() && !held.isRemoved() && FpeUtil.canHurt(this, held) && held.distanceToSqr(this) < 100;
+    }
+
+    /** hold the victim at p unless that would push it into blocks (low ceilings): then it stays where it is */
+    private void safeHold(LivingEntity v, Vec3 p) {
+        FpeUtil.holdAt(v, level().noCollision(v, v.getBoundingBox().move(p.subtract(v.position()))) ? p : v.position());
     }
 
     // ------------------------------------------------------------------ abilities
@@ -285,6 +313,122 @@ public class MutantBubble extends FpeEntity {
                 b.foamBurst(e.position().add(0, 0.6, 0), 30, 0.9);
                 b.pop(1.6f, 0.6f);
             }
+        }));
+
+        // 13. Sleeve bind (GRAB): crouch 0-8, lunge-snatch t10, the long straitjacket sleeves wrap and lift the victim,
+        //     SQUEEZE t20 / t28 / t36, spins with it 38-44 and flings it away t44 (dizzy)
+        out.add(Ability.of("sleeve_bind", 56, 160).range(0, 2.4).weight(2).faceUntil(10)
+                .start((e, t, k) -> ((MutantBubble) e).held = null)
+                .end((e, t, k) -> ((MutantBubble) e).held = null).tick((e, t, k) -> {
+            MutantBubble b = (MutantBubble) e;
+            if (k == 3) FpeUtil.sound(e, SoundEvents.SLIME_SQUISH_SMALL, 1f, 0.9f);
+            if (k == 9) e.dashForward(0.25, 0);
+            if (k == 10) {
+                b.held = b.pickVictim(2.7, 55);
+                b.arc(1.4f, 120, 0, 0.6);
+                FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_LEATHER, 1.2f, b.held != null ? 0.8f : 1.4f);
+                if (b.held != null) b.foamBurst(b.held.position().add(0, 0.8, 0), 10, 0.3);
+            }
+            if (k <= 10 || k > 44) return;
+            if (!b.holding()) { b.held = null; return; }
+            LivingEntity v = b.held;
+            if (k < 38) b.safeHold(v, FpeUtil.ahead(e, 0.8, 0.25));
+            else {                                   // orbit around her during the spin (turns toward her left like the model)
+                double a = Math.toRadians((k - 38) / 6.0 * 360);
+                Vec3 off = FpeUtil.forward(e).scale(Math.cos(a) * 0.9).subtract(FpeUtil.right(e).scale(Math.sin(a) * 0.9));
+                b.safeHold(v, e.position().add(off).add(0, 0.45, 0));
+            }
+            if (k % 5 == 1) FpeUtil.stun(v, 8);
+            if (k == 20 || k == 28 || k == 36) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(b, v, e.dmg(0.45f), 0, 0);
+                b.puff(FOAM, v.position().add(0, v.getBbHeight() * 0.5, 0), 8, 0.35);
+                FpeUtil.sound(e, SoundEvents.SLIME_SQUISH, 1f, 0.7f + (k - 20) * 0.02f);
+            }
+            if (k == 44) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(b, v, e.dmg(0.9f), 0, 0);
+                FpeUtil.fling(v, FpeUtil.forward(e), 1.1, 0.5);
+                FpeUtil.daze(v, 40);
+                b.foamBurst(v.position().add(0, 0.6, 0), 14, 0.4);
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1f, 1.3f);
+                b.held = null;
+            }
+        }));
+
+        // 14. Bubble lift (HOLD): inhales 0-10, BLOWS t12 - a prison bubble seals the victim and drifts it overhead 12-20,
+        //     she dribbles it with her sleeves (pushes t26 / t36), hops and SPIKES it into the floor t50 (pop -> stunned)
+        out.add(Ability.of("bubble_lift", 64, 180).range(1.5, 8).weight(2).faceUntil(12)
+                .start((e, t, k) -> ((MutantBubble) e).held = null)
+                .end((e, t, k) -> ((MutantBubble) e).held = null).tick((e, t, k) -> {
+            MutantBubble b = (MutantBubble) e;
+            if (k == 4) FpeUtil.sound(e, SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, 1.2f, 0.8f);
+            if (k == 12) {
+                b.held = b.pickVictim(8.5, 35);
+                Vec3 to = b.held != null ? b.held.position().add(0, b.held.getBbHeight() * 0.5, 0) : FpeUtil.ahead(e, 6, 0.8);
+                for (int i = 1; i <= 8; i++) b.puff(ParticleTypes.BUBBLE_POP, b.mouth().lerp(to, i / 8.0), 2, 0.1);
+                FpeUtil.sound(e, SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_INSIDE, 1.3f, 1.3f);
+                if (b.held != null) b.heldFrom = b.held.position();
+            }
+            if (k <= 12 || k > 50) return;
+            if (!b.holding()) { b.held = null; return; }
+            LivingEntity v = b.held;
+            Vec3 top = FpeUtil.ahead(e, 0.9, 1.35);
+            Vec3 p;
+            if (k <= 20) { double s = (k - 12) / 8.0; p = b.heldFrom.lerp(top, s * s * (3 - 2 * s)); }
+            else if (k < 46) {
+                double ph = k < 26 ? 0 : ((k - 26) % 10) / 10.0;   // pushed up at 26 and 36, falls back by the next push
+                p = top.add(0, k < 26 ? 0.08 * Math.sin(k) : 0.65 * Math.sin(Math.PI * ph), 0);
+            } else { double s = (k - 46) / 4.0; p = top.lerp(FpeUtil.ahead(e, 1.5, 0), s * s); }
+            b.safeHold(v, p);
+            if (k % 5 == 3) FpeUtil.stun(v, 8);
+            if (k % 3 == 0) FpeUtil.arc(e, ParticleTypes.BUBBLE_POP, v.position().add(0, v.getBbHeight() * 0.5, 0), 0, 180, 1.0, 12);
+            if (k == 26 || k == 36) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(b, v, e.dmg(0.35f), 0, 0);
+                b.pop(1f, 1.5f);
+            }
+            if (k == 50) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(b, v, e.dmg(1.2f), 0, 0);
+                FpeUtil.stun(v, 30);
+                b.foamBurst(v.position().add(0, 0.5, 0), 26, 0.8);
+                FpeUtil.fx(b, FpeFx.Kind.RING_SHOCK, v.position().add(0, 0.1, 0), 0, 8, 2f, 0);
+                b.pop(1.6f, 0.7f);
+                FpeUtil.sound(e, SoundEvents.FIREWORK_ROCKET_BLAST, 0.6f, 1.5f);
+                b.held = null;
+            }
+        }));
+
+        // 15. Slippery soap (DISARM + STUN): rubs up a lather 0-8, underhand wind-back 8-12, BOWLS the soap bar along the floor t13,
+        //     victim slips on it t15: drops its weapon, cannot walk or jump for 2 s; she giggles behind her sleeves 16-30
+        out.add(Ability.of("slippery_soap", 34, 140).range(1.5, 7.5).weight(2).faceUntil(12)
+                .start((e, t, k) -> ((MutantBubble) e).held = null)
+                .end((e, t, k) -> ((MutantBubble) e).held = null).tick((e, t, k) -> {
+            MutantBubble b = (MutantBubble) e;
+            if (k == 2 || k == 6) FpeUtil.sound(e, SoundEvents.SLIME_SQUISH_SMALL, 0.8f, 1.6f);
+            if (k < 10 && k % 2 == 0) b.puff(FOAM, b.hand(), 3, 0.2);
+            if (k == 13) {
+                b.held = b.pickVictim(7.5, 25);
+                b.slideDir = FpeUtil.forward(e);
+                FpeUtil.sound(e, SoundEvents.SNOWBALL_THROW, 1f, 1.2f);
+            }
+            if (k >= 13 && k <= 15) {
+                double d = b.held != null ? e.distanceTo(b.held) : 6;
+                for (int i = 0; i < 3; i++) b.puff(FOAM, e.position().add(b.slideDir.scale(d * (k - 13 + i / 3.0) / 2.0)).add(0, 0.1, 0), 2, 0.1);
+            }
+            if (k == 15 && b.holding()) {
+                LivingEntity v = b.held;
+                v.invulnerableTime = 0;
+                FpeUtil.hit(b, v, e.dmg(0.6f), 0, 0.3);
+                FpeUtil.disarm(v);
+                FpeUtil.stun(v, 40);
+                b.foamBurst(v.position().add(0, 0.2, 0), 16, 0.5);
+                FpeUtil.sound(e, SoundEvents.ITEM_PICKUP, 1f, 0.5f);
+                FpeUtil.sound(e, SoundEvents.GENERIC_SPLASH, 0.8f, 1.6f);
+            }
+            if (k == 15) b.held = null;
+            if (k == 18 || k == 23) FpeUtil.sound(e, SoundEvents.BUBBLE_COLUMN_BUBBLE_POP, 0.6f, 1.9f);
         }));
 
         // 11. Pop storm (enraged): bubbles swell while it spins, three ever-wider bursts t16 / t24 / t32

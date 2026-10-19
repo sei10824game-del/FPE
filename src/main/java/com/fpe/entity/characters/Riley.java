@@ -33,6 +33,9 @@ public class Riley extends FpeEntity {
     private static final DustParticleOptions INK = new DustParticleOptions(new Vector3f(0.1f, 0.08f, 0.13f), 1.5f);
     private static final int STEEL_ARC = 0xD0E8EAF0, DARK_ARC = 0xD0231E2A;
     private boolean grabbed;
+    /** crowd-control victim of knife_pin / tail_snare / ambush_grab (null = nobody caught) */
+    private LivingEntity victim;
+    private Vec3 pinPos;
 
     public Riley(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
@@ -93,6 +96,29 @@ public class Riley extends FpeEntity {
         }
         FpeUtil.sound(this, SoundEvents.TRIDENT_THROW, 1f, 1.5f);
     }
+
+    /** nearest valid enemy in a horizontal cone in front of her (same rules as hitCone), or null */
+    private LivingEntity pick(double range, double halfAngle) {
+        Vec3 f = FpeUtil.forward(this);
+        LivingEntity best = null;
+        double bd = Double.MAX_VALUE;
+        for (LivingEntity v : FpeUtil.enemiesInRadius(this, position(), range + 0.5, 2.5, 1.5)) {
+            Vec3 d = new Vec3(v.getX() - getX(), 0, v.getZ() - getZ());
+            double dist = d.length() - v.getBbWidth() * 0.5 - getBbWidth() * 0.5;
+            if (dist > range || dist >= bd) continue;
+            if (d.lengthSqr() > 0.01 && Math.toDegrees(Math.acos(Mth.clamp(d.normalize().dot(f), -1, 1))) > halfAngle) continue;
+            best = v; bd = dist;
+        }
+        return best;
+    }
+
+    /** the caught victim while it is still a legal target; otherwise releases it */
+    private LivingEntity held() {
+        if (victim != null && (!FpeUtil.canHurt(this, victim) || victim.distanceToSqr(this) > 64)) victim = null;
+        return victim;
+    }
+
+    private void release(FpeEntity e, LivingEntity t, int k) { victim = null; pinPos = null; }
 
     // ------------------------------------------------------------------ abilities
     @Override
@@ -279,11 +305,10 @@ public class Riley extends FpeEntity {
                 FpeUtil.sound(e, c.grabbed ? SoundEvents.PLAYER_ATTACK_KNOCKBACK : SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 1.3f);
                 if (c.grabbed) { FpeUtil.hit(c, t, e.dmg(0.3f), 0, 0); c.giggle(1.6f); }
             }
+            if (c.grabbed && !FpeUtil.canHurt(e, t)) c.grabbed = false;
             if (c.grabbed && k > 10 && k < 48) {
-                Vec3 hold = FpeUtil.ahead(e, 1.1, 0.2);
-                t.setDeltaMovement(hold.subtract(t.position()).scale(0.5));
-                t.hurtMarked = true;
-                t.fallDistance = 0;
+                FpeUtil.hold(e, t, 1.1, 0.2, 0);
+                FpeUtil.stun(t, 4);
                 if (k == 20 || k == 28 || k == 36) {
                     t.invulnerableTime = 0;
                     FpeUtil.hit(c, t, e.dmg(k == 36 ? 1.0f : 0.7f), 0, 0);
@@ -294,9 +319,142 @@ public class Riley extends FpeEntity {
             }
             if (k == 48 && c.grabbed) {
                 t.invulnerableTime = 0;
-                FpeUtil.hit(c, t, e.dmg(0.6f), 1.8, 0.5);
+                FpeUtil.hit(c, t, e.dmg(0.6f), 0, 0);
+                FpeUtil.fling(t, FpeUtil.forward(e), 1.6, 0.5);
                 FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.2f, 1.0f);
                 c.giggle(1.9f);
+            }
+        }).end((e, t, k) -> ((Riley) e).grabbed = false));
+
+        // 14. Knife pin (CC: root): reverse-grip wind-up (0-8), low dash t9, PLUNGES the knife through the victim's foot t12 and kneels
+        //     on it - victim pinned in place 12-24 (twist t17), rips it out t24 -> still rooted ~2s, bleeding
+        out.add(Ability.of("knife_pin", 34, 160).range(0, 3.4).weight(2).faceUntil(9).start(this::release).end(this::release).tick((e, t, k) -> {
+            Riley c = (Riley) e;
+            if (k == 3) c.giggle(1.7f);
+            if (k == 9) e.dashForward(0.35, 0);
+            if (k == 12) {
+                c.victim = c.pick(2.6, 55);
+                LivingEntity v = c.victim;
+                if (v == null) { FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 1.2f); return; }
+                c.pinPos = v.position();
+                v.invulnerableTime = 0;
+                FpeUtil.hit(c, v, e.dmg(0.8f), 0, 0);
+                FpeUtil.root(v, 64);
+                c.bleed(v, 60);
+                FpeUtil.particles(e, ParticleTypes.CRIT, v.position().add(0, 0.2, 0), 12, 0.2, 0.1, 0.2, 0.2);
+                FpeUtil.sound(e, SoundEvents.TRIDENT_HIT, 1.2f, 0.8f);
+                FpeUtil.sound(e, SoundEvents.ANVIL_LAND, 0.4f, 1.8f);
+            }
+            LivingEntity v = c.held();
+            if (v == null || c.pinPos == null) return;
+            if (k > 12 && k < 24) FpeUtil.holdAt(v, c.pinPos);
+            if (k == 17) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(c, v, e.dmg(0.3f), 0, 0);
+                FpeUtil.particles(e, BLOOD, v.position().add(0, 0.2, 0), 8, 0.2, 0.1, 0.2, 0.05);
+                FpeUtil.sound(e, SoundEvents.TRIDENT_HIT, 0.8f, 1.4f);
+                c.giggle(1.9f);
+            }
+            if (k == 24) {
+                c.bleed(v, 40);
+                FpeUtil.particles(e, BLOOD, v.position().add(0, 0.4, 0), 16, 0.2, 0.4, 0.2, 0.1);
+                FpeUtil.sound(e, SoundEvents.TRIDENT_RETURN, 1f, 1.6f);
+                c.victim = null;
+            }
+        }));
+
+        // 15. Tail snare (CC: pull + disarm + stun): tail coils overhead (0-8), LASHES out t10 and wraps the nearest enemy in a narrow
+        //     line (knocks the held item loose), reels it in 11-18, trips it t19 (stunned), overhead stab on the downed victim t22
+        out.add(Ability.of("tail_snare", 34, 140).range(2.5, 6.5).weight(2).faceUntil(10).start(this::release).end(this::release).tick((e, t, k) -> {
+            Riley c = (Riley) e;
+            if (k == 4) FpeUtil.sound(e, SoundEvents.PHANTOM_FLAP, 0.8f, 1.6f);
+            if (k == 10) {
+                c.victim = c.pick(6.5, 22);
+                Vec3 from = FpeUtil.ahead(e, 0.4, 1.4);
+                Vec3 to = c.victim != null ? c.victim.position().add(0, c.victim.getBbHeight() * 0.4, 0) : FpeUtil.ahead(e, 6.5, 1.0);
+                for (int i = 0; i <= 12; i++) FpeUtil.particles(e, INK, from.lerp(to, i / 12.0), 1, 0.02, 0.02, 0.02, 0);
+                FpeUtil.sound(e, SoundEvents.FISHING_BOBBER_THROW, 1f, 0.7f);
+                if (c.victim != null) {
+                    c.victim.invulnerableTime = 0;
+                    FpeUtil.hit(c, c.victim, e.dmg(0.3f), 0, 0);
+                    FpeUtil.disarm(c.victim);
+                    FpeUtil.sound(e, SoundEvents.LEASH_KNOT_PLACE, 1f, 0.8f);
+                }
+            }
+            LivingEntity v = c.held();
+            if (v == null) return;
+            if (k > 10 && k < 19) {
+                FpeUtil.pull(v, FpeUtil.ahead(e, 1.3, 0), 0.75);
+                FpeUtil.root(v, 3);
+                if (k % 3 == 0) FpeUtil.particles(e, INK, v.position().add(0, 0.4, 0), 3, 0.15, 0.15, 0.15, 0);
+            }
+            if (k == 19) {
+                FpeUtil.stun(v, 40);
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1f, 0.9f);
+                c.giggle(1.8f);
+            }
+            if (k > 19 && k < 22 && v.distanceTo(e) < 3.0) FpeUtil.hold(e, v, 1.3, 0, 0);
+            if (k == 22) {
+                if (v.distanceTo(e) < 3.2) {
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(c, v, e.dmg(1.1f), 0.2, 0);
+                    c.bleed(v, 50);
+                    c.arc(1.8f, 70, 85, 1.0, DARK_ARC);
+                    FpeUtil.sound(e, SoundEvents.TRIDENT_HIT, 1.2f, 1.0f);
+                }
+                c.victim = null;
+            }
+        }));
+
+        // 16. Ambush grab (CC: hold + stun -> daze + disarm): sinks into an ink puddle giggling (0-8), gone t9, reappears BEHIND the
+        //     target t14, claw grabs it t16 and holds it in front of her (stunned) - side stabs t22 / t30, deep stab t38, kicks it
+        //     away t44 dazed and disarmed
+        out.add(Ability.of("ambush_grab", 56, 240).range(2, 10).weight(2).faceUntil(8).start(this::release).end(this::release).tick((e, t, k) -> {
+            Riley c = (Riley) e;
+            if (k == 2) c.giggle(1.4f);
+            if (k == 9) {
+                FpeUtil.particles(e, INK, e.position().add(0, 0.3, 0), 24, 0.5, 0.1, 0.5, 0.02);
+                FpeUtil.particles(e, ParticleTypes.LARGE_SMOKE, e.position().add(0, 0.6, 0), 12, 0.3, 0.4, 0.3, 0.02);
+                FpeUtil.sound(e, SoundEvents.HONEY_BLOCK_SLIDE, 1f, 0.6f);
+                e.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 6, 0, false, false));
+            }
+            if (k == 12 && FpeUtil.canHurt(e, t)) {
+                Vec3 to = t.position().subtract(Vec3.directionFromRotation(0, t.getYRot()).scale(1.2));
+                if (e.level().noCollision(e, e.getBoundingBox().move(to.subtract(e.position())))) e.teleportTo(to.x, to.y, to.z);
+                e.snapFace(t);
+            }
+            if (k == 14) {
+                e.snapFace(t);
+                FpeUtil.particles(e, INK, e.position().add(0, 0.3, 0), 20, 0.5, 0.1, 0.5, 0.03);
+                FpeUtil.sound(e, SoundEvents.HONEY_BLOCK_SLIDE, 1f, 1.2f);
+            }
+            if (k == 16) {
+                c.victim = c.pick(2.4, 60);
+                FpeUtil.sound(e, c.victim != null ? SoundEvents.PLAYER_ATTACK_KNOCKBACK : SoundEvents.PLAYER_ATTACK_NODAMAGE, 1f, 1.3f);
+                if (c.victim != null) c.giggle(1.6f);
+            }
+            LivingEntity v = c.held();
+            if (v == null) return;
+            if (k >= 16 && k < 44) {
+                FpeUtil.hold(e, v, 0.95, 0.15, -0.1);
+                FpeUtil.stun(v, 4);
+            }
+            if (k == 22 || k == 30 || k == 38) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(c, v, e.dmg(k == 38 ? 1.0f : 0.55f), 0, 0);
+                c.bleed(v, 40);
+                FpeUtil.particles(e, ParticleTypes.CRIT, v.position().add(0, v.getBbHeight() * 0.6, 0), 8, 0.2, 0.2, 0.2, 0.2);
+                FpeUtil.sound(e, SoundEvents.TRIDENT_HIT, 1.1f, k == 38 ? 0.9f : 1.3f);
+            }
+            if (k == 44) {
+                v.invulnerableTime = 0;
+                FpeUtil.hit(c, v, e.dmg(0.4f), 0, 0);
+                FpeUtil.fling(v, FpeUtil.forward(e), 1.3, 0.35);
+                FpeUtil.daze(v, 60);
+                FpeUtil.disarm(v);
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.2f, 0.9f);
+                c.giggle(1.9f);
+                c.victim = null;
             }
         }));
     }

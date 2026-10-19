@@ -1,7 +1,9 @@
 package com.fpe.entity.characters;
 
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -58,11 +60,15 @@ public class Alice extends FpeEntity {
 
     /** 0 = not transforming, else ticks into the transformation (server only, transient on purpose) */
     private int transformT;
-    private boolean holding, flag;
+    private boolean flag;
     private Vec3 beamDir = Vec3.ZERO;
     /** ticks spent in the current stance and when to switch again (server only) */
     private int stanceT, nextSwap = 300;
     private final Set<Integer> hitIds = new HashSet<>();
+    /** crowd control: the one victim currently held (grabs), where it was grabbed + last collision-free hold point, and ground-pinned victims */
+    private LivingEntity held;
+    private Vec3 holdLast, holdBase;
+    private final Map<LivingEntity, Vec3> pins = new LinkedHashMap<>();
     private static final UUID QUAD_SPEED = UUID.fromString("7d3c1f0a-5b8e-4c2a-9f61-a11ce00d4a01");
 
     public Alice(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
@@ -250,12 +256,31 @@ public class Alice extends FpeEntity {
         if (d.length() - getBbWidth() * 0.5 - t.getBbWidth() * 0.5 > range) return false;
         return d.lengthSqr() < 0.01 || Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, d.normalize().dot(FpeUtil.forward(this)))))) <= halfDeg;
     }
-    /** drag a held victim toward a point (smooth, works for players since hurtMarked syncs velocity) */
-    private static void holdAt(LivingEntity v, Vec3 p) {
-        v.setDeltaMovement(p.subtract(v.position()).scale(0.6));
-        v.hurtMarked = true;
-        v.fallDistance = 0;
+    /** nearest valid enemy (FpeUtil.canHurt: no allies / creative / spectators) inside a horizontal cone in front of her, or null */
+    private LivingEntity pickVictim(double range, double halfDeg) {
+        LivingEntity best = null;
+        for (LivingEntity v : FpeUtil.enemiesInRadius(this, position(), range + getBbWidth() * 0.5, 4 + getBbHeight(), 3)) {
+            if (inFront(v, range, halfDeg) && (best == null || v.distanceToSqr(this) < best.distanceToSqr(this))) best = v;
+        }
+        return best;
     }
+    /** true while the grab victim is still valid; drops it on death / creative / dimension change / teleported away */
+    private boolean gripping() {
+        if (held != null && (!FpeUtil.canHurt(this, held) || held.level() != level() || held.distanceToSqr(this) > 24 * 24)) release();
+        return held != null;
+    }
+    private void grab(LivingEntity v) { held = v; holdLast = v.position(); holdBase = v.position(); }
+    private void release() { held = null; holdLast = null; pins.clear(); }
+    /** hold the grab victim at p, but never push it into blocks (keeps the last free point instead) */
+    private void grip(Vec3 p) {
+        if (held.level().noCollision(held, held.getBoundingBox().move(p.subtract(held.position())))) holdLast = p;
+        FpeUtil.holdAt(held, holdLast);
+    }
+    /** grip at forward/up/right offsets from her feet */
+    private void gripRel(double fwd, double up, double side) {
+        grip(position().add(FpeUtil.forward(this).scale(fwd)).add(FpeUtil.right(this).scale(side)).add(0, up, 0));
+    }
+    private static float smooth(float u) { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); }
 
     // ------------------------------------------------------------------ abilities
     @Override
@@ -351,20 +376,111 @@ public class Alice extends FpeEntity {
             }
         }));
         // pounces, pins the victim, mauls it with wings and throws it
-        out.add(p1("grab_maul", 48, 90).range(0, 3.2).weight(2).faceUntil(12).start((e, t, tk) -> ((Alice) e).holding = false).tick((e, t, tk) -> {
+        out.add(p1("grab_maul", 48, 130).range(0, 3.2).weight(2).faceUntil(12).start((e, t, tk) -> ((Alice) e).release()).end((e, t, tk) -> ((Alice) e).release()).tick((e, t, tk) -> {
             Alice a = (Alice) e;
             if (tk == 8) a.dashToward(t.position(), 0.6, 0.1);
-            if (tk == 11 && a.inFront(t, 2.4, 50) && FpeUtil.hit(a, t, a.dmg(0.5f), 0, 0)) { a.holding = true; a.sound(SoundEvents.PHANTOM_BITE, 1f, 0.7f); }
-            if (!a.holding) return;
-            if (tk > 11 && tk < 38) holdAt(t, FpeUtil.ahead(a, 1.2, 0.1));
+            if (tk == 11) {
+                LivingEntity v = a.pickVictim(2.6, 55);
+                if (v != null && FpeUtil.hit(a, v, a.dmg(0.5f), 0, 0)) { a.grab(v); a.sound(SoundEvents.PHANTOM_BITE, 1f, 0.7f); }
+            }
+            if (!a.gripping()) return;
+            LivingEntity v = a.held;
+            if (tk > 11 && tk < 38) { a.gripRel(1.2, 0.1, 0); FpeUtil.root(v, 4); }
             if (tk == 18 || tk == 28) {
-                FpeUtil.hit(a, t, a.dmg(0.55f), 0, 0);
-                FpeUtil.particles(a, ParticleTypes.DAMAGE_INDICATOR, chest(t), 6, 0.3, 0.3, 0.3, 0.1);
+                FpeUtil.hit(a, v, a.dmg(0.55f), 0, 0);
+                FpeUtil.particles(a, ParticleTypes.DAMAGE_INDICATOR, chest(v), 6, 0.3, 0.3, 0.3, 0.1);
                 a.sound(SoundEvents.PHANTOM_BITE, 1f, 0.6f);
             }
             if (tk == 38) {
-                a.holding = false;
-                if (FpeUtil.hit(a, t, a.dmg(0.9f), 1.9, 0.7)) a.sound(SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1f, 0.6f);
+                a.release();
+                if (FpeUtil.hit(a, v, a.dmg(0.9f), 0, 0)) a.sound(SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1f, 0.6f);
+                FpeUtil.fling(v, FpeUtil.forward(a).add(FpeUtil.right(a).scale(-0.6)), 1.3, 0.55);
+            }
+        }));
+        // CC: a giant shadow hand shoots out of her palm, snatches the nearest enemy in front, reels it up in front of her,
+        // squeezes twice (stun) and slams it into the floor. The snatch knocks the held item out of a player's hand.
+        out.add(p1("shadow_clutch", 60, 160).range(2, 8.5).weight(1).faceUntil(14).start((e, t, tk) -> ((Alice) e).release()).end((e, t, tk) -> ((Alice) e).release()).tick((e, t, tk) -> {
+            Alice a = (Alice) e;
+            if (tk == 4) { a.sound(SoundEvents.SCULK_CLICKING, 1.2f, 0.5f); FpeUtil.particles(a, ParticleTypes.SQUID_INK, FpeUtil.ahead(a, 0.4, 1.0).add(FpeUtil.right(a).scale(0.3)), 12, 0.2, 0.3, 0.2, 0.02); }
+            if (tk == 12) a.sound(SoundEvents.FISHING_BOBBER_THROW, 1.4f, 0.4f);
+            if (tk == 14) {
+                Vec3 from = a.position().add(0, 1.4, 0).add(FpeUtil.right(a).scale(0.25));
+                a.lineParticles(ParticleTypes.SQUID_INK, from, from.add(FpeUtil.forward(a).scale(5.5)), 0.4);
+                LivingEntity v = a.pickVictim(8.5, 22);
+                if (v != null && FpeUtil.hit(a, v, a.dmg(0.4f), 0, 0)) {
+                    a.grab(v);
+                    FpeUtil.disarm(v);
+                    a.sound(SoundEvents.WARDEN_ATTACK_IMPACT, 1f, 1.3f);
+                    FpeUtil.particles(a, ParticleTypes.SQUID_INK, chest(v), 25, 0.4, 0.5, 0.4, 0.1);
+                }
+            }
+            if (!a.gripping()) return;
+            LivingEntity v = a.held;
+            Vec3 fwd = FpeUtil.forward(a), rt = FpeUtil.right(a);
+            Vec3 hold = a.position().add(fwd.scale(1.5)).add(rt.scale(0.2)).add(0, 1.3, 0);
+            if (tk > 14 && tk <= 24) { // reel in along the shadow arm
+                float u = smooth((tk - 14) / 10f);
+                a.grip(a.holdBase.add(hold.subtract(a.holdBase).scale(u)).add(0, Math.sin(u * Math.PI) * 0.8, 0));
+                if (tk % 2 == 0) FpeUtil.particles(a, ParticleTypes.SQUID_INK, chest(v), 4, 0.2, 0.2, 0.2, 0.02);
+            }
+            if (tk > 24 && tk < 46) { a.grip(hold.add(0, tk >= 42 ? (tk - 41) * 0.25 : 0, 0)); FpeUtil.stun(v, 6); }
+            if (tk == 28 || tk == 37) {
+                FpeUtil.hit(a, v, a.dmg(0.45f), 0, 0);
+                FpeUtil.stun(v, 20);
+                FpeUtil.particles(a, ParticleTypes.CRIT, chest(v), 10, 0.3, 0.3, 0.3, 0.2);
+                a.sound(SoundEvents.SKELETON_HURT, 1f, 0.5f);
+                a.sound(SoundEvents.SLIME_SQUISH, 1f, 0.5f);
+            }
+            if (tk == 46) {
+                a.grip(a.position().add(fwd.scale(1.7)).add(rt.scale(0.2)));
+                a.release();
+                FpeUtil.hit(a, v, a.dmg(0.8f), 0.3, 0.1);
+                FpeUtil.stun(v, 30);
+                Vec3 p = FpeUtil.ahead(a, 1.7, 0);
+                FpeUtil.fx(a, FpeFx.Kind.RING_SHOCK, new Vec3(p.x, a.groundY(p.x, p.z, a.getY()) + 0.1, p.z), 0, 8, 3f, 0);
+                FpeUtil.particles(a, ParticleTypes.SQUID_INK, p, 30, 0.6, 0.1, 0.6, 0.15);
+                a.sound(SoundEvents.GENERIC_EXPLODE, 0.8f, 1.1f);
+                a.sound(SoundEvents.WARDEN_STEP, 1.5f, 1.2f);
+            }
+        }));
+        // CC: palms into her own shadow - shadow hands burst up around the target and pin every enemy there to the floor
+        // (root), clench (squeeze + daze), then she rips her arms up and the hands hurl the victims into the air.
+        out.add(p1("shadow_pin", 50, 150).range(0, 12).weight(1).blind().start((e, t, tk) -> ((Alice) e).release()).end((e, t, tk) -> ((Alice) e).release()).tick((e, t, tk) -> {
+            Alice a = (Alice) e;
+            if (tk == 4) a.sound(SoundEvents.EVOKER_PREPARE_ATTACK, 1.2f, 0.5f);
+            if (tk == 14) {
+                Vec3 c = t.position();
+                a.sound(SoundEvents.WARDEN_STEP, 1.6f, 1.1f);
+                a.sound(SoundEvents.SCULK_SHRIEKER_BREAK, 1.2f, 0.6f);
+                FpeUtil.fx(a, FpeFx.Kind.RING_SHOCK, a.position().add(0, 0.1, 0), 0, 8, 2.5f, 0);
+                FpeUtil.particles(a, ParticleTypes.SQUID_INK, a.position(), 30, 0.6, 0.1, 0.6, 0.1);
+                FpeUtil.arc(a, ParticleTypes.SQUID_INK, new Vec3(c.x, a.groundY(c.x, c.z, c.y) + 0.1, c.z), 0, 180, 3.5, 28);
+                for (LivingEntity v : FpeUtil.enemiesInRadius(a, c, 3.5, 2.5, 1.5)) {
+                    if (a.pins.size() >= 4) break;
+                    a.pins.put(v, v.position());
+                    FpeUtil.fx(a, FpeFx.Kind.TENTACLE, new Vec3(v.getX(), a.groundY(v.getX(), v.getZ(), v.getY()), v.getZ()), 0, 32, 0.9f, a.dmg(0.2f)).param(0.7f);
+                    FpeUtil.hit(a, v, a.dmg(0.35f), 0, 0);
+                    FpeUtil.root(v, 34);
+                }
+            }
+            a.pins.keySet().removeIf(v -> !FpeUtil.canHurt(a, v) || v.level() != a.level());
+            if (tk > 14 && tk < 44) a.pins.forEach(FpeUtil::holdAt);
+            if (tk == 30) {
+                a.sound(SoundEvents.SLIME_SQUISH, 1.5f, 0.4f);
+                a.sound(SoundEvents.SKELETON_HURT, 1f, 0.5f);
+                a.pins.forEach((v, p) -> {
+                    FpeUtil.hit(a, v, a.dmg(0.55f), 0, 0);
+                    FpeUtil.daze(v, 60);
+                    FpeUtil.particles(a, ParticleTypes.SQUID_INK, chest(v), 12, 0.3, 0.4, 0.3, 0.05);
+                });
+            }
+            if (tk == 44) {
+                a.sound(SoundEvents.EVOKER_FANGS_ATTACK, 1.5f, 0.6f);
+                a.pins.forEach((v, p) -> {
+                    FpeUtil.fling(v, v.position().subtract(a.position()), 0.25, 0.9);
+                    FpeUtil.particles(a, ParticleTypes.SQUID_INK, v.position(), 20, 0.3, 0.6, 0.3, 0.1);
+                });
+                a.release();
             }
         }));
         // shrieking blast: knockback, nausea, weakness
@@ -475,23 +591,81 @@ public class Alice extends FpeEntity {
             }
         }));
         // snatches the target, lifts it, crushes it twice and smashes it into the ground
-        out.add(p2("grab_crush", 56, 120).range(0, 6.5).weight(2).faceUntil(16).start((e, t, tk) -> ((Alice) e).holding = false).tick((e, t, tk) -> {
+        out.add(p2("grab_crush", 56, 140).range(0, 6.5).weight(2).faceUntil(16).start((e, t, tk) -> ((Alice) e).release()).end((e, t, tk) -> ((Alice) e).release()).tick((e, t, tk) -> {
             Alice a = (Alice) e;
-            if (tk == 16 && a.inFront(t, 6.0, 40) && FpeUtil.hit(a, t, a.dmg(0.6f), 0, 0)) { a.holding = true; a.sound(SoundEvents.WARDEN_ATTACK_IMPACT, 1.5f, 0.6f); }
-            if (!a.holding) return;
-            if (tk > 16 && tk < 46) holdAt(t, a.position().add(FpeUtil.forward(a).scale(3.0)).add(0, 2.5 + 2.2 * Math.min(1, (tk - 16) / 10.0), 0));
+            if (tk == 16) {
+                LivingEntity v = a.pickVictim(6.0, 40);
+                if (v != null && FpeUtil.hit(a, v, a.dmg(0.6f), 0, 0)) { a.grab(v); FpeUtil.disarm(v); a.sound(SoundEvents.WARDEN_ATTACK_IMPACT, 1.5f, 0.6f); }
+            }
+            if (!a.gripping()) return;
+            LivingEntity v = a.held;
+            if (tk > 16 && tk < 46) {
+                double lift = tk < 42 ? 2.5 + 2.2 * Math.min(1, (tk - 16) / 10.0) : 4.7 + (tk - 41) * 0.5;
+                a.gripRel(3.0, lift, 0.6);
+                FpeUtil.stun(v, 6);
+            }
             if (tk == 26 || tk == 36) {
-                FpeUtil.hit(a, t, a.dmg(0.7f), 0, 0);
-                FpeUtil.particles(a, ParticleTypes.CRIT, chest(t), 15, 0.4, 0.4, 0.4, 0.2);
+                FpeUtil.hit(a, v, a.dmg(0.7f), 0, 0);
+                FpeUtil.stun(v, 20);
+                FpeUtil.particles(a, ParticleTypes.CRIT, chest(v), 15, 0.4, 0.4, 0.4, 0.2);
                 a.sound(SoundEvents.SKELETON_HURT, 1f, 0.4f);
             }
             if (tk == 46) {
-                a.holding = false;
-                t.setDeltaMovement(0, -1.5, 0); t.hurtMarked = true;
-                FpeUtil.hit(a, t, a.dmg(1.3f), 1.4, 0.3);
+                a.gripRel(3.2, 0, 0.4);
+                a.release();
+                FpeUtil.hit(a, v, a.dmg(1.3f), 0.6, 0.2);
+                FpeUtil.stun(v, 30);
                 Vec3 p = FpeUtil.ahead(a, 3.0, 0);
                 FpeUtil.fx(a, FpeFx.Kind.RING_SHOCK, new Vec3(p.x, a.groundY(p.x, p.z, a.getY()) + 0.1, p.z), 0, 10, 5f, a.dmg(0.4f));
                 a.sound(SoundEvents.GENERIC_EXPLODE, 1.5f, 0.7f);
+            }
+        }));
+        // CC: the four back tentacles dive into the floor and burst up around the nearest enemy in front, bind it and hoist
+        // it into the air; she clenches her claws like a puppeteer (two crushing squeezes, stun), then yanks down: ground slam.
+        out.add(p2("tentacle_bind", 70, 180).range(3, 14).weight(1).blind().faceUntil(20).start((e, t, tk) -> ((Alice) e).release()).end((e, t, tk) -> ((Alice) e).release()).tick((e, t, tk) -> {
+            Alice a = (Alice) e;
+            if (tk == 4) a.sound(SoundEvents.WARDEN_ANGRY, 2f, 0.5f);
+            if (tk == 16) {
+                FpeUtil.particles(a, ParticleTypes.SQUID_INK, FpeUtil.ahead(a, 2.5, 0.2), 40, 1.2, 0.2, 1.2, 0.15);
+                a.sound(SoundEvents.ROOTED_DIRT_BREAK, 2f, 0.5f);
+                a.sound(SoundEvents.SCULK_SHRIEKER_SHRIEK, 1.2f, 0.4f);
+            }
+            if (tk == 20) {
+                LivingEntity v = a.pickVictim(14, 55);
+                if (v != null && FpeUtil.hit(a, v, a.dmg(0.4f), 0, 0)) {
+                    a.grab(v);
+                    FpeUtil.disarm(v);
+                    Vec3 c = v.position();
+                    a.tentacle(c.x, c.z, c.y, 0, 36, 1.6f);
+                    for (int i = 0; i < 3; i++) { double ang = Math.PI * 2 * i / 3 + 0.5; a.tentacle(c.x + Math.cos(ang) * 1.3, c.z + Math.sin(ang) * 1.3, c.y, 1 + i, 34, 1.3f); }
+                    a.sound(SoundEvents.WARDEN_ATTACK_IMPACT, 1.5f, 0.8f);
+                }
+            }
+            if (!a.gripping()) return;
+            LivingEntity v = a.held;
+            if (tk > 20 && tk < 54) {
+                double lift = tk <= 30 ? 3.2 * smooth((tk - 20) / 10f) : tk < 48 ? 3.2 + Math.sin(tk * 0.7) * 0.15 : 3.2 + (tk - 47) * 0.2;
+                a.grip(a.holdBase.add(0, lift, 0));
+                FpeUtil.stun(v, 6);
+                if (tk % 3 == 0) FpeUtil.particles(a, ParticleTypes.SQUID_INK, v.position().add(0, -0.3, 0), 6, 0.2, 1.2, 0.2, 0.02);
+            }
+            if (tk == 34 || tk == 44) {
+                FpeUtil.hit(a, v, a.dmg(0.5f), 0, 0);
+                FpeUtil.stun(v, 20);
+                FpeUtil.particles(a, ParticleTypes.CRIT, chest(v), 15, 0.4, 0.4, 0.4, 0.2);
+                a.sound(SoundEvents.SLIME_SQUISH, 1.5f, 0.4f);
+                a.sound(SoundEvents.SKELETON_HURT, 1f, 0.4f);
+            }
+            if (tk == 54) {
+                Vec3 c = a.holdBase;
+                a.grip(c);
+                a.release();
+                FpeUtil.hit(a, v, a.dmg(1.1f), 0.5, 0.2);
+                FpeUtil.stun(v, 40);
+                FpeUtil.fx(a, FpeFx.Kind.RING_SHOCK, new Vec3(c.x, a.groundY(c.x, c.z, c.y) + 0.1, c.z), 0, 12, 5f, 0);
+                for (int i = 0; i < 6; i++) { double ang = Math.PI * i / 3; a.spike(c.x + Math.cos(ang) * 2, c.z + Math.sin(ang) * 2, c.y, 2, 30, 0, 1.2f); }
+                FpeUtil.particles(a, ParticleTypes.EXPLOSION, c, 2, 0.4, 0.1, 0.4, 0);
+                a.sound(SoundEvents.GENERIC_EXPLODE, 1.8f, 0.6f);
             }
         }));
         // three hard beats of the bug wings: gale that hurls everything away
