@@ -47,5 +47,9 @@
  "entity.fpe.hansel_juvenile": "青年ハンセル",
  "item.fpe.hansel_juvenile_spawn_egg": "青年ハンセル スポーンエッグ",
  "entity.fpe.lord_hansel": "成人ハンセル",
- "item.fpe.lord_hansel_spawn_egg": "成人ハンセル スポーンエッグ"
+ "item.fpe.lord_hansel_spawn_egg": "成人ハンセル スポーンエッグ",
+ "entity.fpe.riley": "ライリー",
+ "item.fpe.riley_spawn_egg": "ライリー スポーンエッグ",
+ "entity.fpe.daniel_barrel": "ダニエル・F・バレル",
+ "item.fpe.daniel_barrel_spawn_egg": "ダニエル・F・バレル スポーンエッグ"
 }

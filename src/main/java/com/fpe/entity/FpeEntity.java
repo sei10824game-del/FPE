@@ -60,6 +60,7 @@ public abstract class FpeEntity extends Monster {
     public Faction faction() { return Faction.MISS; }
 
     protected static final EntityDataAccessor<Integer> ANIM = SynchedEntityData.defineId(FpeEntity.class, EntityDataSerializers.INT);
+    protected static final EntityDataAccessor<Integer> STANCE = SynchedEntityData.defineId(FpeEntity.class, EntityDataSerializers.INT);
     protected static final EntityDataAccessor<Integer> VARIANT = SynchedEntityData.defineId(FpeEntity.class, EntityDataSerializers.INT);
 
     /** ticks since current ability started (client counts locally, server authoritative) */
@@ -106,6 +107,16 @@ public abstract class FpeEntity extends Monster {
 
     /** preferred standoff distance while approaching (0 = melee range) */
     public double preferredDistance() { return 2.0; }
+
+    /** melee-focused characters keep closing in (only gap closers are chosen while far) instead of shooting from afar */
+    public boolean meleeFocus() { return false; }
+    /** distance above which a melee-focused character only walks/uses gap closers */
+    public double engageRange() { return 6.0; }
+    private int farTicks;
+
+    /** body stance synced to the client (0 = normal, 1 = e.g. quadruped); models switch to quad_* animations */
+    public int getStance() { return entityData.get(STANCE); }
+    public void setStance(int s) { if (s != getStance()) { entityData.set(STANCE, s); refreshDimensions(); } }
 
     public int getVariant() { return entityData.get(VARIANT); }
     public void setVariant(int v) { entityData.set(VARIANT, v); }
@@ -171,11 +182,14 @@ public abstract class FpeEntity extends Monster {
         if (!valid) return;
         double dist = distanceTo(target);
         boolean sight = hasLineOfSight(target);
+        boolean far = meleeFocus() && dist > engageRange();
+        farTicks = far ? farTicks + 1 : 0;
         int total = 0;
         int[] w = new int[list.size()];
         for (int i = 0; i < list.size(); i++) {
             Ability a = list.get(i);
             if (cooldowns[i] > 0 || dist < a.min || dist > a.max || (a.needsSight && !sight) || !a.cond.test(this)) continue;
+            if (far && !a.closer && a.max > engageRange() && farTicks < 100) continue;
             w[i] = a.weight; total += a.weight;
         }
         if (total <= 0) return;
@@ -237,7 +251,7 @@ public abstract class FpeEntity extends Monster {
             e.getLookControl().setLookAt(t, 30f, 30f);
             if (--repath <= 0) {
                 repath = 4 + e.random.nextInt(4);
-                if (e.distanceTo(t) > e.preferredDistance()) e.getNavigation().moveTo(t, 1.0);
+                if (e.distanceTo(t) > e.preferredDistance()) e.getNavigation().moveTo(t, e.meleeFocus() && e.distanceTo(t) > e.engageRange() ? 1.3 : 1.0);
                 else e.getNavigation().stop();
             }
         }
@@ -263,6 +277,7 @@ public abstract class FpeEntity extends Monster {
         super.defineSynchedData();
         entityData.define(ANIM, 0);
         entityData.define(VARIANT, 0);
+        entityData.define(STANCE, 0);
     }
 
     @Override
@@ -303,12 +318,12 @@ public abstract class FpeEntity extends Monster {
     @Override public boolean canAttack(LivingEntity t) { return (!(t instanceof FpeEntity f) || hostile(faction(), f.faction())) && super.canAttack(t); }
 
     @Override
-    public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); t.putInt("FpeVariant", getVariant()); }
+    public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); t.putInt("FpeVariant", getVariant()); t.putInt("FpeStance", getStance()); }
 
     @Override
     public void readAdditionalSaveData(CompoundTag t) {
         super.readAdditionalSaveData(t);
-        setVariant(t.getInt("FpeVariant"));
+        setVariant(t.getInt("FpeVariant")); setStance(t.getInt("FpeStance"));
         if (bossEvent != null) bossEvent.setName(getDisplayName());
     }
 }

@@ -171,8 +171,10 @@ public final class BbModel {
             if (de != null) apply(parts, de, c.death * de.length, 1f);          // death replaces everything
             else if (ab != null) apply(parts, ab, c.t / 20f, 1f);                // an ability replaces idle + walk
             else {
-                if (idle != null) apply(parts, idle, c.age / 20f, 1f);
-                if (walk != null && c.walk() > 0.01f) apply(parts, walk, c.limbSwing * 0.6662f / 6.2832f * walk.length, c.walk());
+                Anim_ qi = c.stance == 1 ? byName.get("quad_idle") : null, qw = c.stance == 1 ? byName.get("quad_walk") : null;
+                Anim_ i2 = qi != null ? qi : idle, w2 = qw != null ? qw : walk;
+                if (i2 != null) apply(parts, i2, c.age / 20f, 1f);
+                if (w2 != null && c.walk() > 0.01f) apply(parts, w2, c.limbSwing * 0.6662f / 6.2832f * w2.length, c.walk());
             }
             // head look (only when idle/walking so authored attack poses stay in control)
             if (c.ability.isEmpty()) parts.addRot("head", c.headPitch, c.headYaw, 0);

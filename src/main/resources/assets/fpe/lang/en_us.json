@@ -47,5 +47,9 @@
  "entity.fpe.hansel_juvenile": "Juvenile Hansel",
  "item.fpe.hansel_juvenile_spawn_egg": "Juvenile Hansel Spawn Egg",
  "entity.fpe.lord_hansel": "Lord Hansel",
- "item.fpe.lord_hansel_spawn_egg": "Lord Hansel Spawn Egg"
+ "item.fpe.lord_hansel_spawn_egg": "Lord Hansel Spawn Egg",
+ "entity.fpe.riley": "Riley",
+ "item.fpe.riley_spawn_egg": "Riley Spawn Egg",
+ "entity.fpe.daniel_barrel": "Daniel F. Barrel",
+ "item.fpe.daniel_barrel_spawn_egg": "Daniel F. Barrel Spawn Egg"
 }

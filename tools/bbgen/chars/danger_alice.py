@@ -16,7 +16,7 @@ import math, os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.dirname(__file__))
 from bbgen import mix  # noqa: E402
-from alice import Builder, A, HIDE, combo  # noqa: E402  (shared rig/animation helpers)
+from alice import Builder, A, HIDE, combo, add3  # noqa: E402  (shared rig/animation helpers)
 
 DIR = os.path.join(os.path.dirname(__file__), "../../../src/main/resources/assets/fpe/bbmodels/")
 CLEAR = (0, 0, 0, 0)
@@ -1045,6 +1045,407 @@ def anims_p2(B):
     a.done()
 
 
+# ================================================================== PHASE 2 quadruped stance (FpeEntity stance 1)
+# The spindly giant drops onto her huge claws like a spider/mantis: hips lowered, spine nearly horizontal, the very long arms
+# reach far forward with high bent elbows and the claws planted flat, head held low in front, wings folded back along the spine,
+# horns swept back, and the four back tentacles come out and stream behind her like tails.
+# All values are OFFSETS from the built rest pose. Hit ticks match DangerAlice.java.
+QP = {"body": (-45, 0, 0), "chest": (-30, 0, 0), "head": (60, 0, 0),
+      "arm_r": (125, 0, 22), "fore_r": (-74, 0, -10), "hand_r": (-36, 0, 0),
+      "arm_l": (125, 0, -22), "fore_l": (-74, 0, 10), "hand_l": (-36, 0, 0),
+      "leg_r": (-12, 0, 0), "shin_r": (12, 0, 0), "foot_r": (0, 0, 0),
+      "leg_l": (-12, 0, 0), "shin_l": (12, 0, 0), "foot_l": (0, 0, 0),
+      "wings": (160, 0, 0), "tents": (72, 0, 0), "horn_r0": (120, 0, 0), "horn_l0": (120, 0, 0)}
+QPOS = (0, -3, 3)  # lowered + shifted back so the long body stays centred on the hitbox
+UP = {k: (0, 0, 0) for k in QP}  # upright = built rest pose
+
+
+def anims_quad(B):
+    def mk(name, ticks, loop=False, tents=True):
+        a = DB(B, name, ticks, {}, PROPS2, loop)
+        a.prest = {"root": QPOS}
+        if tents: a.show("tents", 0, ticks)
+        return a
+
+    def q(a, t, pos=(0, 0, 0), **d):
+        """full quad pose at t: QP + per-bone deltas; root position = QPOS + pos"""
+        for b, v in QP.items():
+            a.rot(b, (t, *add3(v, d.get(b, (0, 0, 0)))))
+        a.pos("root", (t, *add3(QPOS, pos)))
+        for b, v in d.items():
+            if b not in QP: a.rot(b, (t, *v))
+        return a
+
+    def up(a, t, pos=(0, 0, 0), **d):
+        for b in QP:
+            a.rot(b, (t, *d.get(b, (0, 0, 0))))
+        a.pos("root", (t, *pos))
+        for b, v in d.items():
+            if b not in QP: a.rot(b, (t, *v))
+        return a
+
+    def claw(a, k, t, curl=0, spread=0):
+        for i in range(4):
+            a.rot(f"fing_{k}{i}", (t, curl, 0, (i - 1.5) * spread))
+        a.rot("thumb_" + k, (t, curl * 0.6, 0, 0))
+
+    def claws(a, t, curl=0, spread=0):
+        claw(a, "r", t, curl, spread); claw(a, "l", t, curl, spread)
+
+    def tails(a, keys, lag=1.5):
+        """tentacles as tails: (t, yaw, lift, curl): yaw swings them sideways together, lift raises (-) / lowers (+), curl bends the tips"""
+        for i in range(4):
+            j = (1, -1, 1, -1)[i]
+            fan = (8, -8, 14, -14)[i]
+            a.rot(f"tent{i}_0", *[(t, l + (6 if i > 1 else 0), y + fan, 0) for (t, y, l, c) in keys])
+            for s in range(1, 4):
+                a.rot(f"tent{i}_{s}", *[(min(a.ticks, t + s * lag), c * (0.6 + 0.2 * s), y * 0.35 + j * c * 0.25, 0) for (t, y, l, c) in keys])
+
+    # ---------------------------------------------------------------- quad_idle (80): low spider crouch, ribs heave, head hangs and sways,
+    #                                                                   claws flex on the floor, tentacle-tails snake, wings shiver
+    a = mk("quad_idle", 80, loop=True)
+    for t, k in ((0, 0), (20, 1), (40, 0), (60, 1), (80, 0)):
+        sw = (0, -5, 0, 5, 0)[t // 20]
+        q(a, t, pos=(0, 0.16 * k, 0.05 * k), body=(1.5 * k, 0, 0), chest=(3 * k, sw * 0.4, 0), head=(-4 * k, sw, 3 * k * (1 if t < 40 else -1)),
+          arm_r=(-2 * k, 0, 0), arm_l=(-2 * k, 0, 0), fore_r=(3 * k, 0, 0), fore_l=(3 * k, 0, 0))
+    # predator head-twitch
+    a.at(46, head=(QP["head"][0], 0, -3)).at(48, head=(QP["head"][0] - 12, 20, 14)).at(51, head=(QP["head"][0] - 8, 16, 10)).at(55, head=(QP["head"][0], 4, -3))
+    claws(a, 0, -10, 10); claws(a, 26, -10, 10); claws(a, 30, 24, 4); claws(a, 34, -20, 14); claws(a, 40, -10, 10); claws(a, 80, -10, 10)
+    tails(a, [(0, -16, 0, -10), (20, 0, -8, 8), (40, 16, 0, -10), (60, 0, -8, 8), (80, -16, 0, -10)], lag=3)
+    a.wings(0, fold=10).wings(20, open_=6, fold=6).wings(21, open_=2, fold=10).wings(22, open_=6, fold=6).wings(40, fold=10).wings(60, open_=4, fold=8).wings(80, fold=10)
+    a.hair([(0, 0, 0, 1), (20, 3, 0, -1), (40, 0, 0, 1), (60, 3, 0, -1), (80, 0, 0, 1)], delay=5)
+    a.done()
+
+    # ---------------------------------------------------------------- quad_walk (20, additive on quad_idle): lateral-sequence gait RH, RF, LH, LF
+    a = DB(B, "quad_walk", 20, {}, (), loop=True)
+    R, Pp = a.rot, a.pos
+    TW = 2 * math.pi / 20
+    for t in range(0, 21, 2):
+        for k, s, ph in (("r", 1, 0), ("l", -1, 10)):
+            u = TW * (t - ph)
+            sw = max(0.0, -math.sin(u))                 # 0..1 while the hind leg swings forward
+            R("leg_" + k, (t, 26 * math.cos(u), 0, 0))
+            R("shin_" + k, (t, 34 * sw, 0, 0))           # + = knee folds, foot lifts
+            R("foot_" + k, (t, -8 * math.cos(u) - 14 * sw, 0, 0))
+            ua = TW * (t - ph - 5)                       # front limb of the same side lands a quarter later
+            swa = max(0.0, -math.sin(ua))
+            R("arm_" + k, (t, 24 * math.cos(ua), 0, 5 * s * swa))
+            R("fore_" + k, (t, -30 * swa, 0, 0))         # - = elbow folds, claw lifts
+            R("hand_" + k, (t, 10 * math.cos(ua) - 20 * swa, 0, 0))
+            for i in range(4):
+                R(f"fing_{k}{i}", (t, -26 * swa, 0, 0))
+        u = TW * t
+        Pp("root", (t, 0, -0.4 * math.cos(2 * u), 0))
+        R("body", (t, 2.5 * math.cos(2 * u), 6 * math.sin(u), 3 * math.sin(u)))
+        R("chest", (t, -3 * math.cos(2 * u + 0.6), -7 * math.sin(u - 0.8), -4 * math.sin(u - 0.8)))
+        R("head", (t, 4 * math.cos(2 * u + 1.2), 7 * math.sin(u - 1.6), 0))
+        for i in range(4):
+            R(f"tent{i}_0", (t, 7 * math.sin(2 * u - 0.7 - i), 12 * math.sin(u - 1.0), 0))
+            for sg in (1, 2, 3):
+                R(f"tent{i}_{sg}", (t, 9 * math.sin(2 * u - 0.7 - i - 0.6 * sg), 8 * math.sin(u - 1.0 - 0.7 * sg), 0))
+        for bn, amp, lagp in (("hair_b", -6, 1.4), ("hair_r", 4, 1.2), ("hair_l", 4, 1.2), ("ah0", -6, 1.6), ("ah1", -8, 2.0), ("ah2", -10, 2.4),
+                              ("horn_r2", 4, 1.4), ("horn_l2", 4, 1.4), ("horn_r4", 5, 2.0), ("horn_l4", 5, 2.0)):
+            R(bn, (t, amp * math.cos(2 * u - lagp), 0, 0.6 * amp * math.sin(u - lagp)))
+        for wk in W_REST:
+            ws = 1 if wk.endswith("r") else -1
+            R(wk, (t, 0, 0, -ws * 5 * math.cos(2 * u - (1.0 if wk[5] == "u" else 1.6))))
+    a.done(base_layer=True)
+
+    # ---------------------------------------------------------------- drop_down (26): rear back 0-4, topple forward 10, claws SLAM the floor 14 (stance flips),
+    #                                                                   tentacles burst out of her back 12-18, rebound 18, prowl 26
+    a = mk("drop_down", 26, tents=False)
+    a.show("tents", 11, 26, grow=5)
+    up(a, 0)
+    up(a, 4, pos=(0, 0.8, 0.5), chest=(14, 0, 0), head=(-20, 0, 6), arm_r=(30, 0, 30), arm_l=(30, 0, -30), fore_r=(-20, 0, 0), fore_l=(-20, 0, 0),
+       wings=(-10, 0, 0))
+    up(a, 10, pos=(0, -1.2, -1.6), body=(-30, 0, 0), chest=(-34, 0, 0), head=(40, 0, 0), arm_r=(160, 0, 4), arm_l=(160, 0, -4),
+       fore_r=(-40, 0, 0), fore_l=(-40, 0, 0), leg_r=(18, 0, 0), shin_r=(-20, 0, 0), leg_l=(-14, 0, 0), wings=(30, 0, 0), horn_r0=(30, 0, 0), horn_l0=(30, 0, 0))
+    q(a, 14, pos=(0, -1.0, -0.4), chest=(-8, 0, 0), head=(-10, 0, 0), arm_r=(6, 0, 8), arm_l=(6, 0, -8), fore_r=(8, 0, 0), fore_l=(8, 0, 0))
+    q(a, 18, pos=(0, 0.4, 0.1), chest=(4, 0, 0), head=(8, 0, 4))
+    q(a, 22, pos=(0, -0.15, 0))
+    q(a, 26)
+    claws(a, 0, 0); claws(a, 8, -40, 14); claws(a, 14, 30, 6); claws(a, 18, -10, 10); claws(a, 26, -10, 10)
+    a.wings(0).wings(4, open_=40, fold=-20).wings(10, open_=60, fold=-30).wings(14, open_=-10, fold=20).wings(20, open_=4, fold=10).wings(26, fold=10)
+    tails(a, [(0, 0, -50, 30), (11, 0, -60, 40), (16, 0, 30, -20), (20, 0, -10, 10), (26, -16, 0, -10)], lag=1)
+    a.hair([(0, 0, 0, 0), (4, -10, 0, 0), (10, -14, 0, 0), (14, 26, 0, 0), (18, -8, 0, 0), (26, 0, 0, 0)], delay=1)
+    a.done()
+
+    # ---------------------------------------------------------------- rise_up (26): shove off the floor 5, REAR up 10 (stance flips, roar), tentacles retract 12-20, settle 26
+    a = mk("rise_up", 26, tents=False)
+    a.show("tents", 0, 20, grow=6)
+    q(a, 0)
+    q(a, 5, pos=(0, -0.9, 0.6), chest=(-4, 0, 0), head=(8, 0, 0), arm_r=(-20, 0, 0), arm_l=(-20, 0, 0), fore_r=(16, 0, 0), fore_l=(16, 0, 0))
+    up(a, 10, pos=(0, 1.0, 0.8), body=(4, 0, 0), chest=(22, 0, 0), head=(-30, 0, 6), arm_r=(40, 0, 70), arm_l=(40, 0, -70), fore_r=(-20, 0, 0), fore_l=(-20, 0, 0),
+       leg_r=(-10, 0, 0), shin_r=(10, 0, 0), leg_l=(-10, 0, 0), shin_l=(10, 0, 0))
+    up(a, 13, pos=(0, 1.2, 0.8), body=(4, 0, 0), chest=(26, 0, 0), head=(-36, 0, -6), arm_r=(40, 0, 84), arm_l=(40, 0, -84), fore_r=(-24, 0, 0), fore_l=(-24, 0, 0))
+    up(a, 18, pos=(0, -0.5, -0.2), chest=(-8, 0, 0), head=(6, 0, 0), arm_r=(10, 0, 10), arm_l=(10, 0, -10))
+    up(a, 26)
+    a.pos("jaw", (0, 0, 0, 0), (8, 0, 0, 0), (10, 0, -1.4, 0), (16, 0, -1.4, 0), (19, 0, 0, 0))
+    a.scl("jaw", (0, 1, 1, 1), (8, 1, 1, 1), (10, 1.2, 2.6, 1), (16, 1.2, 2.6, 1), (19, 1, 1, 1), (26, 1, 1, 1))
+    claws(a, 0, -10, 10); claws(a, 5, 30); claws(a, 10, -40, 14); claws(a, 16, -40, 14); claws(a, 26, 0)
+    a.wings(0, fold=10).wings(5, fold=20).wings(10, open_=70, fold=-30).wings(15, open_=60, fold=-26).wings(26)
+    tails(a, [(0, -16, 0, -10), (5, 0, 10, 10), (10, 0, -50, -30), (16, 0, -70, 30), (20, 0, -60, 30), (26, 0, -60, 30)], lag=1)
+    a.hair([(0, 0, 0, 0), (5, 8, 0, 0), (10, -24, 0, 0), (13, -20, 0, 6), (18, 6, 0, 0), (26, 0, 0, 0)], delay=1)
+    a.done()
+
+    def stride(a, t0, per=6, reach=1.0):
+        """one rotary-gallop stride from t0: claws reach while the hinds push, suspension, then gather"""
+        h = per / 2
+        q(a, t0, pos=(0, -0.5, 0), chest=(-4, 0, 0), head=(-20, 0, 0),
+          arm_r=(30 * reach, 0, -6), arm_l=(24 * reach, 0, 6), fore_r=(30, 0, 0), fore_l=(26, 0, 0), hand_r=(20, 0, 0), hand_l=(20, 0, 0),
+          leg_r=(-30, 0, 0), leg_l=(-24, 0, 0), shin_r=(-10, 0, 0), shin_l=(-8, 0, 0), foot_r=(20, 0, 0), foot_l=(16, 0, 0))
+        q(a, t0 + h * 0.5, pos=(0, 1.0, 0), chest=(4, 0, 0), head=(-24, 0, 0),
+          arm_r=(10, 0, 0), arm_l=(6, 0, 0), fore_r=(-10, 0, 0), fore_l=(-6, 0, 0),
+          leg_r=(-10, 0, 0), leg_l=(-6, 0, 0), shin_r=(20, 0, 0), shin_l=(14, 0, 0))
+        q(a, t0 + h, pos=(0, -0.3, 0), chest=(6, 0, 0), head=(-18, 0, 0),
+          arm_r=(-30, 0, 0), arm_l=(-24, 0, 0), fore_r=(-30, 0, 0), fore_l=(-24, 0, 0), hand_r=(-10, 0, 0), hand_l=(-10, 0, 0),
+          leg_r=(34 * reach, 0, 0), leg_l=(28 * reach, 0, 0), shin_r=(30, 0, 0), shin_l=(26, 0, 0), foot_r=(-16, 0, 0), foot_l=(-14, 0, 0))
+        q(a, t0 + h * 1.5, pos=(0, 0.6, 0), chest=(0, 0, 0), head=(-22, 0, 0),
+          arm_r=(4, 0, 0), arm_l=(0, 0, 0), fore_r=(-36, 0, 0), fore_l=(-30, 0, 0), leg_r=(10, 0, 0), leg_l=(6, 0, 0))
+
+    # ---------------------------------------------------------------- quad_charge (52): screech 3, paw the floor 6 / 9, coil 12, GALLOP 13-33 (head down, ramming),
+    #                                                                   skid 34, claw UPPERCUT toss 37, shake it off, prowl
+    a = mk("quad_charge", 52)
+    q(a, 0)
+    q(a, 3, pos=(0, 0.4, 0.4), chest=(10, 0, 0), head=(-24, 0, 6))
+    for t, k in ((5, 1), (6.5, 0), (8, 1), (9.5, 0)):
+        q(a, t, pos=(0, 0.2 * k, 0.5), chest=(4 + 2 * k, 6 * k, 0), head=(-6, -6 * k, 0), arm_r=(-30 + 50 * k, 0, 0), fore_r=(-40 * k + 20, 0, 0))
+    q(a, 12, pos=(0, -1.4, 1.4), chest=(-8, 0, 0), head=(-20, 0, 0), arm_r=(-14, 0, 0), arm_l=(-14, 0, 0), fore_r=(24, 0, 0), fore_l=(24, 0, 0),
+      leg_r=(16, 0, 0), leg_l=(16, 0, 0), shin_r=(14, 0, 0), shin_l=(14, 0, 0))
+    for t0 in (13, 19, 25):
+        stride(a, t0, 6, 1.15)
+    q(a, 31, pos=(0, -0.5, 0), chest=(-4, 0, 0), head=(-20, 0, 0), arm_r=(30, 0, -6), arm_l=(24, 0, 6), fore_r=(30, 0, 0), fore_l=(26, 0, 0),
+      leg_r=(-26, 0, 0), leg_l=(-22, 0, 0))
+    q(a, 34, pos=(0, -1.3, 0.6), chest=(12, 0, 0), head=(-6, 0, 0), arm_r=(30, 0, 0), arm_l=(30, 0, 0), fore_r=(40, 0, 0), fore_l=(40, 0, 0),
+      hand_r=(40, 0, 0), hand_l=(40, 0, 0), leg_r=(26, 0, 0), leg_l=(20, 0, 0), shin_r=(20, 0, 0), shin_l=(16, 0, 0))
+    q(a, 35.5, pos=(0, -1.5, 0.4), chest=(-10, 0, 0), head=(-30, 0, 0), arm_r=(-20, 0, -20), fore_r=(-30, 0, 0), arm_l=(20, 0, 0))
+    q(a, 37, pos=(0, 1.2, -0.8), body=(10, 0, 0), chest=(30, -16, 0), head=(-20, 14, 8), arm_r=(60, -30, 40), fore_r=(40, 0, 0), hand_r=(30, 0, 0),
+      arm_l=(10, 0, -6), fore_l=(0, 0, 0))
+    q(a, 40, pos=(0, 1.0, -0.6), body=(8, 0, 0), chest=(24, -12, 0), head=(-14, 10, 4), arm_r=(56, -30, 46), fore_r=(36, 0, 0))
+    q(a, 44, pos=(0, -0.3, 0), chest=(-2, 2, 0), head=(4, -10, -10))
+    q(a, 46, head=(0, 10, 10))
+    q(a, 52)
+    a.pos("jaw", (0, 0, 0, 0), (2, 0, 0, 0), (3, 0, -1.2, 0), (6, 0, 0, 0), (52, 0, 0, 0))
+    claws(a, 0, -10, 10); claws(a, 3, -40, 14); claws(a, 12, 30); claws(a, 34, 60); claws(a, 36, -40, 16); claws(a, 37, 40, 4); claws(a, 44, -10, 10); claws(a, 52, -10, 10)
+    a.wings(0, fold=10).wings(3, open_=50, fold=-20).wings(12, fold=30).wings(14, open_=-10, fold=50).wings(33, open_=-10, fold=50).wings(37, open_=50, fold=-20).wings(44, fold=10).wings(52, fold=10)
+    tails(a, [(0, -16, 0, -10), (3, 0, -20, -16), (12, 0, 10, 20), (14, 0, -24, -6), (20, 10, -20, -4), (26, -10, -24, -6), (33, 8, -20, -4),
+              (35, 0, 10, 24), (37, 20, -16, -14), (44, -14, 0, 6), (52, -16, 0, -10)], lag=1)
+    a.hair([(0, 0, 0, 0), (3, -10, 0, 0), (12, 8, 0, 0), (15, -26, 0, 0), (33, -26, 0, 4), (35, 16, 0, 0), (37, -20, 0, -10), (44, 6, 0, 8), (52, 0, 0, 0)], delay=1)
+    a.done()
+
+    # ---------------------------------------------------------------- quad_pounce (46): crouch + butt-wiggle 3-11, wings buzz, LAUNCH 13, airborne claws spread 17,
+    #                                                                   CRASH down 23 (pin), grind 24-30, back off
+    a = mk("quad_pounce", 46)
+    q(a, 0)
+    crouch = dict(chest=(-12, 0, 0), head=(12, 0, 0), arm_r=(-10, 0, 0), arm_l=(-10, 0, 0), fore_r=(-12, 0, 0), fore_l=(-12, 0, 0),
+                  leg_r=(16, 0, 0), leg_l=(16, 0, 0), shin_r=(18, 0, 0), shin_l=(18, 0, 0), foot_r=(-6, 0, 0), foot_l=(-6, 0, 0))
+    q(a, 3, pos=(0, -1.2, 1.2), **crouch)
+    for k, t in enumerate((5, 7, 9, 11)):
+        s = 1 if k % 2 == 0 else -1
+        q(a, t, pos=(0.5 * s, -1.6, 1.6), body=(0, 9 * s, 3 * s), **crouch)
+    q(a, 13, pos=(0, 1.4, -1.2), chest=(22, 0, 0), head=(-14, 0, 0), arm_r=(40, 0, -4), arm_l=(40, 0, 4), fore_r=(60, 0, 0), fore_l=(60, 0, 0),
+      hand_r=(40, 0, 0), hand_l=(40, 0, 0), leg_r=(-52, 0, 0), leg_l=(-46, 0, 0), shin_r=(-30, 0, 0), shin_l=(-26, 0, 0), foot_r=(30, 0, 0), foot_l=(30, 0, 0))
+    q(a, 17, pos=(0, 3.4, -1.8), chest=(26, 0, 0), head=(-20, 0, 0), arm_r=(40, 0, 30), arm_l=(40, 0, -30), fore_r=(66, 0, 0), fore_l=(66, 0, 0),
+      hand_r=(30, 0, 0), hand_l=(30, 0, 0), leg_r=(-30, 0, 0), leg_l=(-26, 0, 0), shin_r=(30, 0, 0), shin_l=(26, 0, 0))
+    q(a, 21, pos=(0, 1.8, -2.0), chest=(8, 0, 0), head=(-10, 0, 0), arm_r=(30, 0, 10), arm_l=(30, 0, -10), fore_r=(40, 0, 0), fore_l=(40, 0, 0),
+      leg_r=(4, 0, 0), leg_l=(4, 0, 0), shin_r=(10, 0, 0), shin_l=(10, 0, 0))
+    q(a, 23, pos=(0, -1.8, -2.0), chest=(-14, 0, 0), head=(-4, 0, 0), arm_r=(10, 0, -6), arm_l=(10, 0, 6), fore_r=(16, 0, 0), fore_l=(16, 0, 0),
+      leg_r=(14, 0, 0), leg_l=(14, 0, 0), shin_r=(18, 0, 0), shin_l=(18, 0, 0))
+    q(a, 25, pos=(0, -1.3, -2.0), chest=(-10, 3, 2), head=(-10, -6, 0), arm_r=(12, 0, -6), arm_l=(8, 0, 6), fore_r=(14, 0, 0), fore_l=(18, 0, 0))
+    q(a, 28, pos=(0, -1.6, -2.0), chest=(-16, -3, -2), head=(-24, 8, 6), arm_r=(8, 0, -6), arm_l=(12, 0, 6), fore_r=(18, 0, 0), fore_l=(14, 0, 0))
+    q(a, 31, pos=(0, -1.2, -1.9), chest=(-10, 2, 0), head=(0, 0, 0), arm_r=(10, 0, -4), arm_l=(10, 0, 4), fore_r=(14, 0, 0), fore_l=(14, 0, 0))
+    q(a, 38, pos=(0, -0.2, -0.8), chest=(4, 0, 0), head=(4, 0, -4))
+    q(a, 46)
+    a.pos("jaw", (0, 0, 0, 0), (24, 0, 0, 0), (26, 0, -1.4, 0), (29, 0, -1.4, 0), (31, 0, 0, 0), (46, 0, 0, 0))
+    claws(a, 0, -10, 10); claws(a, 3, 20); claws(a, 11, 20); claws(a, 13, -40, 16); claws(a, 21, -40, 16); claws(a, 23, 60, 10); claws(a, 30, 80, 6)
+    claws(a, 36, 20); claws(a, 46, -10, 10)
+    a.wings(0, fold=10).wings(3, open_=20, fold=0)
+    for t in range(4, 12):
+        a.wings(t, open_=30 if t % 2 else 10, fold=-6)  # buzzing
+    a.wings(13, open_=80, fold=-30).wings(17, open_=70, fold=-30).wings(20, open_=30).wings(23, open_=-10, fold=30).wings(31, fold=16).wings(46, fold=10)
+    tails(a, [(0, -16, 0, -10), (3, 0, -20, 10), (5, 30, -20, 10), (7, -30, -20, 10), (9, 30, -20, 10), (11, -30, -20, 10), (13, 0, 30, -20), (19, 0, 20, -14),
+              (23, 0, -40, 20), (30, 10, -10, 6), (46, -16, 0, -10)], lag=1)
+    a.hair([(0, 0, 0, 0), (3, 4, 0, 0), (13, -24, 0, 0), (19, -16, 0, 0), (23, 28, 0, 0), (26, -8, 0, 4), (29, 6, 0, -6), (36, 0, 0, 0), (46, 0, 0, 0)], delay=1)
+    a.done()
+
+    # ---------------------------------------------------------------- quad_rake (40): rear half-up 4-10 (right claw cocked), RAKE R 12, left cocked 17, RAKE L 20,
+    #                                                                 both claws high 25, DOUBLE SLAM 28, grind, drop back down
+    a = mk("quad_rake", 40)
+    q(a, 0)
+    rear = dict(leg_r=(-12, 0, 0), leg_l=(-12, 0, 0), shin_r=(-14, 0, 0), shin_l=(-14, 0, 0), foot_r=(4, 0, 0), foot_l=(4, 0, 0))
+    q(a, 5, pos=(0, 1.4, 0.8), body=(16, 0, 0), chest=(26, 10, 0), head=(-34, -8, 0), arm_r=(20, 0, 30), fore_r=(60, 0, 0), hand_r=(40, 0, 0),
+      arm_l=(-20, 0, 0), fore_l=(30, 0, 0), **rear)
+    q(a, 10, pos=(0, 1.7, 0.9), body=(18, 0, 0), chest=(30, 22, 0), head=(-36, -16, 0), arm_r=(36, -20, 60), fore_r=(70, 0, 0), hand_r=(40, 0, 0),
+      arm_l=(-20, 0, 0), fore_l=(30, 0, 0), **rear)
+    q(a, 12, pos=(0, 0.7, -0.8), body=(10, 0, 0), chest=(16, -26, 0), head=(-22, 18, 0), arm_r=(-20, 40, -30), fore_r=(30, 0, 0), hand_r=(10, 0, 0),
+      arm_l=(-20, 0, 0), fore_l=(30, 0, 0), **rear)
+    q(a, 14, pos=(0, 0.7, -0.8), body=(10, 0, 0), chest=(18, -30, 0), head=(-24, 20, 0), arm_r=(-40, 40, -40), fore_r=(36, 0, 0), **rear)
+    q(a, 17, pos=(0, 1.6, 0.4), body=(16, 0, 0), chest=(28, -20, 0), head=(-34, 16, 0), arm_l=(36, 20, -60), fore_l=(70, 0, 0), hand_l=(40, 0, 0),
+      arm_r=(-20, 0, 0), fore_r=(30, 0, 0), **rear)
+    q(a, 20, pos=(0, 0.7, -1.4), body=(10, 0, 0), chest=(16, 26, 0), head=(-22, -18, 0), arm_l=(-20, -40, 30), fore_l=(30, 0, 0), hand_l=(10, 0, 0),
+      arm_r=(-20, 0, 0), fore_r=(30, 0, 0), **rear)
+    q(a, 22, pos=(0, 0.7, -1.4), body=(10, 0, 0), chest=(18, 30, 0), head=(-24, -20, 0), arm_l=(-40, -40, 40), fore_l=(36, 0, 0), **rear)
+    q(a, 25, pos=(0, 2.2, 0.4), body=(22, 0, 0), chest=(36, 0, 0), head=(-36, 0, 0), arm_r=(40, 0, 16), arm_l=(40, 0, -16), fore_r=(70, 0, 0), fore_l=(70, 0, 0),
+      hand_r=(30, 0, 0), hand_l=(30, 0, 0), **rear)
+    q(a, 28, pos=(0, -1.5, -1.6), chest=(-14, 0, 0), head=(-6, 0, 0), arm_r=(16, 0, -4), arm_l=(16, 0, 4), fore_r=(24, 0, 0), fore_l=(24, 0, 0),
+      leg_r=(10, 0, 0), leg_l=(10, 0, 0), shin_r=(12, 0, 0), shin_l=(12, 0, 0))
+    q(a, 30, pos=(0, -1.2, -1.5), chest=(-10, 2, 2), head=(-2, 0, 4), arm_r=(16, 0, -4), arm_l=(16, 0, 4), fore_r=(24, 0, 0), fore_l=(24, 0, 0))
+    q(a, 32, pos=(0, -1.4, -1.5), chest=(-12, -2, -2), head=(-4, 0, -4), arm_r=(16, 0, -4), arm_l=(16, 0, 4), fore_r=(24, 0, 0), fore_l=(24, 0, 0))
+    q(a, 40)
+    claw(a, "r", 0, -10, 10); claw(a, "r", 5, -40, 16); claw(a, "r", 12, 40, 10); claw(a, "r", 15, 10); claw(a, "r", 25, -40, 16); claw(a, "r", 28, 60, 8); claw(a, "r", 40, -10, 10)
+    claw(a, "l", 0, -10, 10); claw(a, "l", 14, -40, 16); claw(a, "l", 20, 40, 10); claw(a, "l", 23, 10); claw(a, "l", 25, -40, 16); claw(a, "l", 28, 60, 8); claw(a, "l", 40, -10, 10)
+    a.wings(0, fold=10).wings(5, open_=40, fold=-10).wings(12, open_=10, fwd=10).wings(17, open_=40, fold=-10).wings(20, open_=10, fwd=10).wings(25, open_=70, fold=-30)
+    a.wings(28, open_=-10, fold=30).wings(34, fold=14).wings(40, fold=10)
+    tails(a, [(0, -16, 0, -10), (5, 0, 20, 10), (10, 30, 20, 10), (12, -30, 10, -10), (17, -30, 20, 10), (20, 30, 10, -10), (25, 0, 20, 20), (28, 0, -30, -20), (40, -16, 0, -10)], lag=1.2)
+    a.hair([(0, 0, 0, 0), (5, -10, 0, 0), (10, -10, 0, -8), (12, 8, 0, 18), (17, -8, 0, 8), (20, 8, 0, -18), (25, -16, 0, 0), (28, 24, 0, 0), (32, -4, 0, 0), (40, 0, 0, 0)], delay=1)
+    a.done()
+
+    # ---------------------------------------------------------------- quad_tail_sweep (40): claws planted, hindquarters coil 3-9, the tentacle-tails WHIP round 10-20 (hit 16),
+    #                                                                   skid out, recover
+    a = mk("quad_tail_sweep", 40, tents=False)
+    plant = dict(arm_r=(-6, 0, 8), arm_l=(-6, 0, -8), fore_r=(10, 0, 0), fore_l=(10, 0, 0))
+    q(a, 0, root=(0, 0, 0))
+    q(a, 9, pos=(0, -1.0, 0), root=(0, 50, 0), body=(0, 10, 0), chest=(-6, -24, 0), head=(4, -26, 0), leg_r=(20, 0, 0), leg_l=(-6, 0, 0), shin_r=(18, 0, 0), **plant)
+    q(a, 12, pos=(0, -0.6, 0), root=(0, -60, 0), body=(0, -14, 0), chest=(-8, 10, 0), head=(0, 16, 0), **plant)
+    q(a, 16, pos=(0, -0.4, 0), root=(0, -175, 0), body=(0, -16, 0), chest=(-10, 14, 0), head=(4, 20, 0), leg_r=(-20, 0, 0), leg_l=(20, 0, 0), **plant)
+    q(a, 20, pos=(0, -0.6, 0), root=(0, -320, 0), body=(0, -12, 0), chest=(-10, 10, 0), head=(4, 14, 0), leg_r=(20, 0, 0), leg_l=(-20, 0, 0), **plant)
+    q(a, 24, pos=(0, -1.0, 0), root=(0, -378, 0), body=(0, 8, 0), chest=(-8, -8, 0), head=(6, -10, 0), leg_r=(-10, 0, 0), leg_l=(14, 0, 0))
+    q(a, 30, pos=(0, -0.3, 0), root=(0, -362, 0), chest=(-2, -2, 0))
+    q(a, 40, root=(0, -360, 0))
+    a.scl("tents", (0, 1, 1, 1), (9, 1.1, 1.1, 1.3), (12, 1.2, 1.2, 1.8), (20, 1.2, 1.2, 1.8), (26, 1, 1, 1.1), (40, 1, 1, 1))
+    claws(a, 0, -10, 10); claws(a, 9, 50, 6); claws(a, 22, 50, 6); claws(a, 30, -10, 10); claws(a, 40, -10, 10)
+    a.wings(0, fold=10).wings(9, open_=20).wings(16, open_=60, fold=-20).wings(22, open_=50, fold=-16).wings(30, fold=10).wings(40, fold=10)
+    tails(a, [(0, -16, 0, -10), (9, -60, -6, 16), (12, 30, 6, 10), (16, 50, 10, 0), (20, 50, 10, 0), (24, 0, -10, 6), (30, -16, 0, -10), (40, -16, 0, -10)], lag=0.8)
+    a.hair([(0, 0, 0, 0), (9, 4, 0, -12), (16, -6, 0, 30), (22, -6, 0, 30), (28, 0, 0, -8), (40, 0, 0, 0)], delay=1)
+    a.done()
+
+    # ---------------------------------------------------------------- quad_eruption (54): rears up shrieking 4-13, PLUNGES both claws + tentacles into the floor 18,
+    #                                                                     buried + trembling, second pulse 30 (under the target), RIPS free 40, prowl
+    a = mk("quad_eruption", 54, tents=False)
+    q(a, 0)
+    tall = dict(leg_r=(-20, 0, 0), leg_l=(-20, 0, 0), shin_r=(-24, 0, 0), shin_l=(-24, 0, 0), foot_r=(8, 0, 0), foot_l=(8, 0, 0))
+    q(a, 6, pos=(0, 2.0, 1.0), body=(24, 0, 0), chest=(40, 0, 0), head=(-40, 0, 0), arm_r=(40, 0, 40), arm_l=(40, 0, -40), fore_r=(70, 0, 0), fore_l=(70, 0, 0),
+      hand_r=(40, 0, 0), hand_l=(40, 0, 0), **tall)
+    q(a, 13, pos=(0, 2.4, 1.2), body=(28, 0, 0), chest=(46, 0, 0), head=(-56, 0, 0), arm_r=(60, 0, 16), arm_l=(60, 0, -16), fore_r=(70, 0, 0), fore_l=(70, 0, 0),
+      hand_r=(40, 0, 0), hand_l=(40, 0, 0), **tall)
+    q(a, 16, pos=(0, -1.4, -0.4), body=(-4, 0, 0), chest=(-10, 0, 0), head=(-10, 0, 0), arm_r=(10, 0, 0), arm_l=(10, 0, 0), fore_r=(30, 0, 0), fore_l=(30, 0, 0))
+    deep = dict(body=(-6, 0, 0), arm_r=(14, 0, -4), arm_l=(14, 0, 4), fore_r=(40, 0, 0), fore_l=(40, 0, 0), hand_r=(20, 0, 0), hand_l=(20, 0, 0),
+                leg_r=(12, 0, 0), leg_l=(12, 0, 0), shin_r=(16, 0, 0), shin_l=(16, 0, 0))
+    q(a, 18, pos=(0, -2.2, -0.8), chest=(-14, 0, 0), head=(-6, 0, 0), **deep)
+    for t in range(21, 39, 3):
+        j = 1 if (t // 3) % 2 else -1
+        jolt = t == 30
+        q(a, t, pos=(0.15 * j, -2.0 + (0.7 if jolt else 0), -0.8), chest=(-12 + 2 * j - (8 if jolt else 0), 2 * j, 2 * j), head=(-4 + (8 if jolt else 0), 4 * j, 0), **deep)
+    q(a, 40, pos=(0, 1.3, 0.8), body=(14, 0, 0), chest=(26, 0, 0), head=(-30, 0, 0), arm_r=(30, 0, 40), arm_l=(30, 0, -40), fore_r=(60, 0, 0), fore_l=(60, 0, 0), **tall)
+    q(a, 46, pos=(0, -0.3, 0), chest=(-4, 0, 0), head=(4, 0, 0))
+    q(a, 54)
+    a.pos("jaw", (0, 0, 0, 0), (4, 0, 0, 0), (6, 0, -1.6, 0), (14, 0, -1.6, 0), (17, 0, 0, 0), (54, 0, 0, 0))
+    a.scl("jaw", (0, 1, 1, 1), (4, 1, 1, 1), (6, 1.3, 3, 1), (14, 1.3, 3, 1), (17, 1, 1, 1), (54, 1, 1, 1))
+    a.scl("tents", (0, 1, 1, 1), (13, 1.1, 1.1, 1.2), (16, 1.2, 1.2, 1.6), (18, 1.2, 1.2, 2.0), (38, 1.2, 1.2, 2.0), (42, 1, 1, 1), (54, 1, 1, 1))
+    claws(a, 0, -10, 10); claws(a, 6, -40, 16); claws(a, 16, 20, 10); claws(a, 18, 40, 14); claws(a, 38, 40, 14); claws(a, 40, -40, 16); claws(a, 46, 10); claws(a, 54, -10, 10)
+    a.wings(0, fold=10).wings(6, open_=70, fold=-30).wings(13, open_=80, fold=-30).wings(18, open_=-10, fold=30).wings(38, open_=-6, fold=26).wings(40, open_=60, fold=-20).wings(48, fold=10).wings(54, fold=10)
+    tails(a, [(0, -16, 0, -10), (6, 0, -50, 30), (13, 0, -60, 30), (16, 0, 60, -10), (18, 0, 90, -20), (38, 0, 90, -20), (40, 0, -40, 20), (48, -10, 0, -6), (54, -16, 0, -10)], lag=1)
+    a.hair([(0, 0, 0, 0), (6, -20, 0, 0), (13, -26, 0, 0), (18, 30, 0, 0), (22, 10, 0, 4), (30, 18, 0, -4), (38, 10, 0, 0), (40, -20, 0, 0), (48, 4, 0, 0), (54, 0, 0, 0)], delay=1)
+    a.done()
+
+    # ---------------------------------------------------------------- quad_bite (32): sniff 3, head drawn back + grin splits 7, LUNGE-BITE 11, thrash 13-16, FLING 18, recover
+    a = mk("quad_bite", 32)
+    q(a, 0)
+    q(a, 3, pos=(0, 0.2, 0), chest=(4, 0, 0), head=(-10, 8, 12))
+    q(a, 7, pos=(0, 0.5, 1.8), chest=(14, 0, 0), head=(-30, 0, 0), arm_r=(-14, 0, 0), arm_l=(-14, 0, 0), fore_r=(-14, 0, 0), fore_l=(-14, 0, 0),
+      leg_r=(12, 0, 0), leg_l=(12, 0, 0), shin_r=(10, 0, 0), shin_l=(10, 0, 0))
+    q(a, 9, pos=(0, 0.3, 1.6), chest=(16, 0, 0), head=(-34, 0, 0), arm_r=(-16, 0, 0), arm_l=(-16, 0, 0), fore_r=(-16, 0, 0), fore_l=(-16, 0, 0))
+    q(a, 11, pos=(0, -0.9, -1.8), chest=(-16, 0, 0), head=(20, 0, 0), arm_r=(16, 0, 0), arm_l=(16, 0, 0), fore_r=(24, 0, 0), fore_l=(24, 0, 0),
+      leg_r=(-22, 0, 0), leg_l=(-22, 0, 0), shin_r=(-20, 0, 0), shin_l=(-20, 0, 0))
+    q(a, 13, pos=(0.3, -0.8, -1.6), chest=(-14, 10, 4), head=(16, 28, 18), arm_r=(14, 0, 0), arm_l=(18, 0, 0), fore_r=(22, 0, 0), fore_l=(24, 0, 0))
+    q(a, 15, pos=(-0.3, -0.8, -1.6), chest=(-14, -10, -4), head=(16, -28, -18), arm_r=(18, 0, 0), arm_l=(14, 0, 0), fore_r=(24, 0, 0), fore_l=(22, 0, 0))
+    q(a, 16.5, pos=(0.2, -0.8, -1.5), chest=(-12, 12, 4), head=(12, 30, 16))
+    q(a, 18, pos=(0, 0.4, -1.1), chest=(14, -16, 0), head=(-40, -36, -12), arm_r=(6, 0, 0), arm_l=(20, 0, 0), fore_r=(8, 0, 0), fore_l=(26, 0, 0))
+    q(a, 21, pos=(0, 0.3, -0.9), chest=(10, -10, 0), head=(-28, -24, -6))
+    q(a, 26, pos=(0, -0.2, -0.3), chest=(-2, 0, 0), head=(2, 0, 0))
+    q(a, 32)
+    a.pos("jaw", (0, 0, 0, 0), (5, 0, 0, 0), (7, 0, -1.8, 0), (10, 0, -1.8, 0), (11, 0, 0, 0), (13, 0, -0.6, 0), (18, 0, -1.4, 0), (22, 0, 0, 0), (32, 0, 0, 0))
+    a.scl("jaw", (0, 1, 1, 1), (5, 1, 1, 1), (7, 1.3, 3.2, 1), (10, 1.3, 3.2, 1), (11, 1.1, 1.2, 1), (13, 1.1, 1.6, 1), (18, 1.2, 2.4, 1), (22, 1, 1, 1), (32, 1, 1, 1))
+    a.scl("head", (0, 1, 1, 1), (7, 1.08, 1.08, 1.08), (10, 1.05, 1.05, 1.05), (11, 1.3, 1.3, 1.3), (14, 1.2, 1.2, 1.2), (18, 1.22, 1.22, 1.22), (22, 1, 1, 1), (32, 1, 1, 1))
+    claws(a, 0, -10, 10); claws(a, 7, 40); claws(a, 11, -30, 14); claws(a, 14, 50); claws(a, 18, -30, 14); claws(a, 26, -10, 10); claws(a, 32, -10, 10)
+    a.wings(0, fold=10).wings(7, open_=40, fold=-10).wings(11, open_=-10, fold=40).wings(18, open_=50, fold=-16).wings(26, fold=10).wings(32, fold=10)
+    tails(a, [(0, -16, 0, -10), (7, 0, -20, 20), (11, 0, 30, -20), (13, 20, 26, -10), (15, -20, 26, -10), (18, 30, 10, 10), (26, -16, 0, -10), (32, -16, 0, -10)], lag=1)
+    a.hair([(0, 0, 0, 0), (3, 0, 0, 8), (7, -12, 0, 0), (11, 26, 0, 0), (13, 10, 0, 24), (15, 10, 0, -24), (17, 10, 0, 20), (18, -20, 0, -16), (24, 4, 0, 0), (32, 0, 0, 0)], delay=1)
+    a.done()
+
+    # ---------------------------------------------------------------- quad_horn_volley (44): arches her back like a cat + hiss 4-14, horns + ridge bristle,
+    #                                                                  VOLLEYS 18 / 24 / 30 (shudder, horns whip forward), settle
+    a = mk("quad_horn_volley", 44)
+    q(a, 0)
+    arch = dict(body=(14, 0, 0), chest=(-10, 0, 0), head=(-14, 0, 0), arm_r=(-14, 0, 4), arm_l=(-14, 0, -4), fore_r=(-30, 0, 0), fore_l=(-30, 0, 0),
+                hand_r=(22, 0, 0), hand_l=(22, 0, 0), leg_r=(-20, 0, 0), leg_l=(-20, 0, 0), shin_r=(-26, 0, 0), shin_l=(-26, 0, 0), foot_r=(14, 0, 0), foot_l=(14, 0, 0))
+    q(a, 6, pos=(0, 1.6, 0.2), **{**arch, "head": (-20, 10, 14)})
+    q(a, 8, pos=(0, 1.7, 0.2), **{**arch, "head": (-20, -10, -14)})
+    q(a, 12, pos=(0, 1.8, 0.2), **{**arch, "horn_r0": (QP["horn_r0"][0] - 30, 0, 0), "horn_l0": (QP["horn_l0"][0] - 30, 0, 0)})
+    for t in (18, 24, 30):
+        q(a, t - 2, pos=(0, 1.5, 0.4), **{**arch, "chest": (-6, 0, 0), "head": (-10, 0, 0), "horn_r0": (QP["horn_r0"][0] - 10, 0, 6), "horn_l0": (QP["horn_l0"][0] - 10, 0, -6)})
+        q(a, t, pos=(0, 2.1, -0.4), **{**arch, "chest": (-20, 0, 0), "head": (-2, 0, 0), "body": (18, 0, 0),
+                                        "horn_r0": (QP["horn_r0"][0] - 60, 0, 0), "horn_l0": (QP["horn_l0"][0] - 60, 0, 0)})
+        q(a, t + 2.5, pos=(0, 1.8, 0.2), **{**arch, "horn_r0": (QP["horn_r0"][0] - 36, 0, 0), "horn_l0": (QP["horn_l0"][0] - 36, 0, 0)})
+        a.pos("jaw", (t - 2, 0, 0, 0), (t, 0, -1.4, 0), (t + 2.5, 0, -0.4, 0))
+    q(a, 36, pos=(0, 0.6, 0), chest=(-4, 0, 0), head=(4, 0, 0))
+    q(a, 44)
+    a.pos("jaw", (0, 0, 0, 0), (4, 0, 0, 0), (6, 0, -1.0, 0), (12, 0, -0.6, 0), (36, 0, 0, 0), (44, 0, 0, 0))
+    claws(a, 0, -10, 10); claws(a, 6, 50, 6); claws(a, 34, 50, 6); claws(a, 44, -10, 10)
+    a.wings(0, fold=10).wings(6, open_=60, fold=-30).wings(12, open_=80, fold=-36)
+    for t in (18, 24, 30):
+        a.wings(t - 2, open_=84, fold=-40).wings(t, open_=40, fwd=30).wings(t + 2.5, open_=70, fold=-30)
+    a.wings(36, open_=20).wings(44, fold=10)
+    tails(a, [(0, -16, 0, -10), (6, 0, -60, 30), (12, 0, -70, 34), (18, 10, -64, 30), (24, -10, -64, 30), (30, 10, -64, 30), (36, 0, -20, 10), (44, -16, 0, -10)], lag=1.5)
+    a.hair([(0, 0, 0, 0), (6, 0, 0, 10), (8, 0, 0, -10), (12, 6, 0, 0), (18, -14, 0, 0), (24, -14, 0, 0), (30, -14, 0, 0), (36, 0, 0, 0), (44, 0, 0, 0)], delay=1)
+    a.done()
+
+    # ---------------------------------------------------------------- quad_stampede (64, enraged): screech 3-8, three BOUNDS (launch 10/22/34, SLAM 16/28/40),
+    #                                                                   rear up to the sky 44-49, CRATER double-claw slam 52, tremble, prowl
+    a = mk("quad_stampede", 64)
+    q(a, 0)
+    q(a, 4, pos=(0, 0.8, 0.6), chest=(22, 0, 0), head=(-36, 0, 0), arm_r=(10, 0, 20), arm_l=(10, 0, -20))
+    q(a, 8, pos=(0, -1.0, 1.0), chest=(-8, 0, 0), head=(-6, 0, 0), leg_r=(16, 0, 0), leg_l=(16, 0, 0), shin_r=(16, 0, 0), shin_l=(16, 0, 0))
+    for t in (10, 22, 34):
+        q(a, t, pos=(0, 1.4, -1.0), chest=(12, 0, 0), head=(-14, 0, 0), arm_r=(36, 0, -4), arm_l=(36, 0, 4), fore_r=(50, 0, 0), fore_l=(50, 0, 0),
+          leg_r=(-46, 0, 0), leg_l=(-46, 0, 0), shin_r=(-30, 0, 0), shin_l=(-30, 0, 0), foot_r=(20, 0, 0), foot_l=(20, 0, 0))
+        q(a, t + 3, pos=(0, 3.0, -1.6), chest=(20, 0, 0), head=(-18, 0, 0), arm_r=(44, 0, 20), arm_l=(44, 0, -20), fore_r=(60, 0, 0), fore_l=(60, 0, 0),
+          leg_r=(30, 0, 0), leg_l=(30, 0, 0), shin_r=(30, 0, 0), shin_l=(30, 0, 0))
+        q(a, t + 6, pos=(0, -1.6, -1.2), chest=(-14, 0, 0), head=(-6, 0, 0), arm_r=(10, 0, -4), arm_l=(10, 0, 4), fore_r=(20, 0, 0), fore_l=(20, 0, 0),
+          leg_r=(16, 0, 0), leg_l=(16, 0, 0), shin_r=(18, 0, 0), shin_l=(18, 0, 0))
+        q(a, t + 9, pos=(0, -0.6, -0.4), chest=(-4, 0, 0), head=(-4, 0, 0), leg_r=(10, 0, 0), leg_l=(10, 0, 0), shin_r=(10, 0, 0), shin_l=(10, 0, 0))
+    q(a, 46, pos=(0, 2.4, 0.9), body=(26, 0, 0), chest=(48, 0, 0), head=(-50, 0, 0), arm_r=(60, 0, 14), arm_l=(60, 0, -14), fore_r=(74, 0, 0), fore_l=(74, 0, 0),
+      hand_r=(40, 0, 0), hand_l=(40, 0, 0), leg_r=(-22, 0, 0), leg_l=(-22, 0, 0), shin_r=(-26, 0, 0), shin_l=(-26, 0, 0))
+    q(a, 49, pos=(0, 2.7, 1.0), body=(28, 0, 0), chest=(52, 0, 0), head=(-40, 0, 0), arm_r=(70, -10, 4), arm_l=(70, 10, -4), fore_r=(74, 0, 0), fore_l=(74, 0, 0),
+      hand_r=(40, 0, 0), hand_l=(40, 0, 0), leg_r=(-22, 0, 0), leg_l=(-22, 0, 0), shin_r=(-26, 0, 0), shin_l=(-26, 0, 0))
+    q(a, 52, pos=(0, -2.4, -1.4), body=(-6, 0, 0), chest=(-16, 0, 0), head=(-4, 0, 0), arm_r=(18, -10, -6), arm_l=(18, 10, 6), fore_r=(36, 0, 0), fore_l=(36, 0, 0),
+      leg_r=(14, 0, 0), leg_l=(14, 0, 0), shin_r=(16, 0, 0), shin_l=(16, 0, 0))
+    q(a, 55, pos=(0, -2.1, -1.3), body=(-6, 0, 0), chest=(-12, 3, 3), head=(0, 6, 0), arm_r=(18, -10, -6), arm_l=(18, 10, 6), fore_r=(36, 0, 0), fore_l=(36, 0, 0))
+    q(a, 58, pos=(0, -1.4, -0.8), chest=(-8, -2, -2), head=(2, -4, 0))
+    q(a, 64)
+    a.pos("jaw", (0, 0, 0, 0), (2, 0, 0, 0), (4, 0, -1.8, 0), (8, 0, -1.6, 0), (10, 0, 0, 0), (46, 0, 0, 0), (49, 0, -1.8, 0), (52, 0, -1.8, 0), (56, 0, 0, 0), (64, 0, 0, 0))
+    a.scl("jaw", (0, 1, 1, 1), (2, 1, 1, 1), (4, 1.3, 3, 1), (8, 1.3, 3, 1), (10, 1, 1, 1), (46, 1, 1, 1), (49, 1.3, 3, 1), (52, 1.3, 3, 1), (56, 1, 1, 1), (64, 1, 1, 1))
+    claws(a, 0, -10, 10); claws(a, 4, -40, 16)
+    for t in (10, 22, 34):
+        claws(a, t, -40, 16); claws(a, t + 6, 60, 8); claws(a, t + 9, 20)
+    claws(a, 46, -40, 16); claws(a, 52, 80, 8); claws(a, 58, 40); claws(a, 64, -10, 10)
+    a.wings(0, fold=10).wings(4, open_=80, fold=-36)
+    for t in (10, 22, 34):
+        a.wings(t, open_=60, fold=-20).wings(t + 3, open_=80, fold=-30).wings(t + 6, open_=-10, fold=30)
+    a.wings(46, open_=84, fold=-40).wings(52, open_=-10, fold=30).wings(58, fold=16).wings(64, fold=10)
+    tk = [(0, -16, 0, -10), (4, 0, -40, -20)]
+    for t in (10, 22, 34):
+        tk += [(t, 0, -40, -20), (t + 3, 0, -50, -10), (t + 6, 0, 30, 24)]
+    tk += [(46, 0, -60, 30), (52, 0, 60, -20), (64, -16, 0, -10)]
+    tails(a, tk, lag=1)
+    hk = [(0, 0, 0, 0), (4, -20, 0, 0)]
+    for t in (10, 22, 34):
+        hk += [(t, -20, 0, 0), (t + 3, -26, 0, 0), (t + 6, 26, 0, 0)]
+    hk += [(46, -24, 0, 0), (52, 32, 0, 0), (58, 6, 0, 0), (64, 0, 0, 0)]
+    a.hair(hk, delay=1)
+    a.done()
+
+
 # ================================================================== main
 if __name__ == "__main__":
     b1 = Builder("danger_alice", 1.0, False, 8)
@@ -1057,5 +1458,9 @@ if __name__ == "__main__":
     b2.C = C2
     build_p2(b2)
     anims_p2(b2)
+    anims_quad(b2)
+    if "--quad-preview" in sys.argv:  # debug only: show the quad loops in the preview's idle/walk row
+        for an in b2.m.anims:
+            an["name"] = {"idle": "idle_up", "walk": "walk_up", "quad_idle": "idle", "quad_walk": "walk"}.get(an["name"], an["name"])
     b2.m.save(DIR + "danger_alice_boss.bbmodel")
     print("danger_alice_boss cubes", len(b2.m.cubes))

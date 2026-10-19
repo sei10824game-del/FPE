@@ -32,6 +32,8 @@ public class MissThavel extends FpeEntity {
 
     @Override public Faction faction() { return Faction.MISS; }
 
+    @Override public boolean meleeFocus() { return true; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(130, 7, 0.29, 5, 0.35); }
 
     @Override public double preferredDistance() { return 1.6; }

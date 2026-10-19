@@ -40,6 +40,8 @@ public class InfectedBloomie extends FpeEntity {
 
     @Override public Faction faction() { return Faction.INFECTED; }
 
+    @Override public boolean meleeFocus() { return true; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(160, 8, 0.36, 4, 0.5); }
 
     @Override public double preferredDistance() { return 2.6; }

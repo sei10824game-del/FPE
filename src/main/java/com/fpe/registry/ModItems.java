@@ -48,6 +48,8 @@ public final class ModItems {
     public static final RegistryObject<Item> GREEN_CIRCLE = egg("green_circle", ModEntities.GREEN_CIRCLE, 0x1C1A22, 0x58C040);
     public static final RegistryObject<Item> HANSEL_JUVENILE = egg("hansel_juvenile", ModEntities.HANSEL_JUVENILE, 0x3E7A34, 0xF0E8D0);
     public static final RegistryObject<Item> LORD_HANSEL = egg("lord_hansel", ModEntities.LORD_HANSEL, 0xE8DCC0, 0xB01818);
+    public static final RegistryObject<Item> RILEY = egg("riley", ModEntities.RILEY, 0xE8E8EA, 0x20202A);
+    public static final RegistryObject<Item> DANIEL_BARREL = egg("daniel_barrel", ModEntities.DANIEL_BARREL, 0xB8BCC0, 0x2A2630);
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.fpe"))

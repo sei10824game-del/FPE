@@ -34,7 +34,7 @@ public class SpecModel<T extends Entity> extends EntityModel<T> {
             c.ability = f.currentAbilityId();
             c.dur = Math.max(1, f.currentAbilityDuration());
             c.t = f.animTime + partial;
-            c.variant = f.getVariant();
+            c.variant = f.getVariant(); c.stance = f.getStance();
             c.death = f.deathTime > 0 ? Math.min(1f, (f.deathTime + partial) / FpeEntity.DEATH_TICKS) : 0f;
         }
         spec.animator.animate(parts, c);

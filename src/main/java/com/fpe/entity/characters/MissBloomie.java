@@ -31,6 +31,8 @@ public class MissBloomie extends FpeEntity {
 
     @Override public Faction faction() { return Faction.MISS; }
 
+    @Override public boolean meleeFocus() { return true; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(90, 7, 0.30, 4, 0.3); }
 
     @Override public double preferredDistance() { return 2.5; }

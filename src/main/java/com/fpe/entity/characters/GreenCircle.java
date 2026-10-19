@@ -40,6 +40,8 @@ public class GreenCircle extends FpeEntity {
 
     @Override public Faction faction() { return Faction.GREEN_TEACHER; }
 
+    @Override public boolean meleeFocus() { return true; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(130, 8, 0.31, 4, 0.4); }
 
     @Override public double preferredDistance() { return 1.6; }

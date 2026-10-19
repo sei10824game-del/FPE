@@ -39,6 +39,8 @@ public class MutantEngel extends FpeEntity {
 
     @Override public Faction faction() { return Faction.MUTANT; }
 
+    @Override public boolean meleeFocus() { return true; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(110, 8, 0.31, 4, 0.45); }
 
     @Override public double preferredDistance() { return 2.0; }

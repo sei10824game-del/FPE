@@ -22,6 +22,8 @@ public final class AnimCtx {
     public float death;
     /** entity-specific variant (e.g. Alice phase) */
     public int variant;
+    /** body stance (0 normal, 1 quadruped...) */
+    public int stance;
 
     public boolean is(String id) { return ability.equals(id); }
     public boolean idle() { return ability.isEmpty(); }

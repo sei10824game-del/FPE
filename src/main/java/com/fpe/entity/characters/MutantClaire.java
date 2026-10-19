@@ -39,6 +39,8 @@ public class MutantClaire extends FpeEntity {
 
     @Override public Faction faction() { return Faction.MUTANT; }
 
+    @Override public boolean meleeFocus() { return true; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(100, 7, 0.32, 3, 0.35); }
 
     @Override public double preferredDistance() { return 1.4; }

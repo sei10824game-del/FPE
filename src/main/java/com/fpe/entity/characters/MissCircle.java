@@ -41,6 +41,8 @@ public class MissCircle extends FpeEntity {
 
     @Override public Faction faction() { return Faction.MISS; }
 
+    @Override public boolean meleeFocus() { return true; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(90, 7, 0.3, 5, 0.4); }
 
     @Override public double preferredDistance() { return 2.5; }

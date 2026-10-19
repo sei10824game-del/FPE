@@ -35,6 +35,8 @@ public class InfectedZip extends FpeEntity {
 
     @Override public Faction faction() { return Faction.INFECTED; }
 
+    @Override public boolean meleeFocus() { return true; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(190, 9, 0.38, 3, 0.5); }
 
     @Override public double preferredDistance() { return 2.2; }

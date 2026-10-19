@@ -15,6 +15,7 @@ public final class Specs {
                 RedCircleSpec.SPEC, DangerThavelSpec.SPEC, DangerBloomieSpec.SPEC, InfectedBloomieSpec.SPEC, InfectedZipSpec.SPEC, DangerAliceSpec.SPEC, DangerAliceSpec.PHASE2, FenSpec.SPEC, AidenSpec.SPEC,
                 MutantClaireSpec.SPEC, MutantEngelSpec.SPEC, MutantBubbleSpec.SPEC, MutantLanaSpec.SPEC, MutantAbbieSpec.SPEC, GreenThavelSpec.SPEC, GreenBloomieSpec.SPEC, GreenAliceSpec.PHASE1, GreenAliceSpec.PHASE2,
                 GreenCircleSpec.SPEC, HanselJuvenileSpec.SPEC, LordHanselSpec.MATURED, LordHanselSpec.PREMATURE, LordHanselSpec.TRUE_FORM,
+                RileySpec.SPEC, DanielBarrelSpec.PHASE1, DanielBarrelSpec.PHASE2,
                 FxSpecs.SPIKE, FxSpecs.TENTACLE));
         ProjectileSpecs.all().forEach(l::add);
         return l;

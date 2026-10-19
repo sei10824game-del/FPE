@@ -53,6 +53,8 @@ public final class ClientSetup {
         e.registerEntityRenderer(ModEntities.GREEN_CIRCLE.get(), c -> new FpeRenderer<>(c, GreenCircleSpec.SPEC));
         e.registerEntityRenderer(ModEntities.HANSEL_JUVENILE.get(), c -> new FpeRenderer<>(c, HanselJuvenileSpec.SPEC));
         e.registerEntityRenderer(ModEntities.LORD_HANSEL.get(), c -> new FpeRenderer<>(c, LordHanselSpec.MATURED, LordHanselSpec.PREMATURE, LordHanselSpec.TRUE_FORM));
+        e.registerEntityRenderer(ModEntities.RILEY.get(), c -> new FpeRenderer<>(c, RileySpec.SPEC));
+        e.registerEntityRenderer(ModEntities.DANIEL_BARREL.get(), c -> new FpeRenderer<>(c, DanielBarrelSpec.PHASE1, DanielBarrelSpec.PHASE2));
         e.registerEntityRenderer(ModEntities.PROJECTILE.get(), FpeProjectileRenderer::new);
         e.registerEntityRenderer(ModEntities.FX.get(), FpeFxRenderer::new);
     }

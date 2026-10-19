@@ -36,6 +36,8 @@ public class GreenThavel extends FpeEntity {
 
     @Override public Faction faction() { return Faction.GREEN_TEACHER; }
 
+    @Override public boolean meleeFocus() { return true; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(110, 7, 0.31, 4, 0.3); }
 
     @Override public double preferredDistance() { return 1.6; }

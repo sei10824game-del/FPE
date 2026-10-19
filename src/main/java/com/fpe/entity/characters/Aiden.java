@@ -33,6 +33,8 @@ public class Aiden extends FpeEntity {
 
     @Override public Faction faction() { return Faction.STUDENT; }
 
+    @Override public boolean meleeFocus() { return true; }
+
     public static AttributeSupplier.Builder attributes() { return baseAttributes(75, 6, 0.27, 3, 0.25); }
 
     @Override public double preferredDistance() { return 2.2; }
