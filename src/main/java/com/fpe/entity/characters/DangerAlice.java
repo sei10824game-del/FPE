@@ -83,7 +83,7 @@ public class DangerAlice extends FpeEntity {
     @Override
     public EntityDimensions getDimensions(Pose pose) {
         if (getVariant() != 1) return super.getDimensions(pose);
-        return getStance() == 1 ? EntityDimensions.scalable(3.6f, 3.2f) : EntityDimensions.scalable(2.2f, 5.2f);
+        return getStance() == 1 ? EntityDimensions.scalable(4.06f, 3.61f) : EntityDimensions.scalable(2.48f, 5.87f);
     }
 
     @Override

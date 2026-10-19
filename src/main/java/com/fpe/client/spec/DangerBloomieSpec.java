@@ -20,7 +20,7 @@ public final class DangerBloomieSpec {
     static final int HAIR = 0x0F0F14, HAT = 0x15151D, HAT_L = 0x24242F, TAN = 0xDCC690, STRIPE_D = 0x16161C;
     static final int GLOVE = 0x121218, WOOD = 0x8A4E24, WOOD_D = 0x5E3416, STEEL = 0x1F2026, STEEL_L = 0x34363F;
 
-    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("danger_bloomie", 0.6f);
+    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("danger_bloomie", 0.66f);
     static final ModelSpec PROC = build();
 
     private static ModelSpec build() {

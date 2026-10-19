@@ -19,7 +19,7 @@ public final class RedCircleSpec {
             BELT = 0xB89430, YEL = 0xE8B830, YEL_D = 0xC8941E, YEL_L = 0xF4D058, RED = 0xC01830, BAND = 0xDCD8CC, STEEL = 0x4A4C56, STEEL_D = 0x30323A,
             TANK = 0xA02828, GLOVE = 0x1A1920, CLAW = 0xE8E6EE, GOLD = 0xE8C030, WHITE = 0xF0F0F4;
 
-    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("red_circle", 0.8f);
+    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("red_circle", 0.9f);
     static final ModelSpec PROC = build();
 
     private static ModelSpec build() {

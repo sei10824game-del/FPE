@@ -73,7 +73,7 @@ public class GreenAlice extends FpeEntity {
 
     @Override
     public EntityDimensions getDimensions(Pose pose) {
-        return getVariant() == 1 ? EntityDimensions.scalable(4.0f, 6.0f) : super.getDimensions(pose);
+        return getVariant() == 1 ? EntityDimensions.scalable(4.36f, 6.55f) : super.getDimensions(pose);
     }
 
     @Override

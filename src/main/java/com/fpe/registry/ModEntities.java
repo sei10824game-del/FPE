@@ -27,34 +27,34 @@ public final class ModEntities {
         return ENTITIES.register(id, () -> EntityType.Builder.of(f, MobCategory.MONSTER).sized(w, h).clientTrackingRange(10).updateInterval(2).build(FpeMod.MODID + ":" + id));
     }
 
-    public static final RegistryObject<EntityType<MissCircle>> MISS_CIRCLE = chara("miss_circle", MissCircle::new, 0.8f, 2.5f);
-    public static final RegistryObject<EntityType<MissThavel>> MISS_THAVEL = chara("miss_thavel", MissThavel::new, 0.7f, 2.0f);
-    public static final RegistryObject<EntityType<MissBloomie>> MISS_BLOOMIE = chara("miss_bloomie", MissBloomie::new, 0.7f, 2.0f);
-    public static final RegistryObject<EntityType<Alice>> ALICE = chara("alice", Alice::new, 0.7f, 2.0f);
-    public static final RegistryObject<EntityType<RedCircle>> RED_CIRCLE = chara("red_circle", RedCircle::new, 0.7f, 2.3f);
-    public static final RegistryObject<EntityType<DangerThavel>> DANGER_THAVEL = chara("danger_thavel", DangerThavel::new, 0.7f, 2.1f);
-    public static final RegistryObject<EntityType<DangerBloomie>> DANGER_BLOOMIE = chara("danger_bloomie", DangerBloomie::new, 0.7f, 2.0f);
-    public static final RegistryObject<EntityType<InfectedBloomie>> INFECTED_BLOOMIE = chara("infected_bloomie", InfectedBloomie::new, 1.3f, 3.2f);
-    public static final RegistryObject<EntityType<InfectedZip>> INFECTED_ZIP = chara("infected_zip", InfectedZip::new, 1.5f, 2.3f);
-    public static final RegistryObject<EntityType<DangerAlice>> DANGER_ALICE = chara("danger_alice", DangerAlice::new, 0.7f, 2.0f);
-    public static final RegistryObject<EntityType<Fen>> FEN = chara("fen", Fen::new, 1.0f, 2.8f);
-    public static final RegistryObject<EntityType<Aiden>> AIDEN = chara("aiden", Aiden::new, 0.6f, 1.7f);
+    public static final RegistryObject<EntityType<MissCircle>> MISS_CIRCLE = chara("miss_circle", MissCircle::new, 0.75f, 2.57f);
+    public static final RegistryObject<EntityType<MissThavel>> MISS_THAVEL = chara("miss_thavel", MissThavel::new, 0.6f, 2.19f);
+    public static final RegistryObject<EntityType<MissBloomie>> MISS_BLOOMIE = chara("miss_bloomie", MissBloomie::new, 0.6f, 2.18f);
+    public static final RegistryObject<EntityType<Alice>> ALICE = chara("alice", Alice::new, 0.7f, 2.51f);
+    public static final RegistryObject<EntityType<RedCircle>> RED_CIRCLE = chara("red_circle", RedCircle::new, 0.75f, 2.57f);
+    public static final RegistryObject<EntityType<DangerThavel>> DANGER_THAVEL = chara("danger_thavel", DangerThavel::new, 0.7f, 2.44f);
+    public static final RegistryObject<EntityType<DangerBloomie>> DANGER_BLOOMIE = chara("danger_bloomie", DangerBloomie::new, 0.65f, 2.29f);
+    public static final RegistryObject<EntityType<InfectedBloomie>> INFECTED_BLOOMIE = chara("infected_bloomie", InfectedBloomie::new, 1.3f, 4.12f);
+    public static final RegistryObject<EntityType<InfectedZip>> INFECTED_ZIP = chara("infected_zip", InfectedZip::new, 1.5f, 2.94f);
+    public static final RegistryObject<EntityType<DangerAlice>> DANGER_ALICE = chara("danger_alice", DangerAlice::new, 0.7f, 2.51f);
+    public static final RegistryObject<EntityType<Fen>> FEN = chara("fen", Fen::new, 1.0f, 3.2f);
+    public static final RegistryObject<EntityType<Aiden>> AIDEN = chara("aiden", Aiden::new, 0.6f, 1.64f);
 
-    public static final RegistryObject<EntityType<MutantClaire>> MUTANT_CLAIRE = chara("mutant_claire", MutantClaire::new, 0.8f, 2.0f);
-    public static final RegistryObject<EntityType<MutantEngel>> MUTANT_ENGEL = chara("mutant_engel", MutantEngel::new, 0.8f, 2.8f);
-    public static final RegistryObject<EntityType<MutantBubble>> MUTANT_BUBBLE = chara("mutant_bubble", MutantBubble::new, 0.6f, 1.2f);
-    public static final RegistryObject<EntityType<MutantLana>> MUTANT_LANA = chara("mutant_lana", MutantLana::new, 0.7f, 2.0f);
-    public static final RegistryObject<EntityType<MutantAbbie>> MUTANT_ABBIE = chara("mutant_abbie", MutantAbbie::new, 0.8f, 2.2f);
-    public static final RegistryObject<EntityType<GreenThavel>> GREEN_THAVEL = chara("green_thavel", GreenThavel::new, 0.7f, 2.1f);
-    public static final RegistryObject<EntityType<GreenBloomie>> GREEN_BLOOMIE = chara("green_bloomie", GreenBloomie::new, 0.7f, 2.3f);
-    public static final RegistryObject<EntityType<GreenAlice>> GREEN_ALICE = chara("green_alice", GreenAlice::new, 0.7f, 2.0f);
+    public static final RegistryObject<EntityType<MutantClaire>> MUTANT_CLAIRE = chara("mutant_claire", MutantClaire::new, 0.6f, 1.53f);
+    public static final RegistryObject<EntityType<MutantEngel>> MUTANT_ENGEL = chara("mutant_engel", MutantEngel::new, 0.6f, 1.93f);
+    public static final RegistryObject<EntityType<MutantBubble>> MUTANT_BUBBLE = chara("mutant_bubble", MutantBubble::new, 0.6f, 1.22f);
+    public static final RegistryObject<EntityType<MutantLana>> MUTANT_LANA = chara("mutant_lana", MutantLana::new, 0.6f, 1.72f);
+    public static final RegistryObject<EntityType<MutantAbbie>> MUTANT_ABBIE = chara("mutant_abbie", MutantAbbie::new, 0.6f, 1.5f);
+    public static final RegistryObject<EntityType<GreenThavel>> GREEN_THAVEL = chara("green_thavel", GreenThavel::new, 0.65f, 2.29f);
+    public static final RegistryObject<EntityType<GreenBloomie>> GREEN_BLOOMIE = chara("green_bloomie", GreenBloomie::new, 0.65f, 2.29f);
+    public static final RegistryObject<EntityType<GreenAlice>> GREEN_ALICE = chara("green_alice", GreenAlice::new, 0.7f, 2.51f);
 
-    public static final RegistryObject<EntityType<GreenCircle>> GREEN_CIRCLE = chara("green_circle", GreenCircle::new, 0.8f, 2.6f);
-    public static final RegistryObject<EntityType<HanselJuvenile>> HANSEL_JUVENILE = chara("hansel_juvenile", HanselJuvenile::new, 0.7f, 2.0f);
-    public static final RegistryObject<EntityType<LordHansel>> LORD_HANSEL = chara("lord_hansel", LordHansel::new, 0.9f, 2.6f);
+    public static final RegistryObject<EntityType<GreenCircle>> GREEN_CIRCLE = chara("green_circle", GreenCircle::new, 0.75f, 2.62f);
+    public static final RegistryObject<EntityType<HanselJuvenile>> HANSEL_JUVENILE = chara("hansel_juvenile", HanselJuvenile::new, 0.6f, 2.15f);
+    public static final RegistryObject<EntityType<LordHansel>> LORD_HANSEL = chara("lord_hansel", LordHansel::new, 0.8f, 2.9f);
 
-    public static final RegistryObject<EntityType<Riley>> RILEY = chara("riley", Riley::new, 0.6f, 1.7f);
-    public static final RegistryObject<EntityType<DanielBarrel>> DANIEL_BARREL = chara("daniel_barrel", DanielBarrel::new, 0.8f, 2.5f);
+    public static final RegistryObject<EntityType<Riley>> RILEY = chara("riley", Riley::new, 0.6f, 1.94f);
+    public static final RegistryObject<EntityType<DanielBarrel>> DANIEL_BARREL = chara("daniel_barrel", DanielBarrel::new, 0.75f, 2.58f);
 
     public static final RegistryObject<EntityType<FpeProjectile>> PROJECTILE = ENTITIES.register("projectile", () ->
             EntityType.Builder.<FpeProjectile>of(FpeProjectile::new, MobCategory.MISC).sized(0.4f, 0.4f).clientTrackingRange(8).updateInterval(1).build(FpeMod.MODID + ":projectile"));

@@ -87,7 +87,7 @@ public class Alice extends FpeEntity {
     @Override
     public EntityDimensions getDimensions(Pose pose) {
         if (getVariant() != 1) return super.getDimensions(pose);
-        return getStance() == 1 ? EntityDimensions.scalable(4.2f, 4.4f) : EntityDimensions.scalable(3.2f, 6.5f);
+        return getStance() == 1 ? EntityDimensions.scalable(4.6f, 4.82f) : EntityDimensions.scalable(3.5f, 7.12f);
     }
 
     @Override
