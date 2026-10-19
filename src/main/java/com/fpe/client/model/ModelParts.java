@@ -1,5 +1,6 @@
 package com.fpe.client.model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,13 +11,18 @@ import net.minecraft.client.model.geom.ModelPart;
 public final class ModelParts {
     private final Map<String, ModelPart> map = new HashMap<>();
     private final ModelPart dummy = new ModelPart(List.of(), Map.of());
+    /** per-face-UV polygons per part name (rendered by SpecModel itself, see there) */
+    final Map<String, ModelPart.Polygon[]> polys = new HashMap<>();
+    final Map<String, List<ModelSpec.Part>> children = new HashMap<>();
+    public boolean customRender;
 
     public ModelParts(ModelPart root, ModelSpec spec) {
         for (ModelSpec.Part p : spec.parts) {
             ModelPart cur = root;
             for (String s : spec.path(p.name)) cur = cur.getChild(s);
             map.put(p.name, cur);
-            if (p.faceUv != null) FaceUv.apply(cur, p, spec.texW, spec.texH);
+            if (p.faceUv != null) { FaceUv.apply(cur, p, spec.texW, spec.texH); polys.put(p.name, FaceUv.build(p, spec.texW, spec.texH)); customRender = true; }
+            children.computeIfAbsent(p.parent == null ? "" : p.parent, k -> new ArrayList<>()).add(p);
         }
     }
 

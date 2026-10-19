@@ -10,8 +10,15 @@ import net.minecraft.core.Direction;
 final class FaceUv {
     private FaceUv() {}
 
+    /** Patches the vanilla cube too (used by the headless preview, which renders through ModelPart). */
     static void apply(ModelPart mp, ModelSpec.Part p, int tw, int th) {
         Cube c = mp.cubes.get(0);
+        Polygon[] pg = build(p, tw, th);
+        for (int i = 0; i < 6 && i < c.polygons.length; i++) c.polygons[i] = pg[i];
+    }
+
+    /** The six polygons of one box with free per-face UV (order: y-min, y-max, x-min, z-min, x-max, z-max). */
+    static Polygon[] build(ModelSpec.Part p, int tw, int th) {
         float x0 = p.ox - p.inflate, y0 = p.oy - p.inflate, z0 = p.oz - p.inflate;
         float x1 = p.ox + p.w + p.inflate, y1 = p.oy + p.h + p.inflate, z1 = p.oz + p.d + p.inflate;
         if (p.mirror) { float t = x0; x0 = x1; x1 = t; }
@@ -21,9 +28,11 @@ final class FaceUv {
         // vanilla polygon order: y-min(top), y-max, x-min, z-min, x-max, z-max  <->  faceUv slots up, down, east, north, west, south
         int[] slot = { 4, 5, 1, 0, 3, 2 };
         Direction[] dir = { Direction.DOWN, Direction.UP, Direction.WEST, Direction.NORTH, Direction.EAST, Direction.SOUTH };
-        for (int i = 0; i < 6 && i < c.polygons.length; i++) {
+        Polygon[] out = new Polygon[6];
+        for (int i = 0; i < 6; i++) {
             float[] uv = p.faceUv[slot[i]];
-            c.polygons[i] = new Polygon(verts[i], uv[0], uv[1], uv[2], uv[3], tw, th, p.mirror, dir[i]);
+            out[i] = new Polygon(verts[i], uv[0], uv[1], uv[2], uv[3], tw, th, p.mirror, dir[i]);
         }
+        return out;
     }
 }

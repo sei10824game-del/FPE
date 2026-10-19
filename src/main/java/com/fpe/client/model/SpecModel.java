@@ -42,6 +42,31 @@ public class SpecModel<T extends Entity> extends EntityModel<T> {
 
     @Override
     public void renderToBuffer(PoseStack ps, VertexConsumer vc, int light, int overlay, float r, float g, float b, float a) {
-        root.render(ps, vc, light, overlay, r, g, b, a);
+        // Models with per-face UV are drawn here (not via ModelPart.render): optimisation mods such as Embeddium/Sodium replace the
+        // vanilla cube drawing with their own box-UV copy made at construction time, which would ignore our polygons.
+        if (!parts.customRender) { root.render(ps, vc, light, overlay, r, g, b, a); return; }
+        for (ModelSpec.Part p : parts.children.getOrDefault("", java.util.List.of())) drawNode(p, ps, vc, light, overlay, r, g, b, a);
+    }
+
+    private void drawNode(ModelSpec.Part p, PoseStack ps, VertexConsumer vc, int light, int overlay, float r, float g, float b, float a) {
+        net.minecraft.client.model.geom.ModelPart mp = parts.get(p.name);
+        if (!mp.visible) return;
+        ps.pushPose();
+        mp.translateAndRotate(ps);
+        net.minecraft.client.model.geom.ModelPart.Polygon[] pg = parts.polys.get(p.name);
+        if (pg != null) {
+            PoseStack.Pose pose = ps.last();
+            org.joml.Matrix4f m4 = pose.pose();
+            org.joml.Matrix3f m3 = pose.normal();
+            for (net.minecraft.client.model.geom.ModelPart.Polygon poly : pg) {
+                org.joml.Vector3f n = m3.transform(new org.joml.Vector3f(poly.normal));
+                for (net.minecraft.client.model.geom.ModelPart.Vertex v : poly.vertices) {
+                    org.joml.Vector4f p4 = m4.transform(new org.joml.Vector4f(v.pos.x() / 16f, v.pos.y() / 16f, v.pos.z() / 16f, 1f));
+                    vc.vertex(p4.x(), p4.y(), p4.z(), r, g, b, a, v.u, v.v, overlay, light, n.x(), n.y(), n.z());
+                }
+            }
+        }
+        for (ModelSpec.Part c : parts.children.getOrDefault(p.name, java.util.List.of())) drawNode(c, ps, vc, light, overlay, r, g, b, a);
+        ps.popPose();
     }
 }
