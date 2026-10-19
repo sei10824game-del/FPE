@@ -35,3 +35,11 @@ Red/orange-toned sheets = the DANGER AU versions; black-and-white sheets = the n
 3. Alice phase 2: GIANT (scale up), whole body pitch black, monstrous, rougher/flashier attacks: tentacles, black attacks erupting from the ground, etc.
 4. FPE characters are hostile to every non-FPE mob and vice versa (already in FpeHostility; keep it).
 5. Previous author gave every character ~10-12 attacks; keep at least that many.
+
+## Added later
+- Melee rework: Miss Circle / Miss Thavel / Miss Bloomie (ranged attacks replaced by melee; Danger versions keep ranged).
+- FPE Green: Mutant Claire/Engel/Bubble/Lana/Abbie, Green Thavel/Bloomie/Circle, Green Alice (2 forms). FPE Advanced Class: Juvenile Hansel, Lord Hansel (3 forms: Matured -> Premature -> True Form).
+- Canon heights: Fen 305 cm, Miss Circle 292 cm (1 block = 1 m).
+- Tools: tools/bbgen/chars/*.py (model+animation generators), tools/bbgen/connectivity.py (detached-cube check), tools/run_agent.sh (opus sub-agent per character),
+  ./gradlew preview -Pspec=<name>, ./gradlew runClient -Pshots=a,b,c (dev screenshots, needs the local-only src/main/java/com/fpe/dev/DevShot.java).
+- Known: Windows report of single-colour rendering with the GitHub jar could not be reproduced on macOS (dev + production Forge). Startup now logs "FPE texture <name> WxH glow=.. glError=..".

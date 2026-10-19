@@ -107,6 +107,7 @@ public final class Preview {
         ModelParts parts = new ModelParts(root, s);
         Class<? extends FpeEntity> ec = ENTITY.get(s.name);
         List<Ability> abil = ec == null ? List.of() : abilitiesOf(ec);
+        if (s.name.startsWith("lord_hansel")) abil = onlyAnimated(s.name, abil); // 3 forms share one class: show each form's own abilities
         int variant = s.name.equals("alice_boss") || s.name.equals("danger_alice_boss") || s.name.equals("green_alice_boss") || Integer.getInteger("fpe.variant", 0) == 1 ? 1 : 0;
 
         // framing from idle pose
@@ -146,6 +147,18 @@ public final class Preview {
         for (int r = 0; r < rows.size(); r++) for (int c = 0; c < rows.get(r).size(); c++) g.drawImage(rows.get(r).get(c), c * FW, r * FH, null);
         g.dispose();
         return img;
+    }
+
+    static List<Ability> onlyAnimated(String spec, List<Ability> all) throws Exception {
+        java.util.Set<String> names = new java.util.HashSet<>();
+        try (java.io.InputStream in = Preview.class.getResourceAsStream("/assets/fpe/bbmodels/" + spec + ".bbmodel")) {
+            if (in == null) return all;
+            for (com.google.gson.JsonElement e : com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject().getAsJsonArray("animations"))
+                names.add(e.getAsJsonObject().get("name").getAsString());
+        }
+        List<Ability> out = new ArrayList<>();
+        for (Ability a : all) if (names.contains(a.id)) out.add(a);
+        return out;
     }
 
     static AnimCtx idleCtx(int variant, float a, float b) { AnimCtx c = new AnimCtx(); c.variant = variant; c.dur = 1; c.age = 5; return c; }
