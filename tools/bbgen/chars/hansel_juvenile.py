@@ -252,12 +252,10 @@ def face_front(F):
         for x in range(-8, 9):
             if (x / 7.5) ** 2 + (y / 3.4) ** 2 <= 1 and y > -2:
                 F.px(ex + x, ey + y, 0xF6F0E2)
-    F.disc(ex - 1, ey + 1, 2.8, 0x6A4A1E)
-    F.disc(ex - 1, ey + 1, 1.4, LINE)
-    F.px(ex - 2, ey, 0xFFF2B0, glow=True)
+    F.disc(ex - 1, ey - 0.5, 2.4, LINE)                       # art: iris lost under the lid - just a dark half-moon
     for x in range(-9, 10):
         yy = ey - 2 - int(2.2 * math.cos(x / 9 * math.pi / 2))
-        F.rect(ex + x, yy, 1, 2, LINE)
+        F.rect(ex + x, yy, 1, 3 if abs(x) < 7 else 2, LINE)    # heavy black upper lid
     F.line(ex + 8, ey - 3, ex + 12, ey - 6, LINE, 1)          # lash flick
     F.line(ex + 7, ey - 1, ex + 11, ey - 2, LINE, 1)
     F.line(ex - 6, ey + 4, ex + 6, ey + 4, SKIN_D, 1)         # lower lid crease

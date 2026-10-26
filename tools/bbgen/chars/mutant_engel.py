@@ -118,37 +118,39 @@ def skinp(F):
 
 
 def face_upper(F):
-    """upper face: char right = texel left. big round staring eye (char right), narrow crack-eye (char left),
-    heavy brow shadow, cracks, the grin corners curling up the cheeks, upper teeth row at the bottom."""
+    """upper face (ref ENGEL 002), char right = texel left. ONE big round staring eye on his LEFT (texel right): white
+    with a thick ink ring and a small off-centre pupil, stitch-crack under it. His right eye is a half-shut slit under
+    the long hair lock (bang2). Lopsided black crescent grin: low on his right, sweeping high up his left cheek."""
     W, H = F.w, F.h
     skinp(F)
     F.rect(0, 0, W, 6, mix(SKIN_D, WH_DD, 0.4))  # hair shadow
-    # right eye: dark socket + white ring + black pupil
-    ex, ey = 17, 17
-    F.disc(ex, ey, 8.0, LINE)
-    F.disc(ex, ey, 6.6, 0x3A3A44)
-    F.disc(ex, ey, 4.4, WH_L)
-    F.disc(ex + 1, ey + 1, 2.4, BLK_D)
-    F.disc(ex - 0.5, ey - 0.5, 0.9, 0xEFFFFF, glow=True)
-    F.line(ex - 9, ey - 10, ex + 7, ey - 8, LINE, 1.5)
-    # left eye: squinted crescent
-    lx, ly = W - 17, 18
-    F.poly([(lx - 8, ly), (lx, ly - 4), (lx + 8, ly - 1), (lx + 1, ly + 2)], LINE)
-    F.disc(lx + 1, ly - 1, 1.0, 0xEFFFFF, glow=True)
-    F.line(lx - 8, ly - 9, lx + 8, ly - 6, LINE, 1.5)
-    # cracks
-    F.line(lx + 2, ly + 3, lx + 6, ly + 9, WH_DD); F.line(lx + 6, ly + 9, lx + 4, ly + 13, WH_DD)
-    F.line(ex - 3, 2, ex - 6, 8, WH_DD)
-    # grin: mouth opening along the bottom, corners sweeping up the cheeks
-    F.rect(4, H - 7, W - 8, 7, MOUTH)
-    F.poly([(0, H - 16), (6, H - 7), (4, H), (0, H)], MOUTH)
-    F.poly([(W, H - 16), (W - 6, H - 7), (W - 4, H), (W, H)], MOUTH)
-    F.line(0, H - 17, 5, H - 8, LINE, 1.5); F.line(W - 1, H - 17, W - 6, H - 8, LINE, 1.5)
-    # upper teeth (triangular, hanging)
-    for i in range(9):
-        tx = 6 + i * (W - 12) / 9
-        F.poly([(tx, H - 7), (tx + (W - 12) / 9 - 0.5, H - 7), (tx + (W - 12) / 18, H - 1)], TOOTH)
-    F.rect(4, H - 8, W - 8, 1, LINE)
+    F.poly([(0, 6), (W * 0.42, 6), (W * 0.3, 15), (0, 22)], mix(SKIN_D, WH_DD, 0.55))  # shadow of the lock over his right eye
+    # left eye (texel right): big round, ink ring, small pupil glancing toward the viewer's left
+    ex, ey = W - 17, 16
+    F.disc(ex, ey, 8.6, LINE)
+    F.disc(ex, ey, 7.0, WH_L)
+    F.disc(ex - 2, ey + 0.5, 2.6, BLK_D)
+    F.disc(ex - 2.6, ey - 0.4, 0.9, 0xEFFFFF, glow=True)
+    F.line(ex - 9, ey - 10, ex + 8, ey - 11, LINE, 1.5)  # raised brow
+    F.line(ex + 3, ey + 9, ex + 6, ey + 14, WH_DD); F.line(ex + 6, ey + 14, ex + 4, ey + 17, WH_DD)  # crack
+    for k in range(3): F.line(ex + 2 + k * 2, ey + 10 + k * 2, ex + 5 + k * 2, ey + 9 + k * 2, WH_DD)  # stitches
+    # right eye (texel left): half-shut slit peeking from under the lock
+    rx, ry = 15, 18
+    F.poly([(rx - 6, ry), (rx + 1, ry - 2), (rx + 7, ry), (rx + 1, ry + 1)], LINE)
+    F.disc(rx + 1, ry - 0.5, 0.7, 0xEFFFFF, glow=True)
+    # lopsided crescent grin: opening along the bottom, his left corner (texel right) sweeping up toward the eye
+    top = lambda x: H - 6 - int(max(0, x - W * 0.55) / (W * 0.45) * 12)
+    for x in range(1, W - 1):
+        F.rect(x, top(x), 1, H - top(x), MOUTH)
+    F.poly([(0, H - 9), (4, H - 6), (3, H), (0, H)], MOUTH)  # short right corner
+    for x in range(1, W - 1):
+        F.px(x, top(x) - 1, LINE)
+    # upper teeth hanging from the grin's upper lip (follow the curve)
+    n = 10
+    for i in range(n):
+        tx = 4 + i * (W - 8) / n; tw = (W - 8) / n - 0.6
+        yt = top(int(tx + tw / 2))
+        F.poly([(tx, yt), (tx + tw, yt), (tx + tw / 2, yt + 5)], TOOTH)
     outline()(F)
 
 
@@ -321,8 +323,8 @@ for i, (s, y, z, ln, tilt) in enumerate([(1, 39.0, -1.5, 7.0, 76), (1, 37.6, 0.8
 for i in range(5):
     x = -3.2 + i * 1.6
     spike(f"back{i}", "hair_b", (x, 40.6, 3.2), 6.0 + (i % 2) * 1.6, 1.8, 150 - (i % 2) * 14, (i - 2) * -14)
-# bangs: sharp spikes over the forehead, gap over the eyes
-for i, (x, ln, rz) in enumerate([(-3.6, 3.4, -14), (-0.2, 2.0, 0), (3.6, 4.0, 16)]):
+# bangs: sharp spikes over the forehead; his left eye stays clear
+for i, (x, ln, rz) in enumerate([(-3.6, 3.4, -14), (-0.2, 2.0, 0), (2.4, 4.6, 8)]):  # bang2: long lock over his right eye (ref)
     spike(f"bang{i}", "bangs", (x, 42.2, -4.3), ln, 1.6, 172, rz)
 # feathers (teal / white / red / black bands) stuck in the hair, char's right, pointing up and out
 for i, (dx, ln, rz, rx, band) in enumerate([(0.0, 9.0, -34, -10, [WH_L, TEAL, TEAL, BLK, WH_L, TEAL_D]),

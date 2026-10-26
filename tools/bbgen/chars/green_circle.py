@@ -23,7 +23,7 @@ COAT, COAT_D, COAT_L = 0xEDEFF1, 0xAEB7C2, 0xFFFFFF
 SHORT, SHORT_D = 0xF5F4F0, 0xB9BEC6
 BLK, BLK_L, BLK_D = 0x1A1920, 0x34333E, 0x0A0A0E
 GRN, GRN_D, GRN_L, GRN_DD = 0x8FCF3E, 0x5C8F22, 0xCBF28A, 0x34541A
-LENS, LENS_L, LENS_D = 0x9DD86A, 0xE2FFC0, 0x5E9A3A
+LENS, LENS_L, LENS_D = 0xB4C3CC, 0xEEF4F7, 0x7E8F9A  # face pass: clear blue-grey safety glass (green frame), as drawn
 STEEL, STEEL_D, STEEL_L = 0xB9C2CC, 0x6F7884, 0xE4E9EE
 GUN, GUN_D = 0xF2F3F4, 0xA3ACB7
 LIQ, LIQ_L, LIQ_D = 0x86D13A, 0xD9FF9A, 0x4E8A1E
@@ -91,34 +91,35 @@ def face_front(F):
     for y in range(H):
         for x in range(W):
             F.px(x, y, mix(SKIN, SKIN_D, max(0, (26 - y) / 26) * 0.75))
-    # sharp narrow grinning eyes, slanted, green glint
-    for s in (-1, 1):
-        cx = W / 2 + s * 14
-        pts = [(cx - 8 * s, 25), (cx + 9 * s, 21), (cx + 7 * s, 27), (cx - 6 * s, 29)]
-        F.poly(pts, LINE)
-        F.disc(cx + 1 * s, 25.5, 1.6, TOX, glow=True)
-        F.line(cx + 9 * s, 21, cx + 12 * s, 18, LINE, 1.4)  # lash flick
-        F.line(cx - 9 * s, 20, cx + 6 * s, 15, mix(LINE, SKIN_D, 0.2), 1.3)  # brow
-    # huge wide grin full of sharp teeth
-    cx = W / 2
-    for x in range(5, W - 5):
-        u_ = (x + .5 - cx) / (cx - 5)
-        top = 36 - 5 * u_ * u_
-        bot = 57 - 18 * u_ * u_
+    # face pass (the drawing): goggles up on the hairline, a curl of bangs over her left eye, her right eye (viewer's left)
+    # squeezed shut in a smug arc with a green-tinted lid, and an open grin of white zig-zag shark teeth.
+    for s in (1, -1):
+        cx = W / 2 - s * 14  # s=1: her right eye (texel x small = viewer's left)
+        for i in range(-7, 8):
+            y = 24.5 - 3.2 * (1 - (i / 7.5) ** 2) + 0.15 * i * s
+            F.disc(cx + i, y, 1.0, LINE)
+            F.disc(cx + i, y + 1.6, 0.8, mix(GRN_L, SKIN, 0.35))  # green lid tint under the arc
+        F.line(cx - 7 * s, 24.5 - 1.0 * s, cx - 10 * s, 22.5, LINE, 1.2)  # outer lash flick
+        F.line(cx - 6, 17.5, cx + 6, 16.5 + s, mix(LINE, SKIN_D, 0.25), 1.2)  # brow
+    # grin: wide oval, corners up, white teeth meeting in a dark zig-zag bite
+    cx = W / 2 + 1
+    def top_(u): return 37.5 - 4.5 * u * u
+    def bot_(u): return 52.5 - 13 * u * u
+    for x in range(7, W - 6):
+        u_ = (x + .5 - cx) / (cx - 7)
+        if abs(u_) > 1: continue
+        top, bot = top_(u_), bot_(u_)
         if bot <= top + 0.5: continue
         for y in range(int(top), int(bot) + 1):
-            F.px(x, y, MOUTH)
-        F.px(x, int(top) - 1, LINE); F.px(x, int(bot) + 1, LINE)
-    for i in range(9):  # upper fangs (triangles pointing down) + lower fangs (pointing up)
-        x0 = 9 + i * 5
-        u_ = (x0 + 2.5 - cx) / (cx - 5)
-        top = 36 - 5 * u_ * u_
-        bot = 57 - 18 * u_ * u_
-        ln = max(2, (bot - top) * 0.45)
-        F.poly([(x0, top), (x0 + 5, top), (x0 + 2.5, top + ln)], TEETH)
-        if i > 0 and i < 8:
-            F.poly([(x0 - 2.5, bot + 0.5), (x0 + 2.5, bot + 0.5), (x0, bot - ln * 0.8)], TEETH)
-    F.rect(4, 33, 3, 1, LINE); F.rect(W - 7, 33, 3, 1, LINE)  # grin dimples
+            F.px(x, y, TEETH if abs(u_) < 0.88 else MOUTH)
+        F.px(x, int(top), LINE); F.px(x, int(top) - 1, LINE); F.px(x, int(bot) + 1, LINE)
+        F.px(x, int(top) + 1, mix(TEETH, MOUTH, 0.5))
+        mid = (top + bot) / 2 + 0.5
+        amp = min(4.5, (bot - top) * 0.32)
+        ph = ((x + 3) % 9) / 9.0
+        seam = mid + amp * (abs(ph - 0.5) * 4 - 1)
+        F.disc(x + .5, seam, 1.0, MOUTH)
+    F.line(5, 36, 8, 33, LINE, 1); F.line(W - 6, 36, W - 9, 33, LINE, 1)  # dimples at the up-turned corners
 
 
 def coat_front(F):
@@ -170,8 +171,10 @@ GF = lambda a, b: (lambda fs: [glow_fill(a, b)(f) for f in fs.values()])
 def lens(F):
     for y in range(F.h):
         for x in range(F.w):
-            F.px(x, y, mix(LENS_L, LENS, min(1, (x * 0.6 + y) / max(1, F.h))), glow=True)
-    F.rect(2, 1, 3, 1, 0xFFFFFF, glow=True); F.rect(F.w - 8, F.h - 3, 5, 1, mix(LENS_L, 0xFFFFFF, 0.5), glow=True)
+            F.px(x, y, mix(LENS_L, LENS, min(1, (x * 0.4 + y) / max(1, F.h))))
+    for x0 in (8, 13, 36, 41):  # white diagonal glints
+        F.line(x0, F.h - 3, x0 + 6, 2, 0xFFFFFF, 1.6 if x0 in (8, 36) else 1)
+    F.rect(0, F.h - 3, F.w, 2, LENS_D)
     outline(GRN_D)(F)
 
 
@@ -277,8 +280,10 @@ m.cube("mask_r", "head", (2.4, 31.4, -3.7), (3.9, 33.6, 3.7), BLK)
 m.cube("mask_b", "head", (-3.9, 31.4, 1.0), (3.9, 33.6, 3.7), BLK)
 m.cube("hair_cap", "head", (-4.2, 38.4, -3.9), (4.2, 41.0, 4.0), HAIR, faces=all_faces(HS))
 m.cube("hair_top", "head", (-3.6, 40.8, -3.2), (3.6, 42.0, 3.6), HAIR, faces=all_faces(HS))
-for i, (x, ln, rz) in enumerate([(-3.4, 4.2, 20), (-2.1, 2.6, 10), (-0.8, 3.4, -4), (0.6, 2.2, 12), (1.9, 3.0, -10), (3.3, 4.6, -22)]):
-    m.cube(f"bang{i}", "bangs", (x - 0.8, 39.8 - ln, -4.25), (x + 0.8, 40.0, -3.75), HAIR if i % 2 else HAIR_D,
+# face pass: long locks hang over her left eye (viewer's right) + one curl down the middle; her right eye stays clear
+for i, (x, ln, rz, dy) in enumerate([(-3.4, 4.2, 14, -0.6), (-2.1, 2.6, 6, -1.4), (-0.8, 3.4, -14, -0.4), (0.6, 2.2, 12, 0.6), (1.9, 3.0, -10, 1.2),
+                                     (3.4, 4.6, 6, 1.0)]):
+    m.cube(f"bang{i}", "bangs", (x - 0.8, 39.8 - ln + dy, -4.25), (x + 0.8, 40.0 + dy, -3.75), HAIR if i % 2 else HAIR_D,
            origin=(x, 39.8, -4.0), rot=(6, 0, rz), faces=all_faces(HS))
 for s, k in ((1, "r"), (-1, "l")):  # two big cat-ear-like spikes + a crown of smaller ones
     ex = 2.6 * s
@@ -315,13 +320,13 @@ for s, k in ((1, "r"), (-1, "l")):  # long locks framing the face, in front of t
         y = 36.0 - i * 2.6
         m.cube(f"hs_flick{i}_" + k, "hair_" + k, (4.6 * s - 0.45, y - 3.2, -1.4 + i * 1.2), (4.6 * s + 0.45, y, -0.4 + i * 1.2), HAIR_D,
                origin=(4.6 * s, y, i * 1.2 - 0.9), rot=(0, 0, (50 + i * 10) * s))
-# goggles: big wraparound safety visor pushed up on the forehead
-m.cube("gog_strap", "goggles", (-4.3, 37.4, -3.95), (4.3, 38.4, 4.15), BLK_L)
-m.cube("gog_frame", "goggles", (-4.0, 36.6, -4.8), (4.0, 39.6, -3.7), GRN_D, origin=(0, 38.0, -4.2), rot=(-14, 0, 0))
-m.cube("gog_lens", "goggles", (-3.7, 36.9, -5.05), (3.7, 39.3, -4.6), LENS, origin=(0, 38.0, -4.2), rot=(-14, 0, 0), glow=True, faces={"north": lens})
+# goggles: big wraparound safety visor pushed up on the forehead (face pass: raised 1.4 so they sit on the hairline, eyes free)
+m.cube("gog_strap", "goggles", (-4.3, 38.8, -3.95), (4.3, 39.8, 4.15), BLK_L)
+m.cube("gog_frame", "goggles", (-4.0, 38.0, -4.8), (4.0, 41.0, -3.7), GRN_D, origin=(0, 39.4, -4.2), rot=(-14, 0, 0))
+m.cube("gog_lens", "goggles", (-3.7, 38.3, -5.05), (3.7, 40.7, -4.6), LENS, origin=(0, 39.4, -4.2), rot=(-14, 0, 0), faces={"north": lens})
 for s, k in ((1, "r"), (-1, "l")):
-    m.cube("gog_side_" + k, "goggles", (3.6 * s - 0.5, 36.8, -4.6), (3.6 * s + 0.5, 39.4, -2.8), GRN_D, origin=(3.6 * s, 38, -3.6), rot=(-10, 0, 0))
-m.cube("gog_vent", "goggles", (-0.6, 39.3, -4.9), (0.6, 39.9, -4.0), GRN_DD, origin=(0, 38.0, -4.2), rot=(-14, 0, 0))
+    m.cube("gog_side_" + k, "goggles", (3.6 * s - 0.5, 38.2, -4.6), (3.6 * s + 0.5, 40.8, -2.8), GRN_D, origin=(3.6 * s, 39.4, -3.6), rot=(-10, 0, 0))
+m.cube("gog_vent", "goggles", (-0.6, 40.7, -4.9), (0.6, 41.3, -4.0), GRN_DD, origin=(0, 39.4, -4.2), rot=(-14, 0, 0))
 
 # ------------------------------------------------------------------ arms: lab-coat sleeves, cuffs, black gloves
 for s, k in ((1, "r"), (-1, "l")):

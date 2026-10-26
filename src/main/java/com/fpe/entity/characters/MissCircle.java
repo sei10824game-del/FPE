@@ -49,9 +49,41 @@ public class MissCircle extends FpeEntity {
     public static AttributeSupplier.Builder attributes() { return baseAttributes(90, 7, 0.3, 5, 0.4); }
 
     @Override public double preferredDistance() { return 2.5; }
-    @Override protected SoundEvent getAmbientSound() { return SoundEvents.WITCH_AMBIENT; }
-    @Override protected SoundEvent getHurtSound(DamageSource s) { return SoundEvents.WITCH_HURT; }
-    @Override protected SoundEvent getDeathSound() { return SoundEvents.WITCH_DEATH; }
+    // ---- voice: Google-Translate-style Japanese TTS reading English (see tools/gen_voice.py)
+    private static final java.util.Map<String, String[]> VOICE = java.util.Map.ofEntries(
+            java.util.Map.entry("sweep", new String[] { "wrong" }), java.util.Map.entry("lunge", new String[] { "detention" }),
+            java.util.Map.entry("splitSlam", new String[] { "zero" }), java.util.Map.entry("drawCircle", new String[] { "do_math" }),
+            java.util.Map.entry("charge", new String[] { "pop_quiz", "late" }), java.util.Map.entry("hairWhip", new String[] { "sit_down" }),
+            java.util.Map.entry("combo", new String[] { "fail3" }), java.util.Map.entry("scissorSnip", new String[] { "try_again" }),
+            java.util.Map.entry("arcSlash", new String[] { "wrong", "zero" }), java.util.Map.entry("perfectCircle", new String[] { "perfect" }),
+            java.util.Map.entry("impale", new String[] { "you_failed" }), java.util.Map.entry("devour", new String[] { "detention", "class_dismissed" }),
+            java.util.Map.entry("pencilStab", new String[] { "zero", "wrong" }), java.util.Map.entry("pounce", new String[] { "late" }),
+            java.util.Map.entry("compassSnare", new String[] { "come_here" }), java.util.Map.entry("pinDown", new String[] { "sit_down" }),
+            java.util.Map.entry("confiscate", new String[] { "confiscated" }));
+    private int voiceCooldown;
+
+    private void say(String id) {
+        if (level().isClientSide() || voiceCooldown > 0) return;
+        voiceCooldown = 50;
+        FpeUtil.sound(this, com.fpe.registry.ModSounds.missCircle(id), 1.8f, 1.0f);
+    }
+
+    @Override protected void onAbilityStart(Ability a, LivingEntity target) {
+        String[] lines = VOICE.get(a.id);
+        if (lines != null && random.nextInt(100) < 75) say(lines[random.nextInt(lines.length)]);
+    }
+
+    @Override public void setTarget(@javax.annotation.Nullable LivingEntity t) {
+        boolean had = getTarget() != null;
+        super.setTarget(t);
+        if (!had && t != null) say("you_failed");
+    }
+
+    @Override public void aiStep() { super.aiStep(); if (voiceCooldown > 0) voiceCooldown--; }
+
+    @Override protected SoundEvent getAmbientSound() { return com.fpe.registry.ModSounds.missCircle(random.nextBoolean() ? "try_again" : "you_failed"); }
+    @Override protected SoundEvent getHurtSound(DamageSource s) { return com.fpe.registry.ModSounds.missCircle("hurt"); }
+    @Override protected SoundEvent getDeathSound() { return com.fpe.registry.ModSounds.missCircle("death"); }
     @Override public float getVoicePitch() { return 0.8f; }
 
     // ------------------------------------------------------------------ helpers

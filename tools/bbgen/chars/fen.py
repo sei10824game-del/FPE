@@ -110,46 +110,47 @@ def elbow_p(B):
 
 
 def face_p(F):
+    """face hidden under the big triangular bangs: deep hair shadow, one small dark eye peeking, small sharp grin"""
     W, H = F.w, F.h
     for y in range(H):
-        F.rect(0, y, W, 1, mix(SKIN_L, SKIN, y / H))
-    F.rect(0, 0, W, int(H * 0.3), mix(SKIN, HAIR_D, 0.45))  # shadow of the bangs
-    ex, ey = 0.7 * W, 0.47 * H  # peeking eye (character's left)
-    F.disc(ex, ey, 0.13 * W, LINE)
-    F.disc(ex, ey, 0.105 * W, 0xFFFFFF)
-    F.disc(ex - 0.01 * W, ey + 0.01 * H, 0.05 * W, 0x101014)
-    F.disc(ex + 0.025 * W, ey - 0.03 * H, 0.018 * W, 0xFFFFFF, glow=True)
-    F.line(ex - 0.15 * W, ey - 0.13 * H, ex + 0.15 * W, ey - 0.16 * H, LINE, 2)
-    F.disc(0.3 * W, 0.47 * H, 0.1 * W, mix(SKIN_D, LINE, 0.3))
-    top = H * 0.78  # wide shark grin (upper teeth; the jaw carries the lower teeth)
-    F.poly([(0.06 * W, H * 0.6), (0.15 * W, top), (0.85 * W, top), (0.94 * W, H * 0.6), (0.96 * W, H), (0.04 * W, H)], LINE)
-    F.poly([(0.09 * W, H * 0.66), (0.17 * W, top + 1), (0.83 * W, top + 1), (0.91 * W, H * 0.66), (0.93 * W, H), (0.07 * W, H)], MOUTH)
-    n = 10
+        F.rect(0, y, W, 1, mix(SKIN, SKIN_D, 0.15 + 0.25 * y / H))
+    sh = mix(HAIR_D, LINE, 0.55)
+    for y in range(int(H * 0.62)):  # cast shadow of the fringe, fading out toward the chin
+        F.rect(0, y, W, 1, mix(sh, SKIN_D, max(0.0, (y / H - 0.3) / 0.32)))
+    ex, ey = 0.68 * W, 0.47 * H  # peeking eye (character's left), small and dark
+    F.poly([(ex - 0.11 * W, ey + 0.01 * H), (ex - 0.02 * W, ey - 0.05 * H), (ex + 0.1 * W, ey - 0.03 * H),
+            (ex + 0.12 * W, ey + 0.02 * H), (ex, ey + 0.05 * H)], 0x0C0A10)
+    F.disc(ex + 0.02 * W, ey - 0.005 * H, max(0.6, 0.022 * W), 0xD8D2D0, glow=True)  # faint glint
+    F.line(ex - 0.12 * W, ey - 0.075 * H, ex + 0.12 * W, ey - 0.06 * H, LINE, 1)
+    gy = 0.86 * H  # small sharp grin, off-centre toward the visible eye
+    x0, x1 = 0.44 * W, 0.84 * W
+    F.poly([(x0, gy - 0.02 * H), (x1, gy - 0.06 * H), (x1 - 0.03 * W, gy + 0.03 * H), (x0 + 0.06 * W, gy + 0.05 * H)], LINE)
+    F.poly([(x0 + 0.03 * W, gy - 0.01 * H), (x1 - 0.03 * W, gy - 0.045 * H), (x1 - 0.05 * W, gy + 0.02 * H), (x0 + 0.07 * W, gy + 0.035 * H)], MOUTH)
+    n = 5
     for i in range(n):
-        x0 = 0.08 * W + i * 0.84 * W / n
-        tw = 0.84 * W / n
-        F.poly([(x0, top + 1), (x0 + tw, top + 1), (x0 + tw * 0.5, H)], TEETH)
-        F.line(x0 + tw * 0.5, top + 1, x0 + tw * 0.5, top + (H - top) * 0.5, TEETH_D, 1)
-    F.disc(0.16 * W, 0.6 * H, 0.04 * W, mix(SKIN, 0xE58C8C, 0.5))
-    F.disc(0.84 * W, 0.6 * H, 0.04 * W, mix(SKIN, 0xE58C8C, 0.5))
+        tx = x0 + 0.05 * W + i * (x1 - x0 - 0.09 * W) / n
+        tw = (x1 - x0 - 0.09 * W) / n
+        ty = gy - 0.012 * H - 0.035 * H * (tx - x0) / (x1 - x0)
+        F.poly([(tx, ty), (tx + tw, ty), (tx + tw * 0.5, ty + 0.045 * H)], TEETH)
 
 
 def jaw_p(F):
+    """chin: mostly skin, a few small lower fangs under the grin (visible when the jaw drops)"""
     W, H = F.w, F.h
     F.rect(0, 0, W, H, SKIN)
     F.rect(0, H - 2, W, 2, SKIN_D)
-    F.rect(int(0.06 * W), 0, int(0.88 * W), int(H * 0.62), LINE)
-    F.rect(int(0.08 * W), 0, int(0.84 * W), int(H * 0.55), MOUTH)
-    n = 9
+    F.rect(int(0.47 * W), 0, int(0.34 * W), max(1, int(H * 0.3)), LINE)
+    n = 4
     for i in range(n):
-        x0 = 0.09 * W + i * 0.82 * W / n
-        tw = 0.82 * W / n
-        F.poly([(x0, H * 0.55), (x0 + tw, H * 0.55), (x0 + tw * 0.5, 0)], TEETH)
+        tw = 0.3 * W / n
+        tx = 0.49 * W + i * tw
+        F.poly([(tx, H * 0.3), (tx + tw, H * 0.3), (tx + tw * 0.5, 0)], TEETH)
 
 
 def mouth_p(F):
-    F.rect(0, 0, F.w, F.h, MOUTH)
-    F.rect(0, 0, F.w, 2, TEETH)
+    """underside of skull / top of jaw: only the grin's side is mouth, the rest is shaded skin"""
+    F.rect(0, 0, F.w, F.h, SKIN_D)
+    F.rect(int(F.w * 0.42), 0, int(F.w * 0.44), F.h, MOUTH)
 
 
 def toes_p(F):
@@ -256,8 +257,9 @@ def build(B):
         B.lock("sl0_" + k, "side_" + k, (3.7 * s, 49.5, -1.8), 13.0, 2.0, 1.4, (0, 0, 3 * s), HAIR, tip=HAIR_D, paint=hair["north"])
         B.lock("sl1_" + k, "side_" + k, (3.9 * s, 49.0, 0.8), 10.0, 1.8, 1.6, (6, 0, 9 * s), HAIR_M, tip=HAIR_R, paint=hair["north"])
     g("bangs", (0, 52.0, -3.9), "hair")
-    for i, (x, ln, rz) in enumerate(((3.0, 5.6, 10), (1.6, 6.4, 6), (0.2, 6.6, 2), (-1.2, 3.2, -4), (-2.5, 5.4, -6), (-3.4, 4.6, -12))):
-        B.lock(f"bang{i}", "bangs", (x, 52.4, -4.0), ln, 2.1, 0.9, (-8, 0, rz), HAIR if i % 2 else HAIR_M, tip=HAIR_D, paint=hair["north"])
+    # big triangular fringe hiding nearly the whole face; bang3 is short so one eye peeks out underneath
+    for i, (x, ln, rz) in enumerate(((3.0, 7.6, 8), (1.6, 8.2, 4), (0.2, 7.6, 1), (-1.2, 4.6, -3), (-2.5, 7.0, -7), (-3.4, 6.2, -14))):
+        B.lock(f"bang{i}", "bangs", (x, 52.4, -4.0), ln, 2.8, 1.0, (-8, 0, rz), HAIR if i % 2 else HAIR_M, tip=HAIR_D, paint=hair["north"])
     for i, (x, z, rz, rx) in enumerate(((2.6, -1, 55, -20), (-2.2, 0, -45, -10), (0.4, 1.5, 12, 20), (-3.2, 2.5, -70, 30), (3.2, 2.5, 70, 30))):
         B.blade(f"tuft{i}", "hair", (x, 52.0, z), 3.2, 1.8, 1.6, (rx, 0, -rz), HAIR, tip=HAIR_HI, paint=hair["north"])
     # curled ahoge: stem, bend to the right, hook down

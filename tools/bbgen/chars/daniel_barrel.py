@@ -143,27 +143,32 @@ def build(form):
             for s in (-1, 1):
                 F.px(W / 2 + s * 12, 33, 0xF0C0C8)
         else:
-            for s in (-1, 1):                                            # sharp eyes: black almond, glowing red iris
-                ex = W / 2 + s * 10
-                for x in range(-6, 7):
-                    yy = 20 + int(s * x * 0.3)
-                    F.rect(ex + x, yy, 1, 4 if abs(x) < 4 else 2, 0x141016)
-                F.rect(ex - 1, 21, 3, 2, RED_G, glow=True)
-                F.px(ex + 1, 21, 0xFFFFFF)
-                F.line(ex - 7, 16 + s * 2, ex + 7, 16 - s * 2, 0x55505A, 1)  # angry brows
-            # wide fanged grin
-            for x in range(9, W - 9):
-                u = (x - 9) / (W - 18)
-                top = 31 - 2 * math.sin(math.pi * u)
-                bot = 33 + 7 * math.sin(math.pi * u)
-                for y in range(int(top), int(bot) + 1):
-                    F.px(x, y, mix(0x5A0E1C, 0x2A0610, (y - top) / max(1, bot - top)))
-                if x % 3 == 0: F.px(x, int(top), 0xFFFFFF)
-            F.rect(W / 2 - 3, 36, 6, 3, 0xC03A4A)                         # tongue
-            for s in (-1, 1):
-                fx = W / 2 + s * 7
-                F.poly([(fx - 2, 30), (fx + 2, 30), (fx, 36)], 0xFFFFFF)      # fangs
-                F.line(W / 2 + s * 15, 28, W / 2 + s * 13, 32, 0x5A0E1C, 1)
+            # confirmed art: the cap brim throws a dark band over the eyes; ONE half-lidded red eye (his right,
+            # texture-left) - the other is behind the square "XD" screen (cube xd_screen); big lopsided open grin, one fang
+            for y in range(15, 27):
+                for x in range(W):
+                    if F.cv.get(F.x + x, F.y + y)[0] > 150 or y > 17:
+                        F.px(x, y, mix(0x6E6A78, SKIN_D, max(0, (y - 22) / 6)))
+            ex, ey = W * 0.3, 22
+            F.poly([(ex - 7, ey - 1), (ex + 6, ey - 3), (ex + 7, ey + 1), (ex - 5, ey + 3)], 0xF4F0F0)   # almond
+            F.disc(ex + 1, ey + 0.5, 2.6, 0xE0303A, glow=True)                                   # red iris
+            F.disc(ex + 1, ey + 0.5, 1.0, 0x1A0A10)
+            F.line(ex - 8, ey - 1, ex + 7, ey - 4, 0x141016, 2.2)                               # heavy lid
+            F.line(ex - 5, ey + 3, ex + 6, ey + 1.5, 0x3A3440, 1)
+            # lopsided open grin: deep on texture-left, curling up at the right corner
+            top = lambda u: 30 + 2.0 * math.sin(math.pi * u) - 3 * u
+            bot = lambda u: 31 + 12 * math.sin(math.pi * (u * 0.85 + 0.05)) * (1.15 - 0.5 * u) - 4 * u
+            x0, x1 = int(W * 0.14), int(W * 0.86)
+            for x in range(x0, x1):
+                u = (x - x0) / (x1 - x0)
+                t, bb = top(u), bot(u)
+                for y in range(int(t), int(bb) + 1):
+                    F.px(x, y, mix(0x4A1A3A, 0x1E0A1A, (y - t) / max(1, bb - t)))
+                F.px(x, int(t), 0x141016)
+                F.px(x, int(bb) + 1, 0x141016)
+            F.disc(W * 0.38, 37, 2.6, 0x8A3050)                                                # tongue
+            F.poly([(W * 0.34, top(0.22) + 1), (W * 0.42, top(0.34) + 1), (W * 0.37, top(0.28) + 6)], 0xFFFFFF)   # fang
+            F.line(x1, top(1), x1 + 2, top(1) - 3, 0x141016, 1)                                  # smirk hook
 
     def face_side(F):
         for y in range(F.h):
@@ -350,8 +355,22 @@ def build(form):
     m.cube("chin", "jaw", (-2.0, 32.4, -3.02), (2.0, 33.8, -1.2), SKIN,
            faces=af(flat(SKIN_D)) | {"north": K.grad(SKIN, SKIN_D), "up": flat(0x3A0810)})
     if not cy:
-        for s in (1, -1):
-            K.thorn("fang_" + ("r" if s > 0 else "l"), "jaw", (s * 0.9, 33.6, -2.9), 1.0, 0.5, 180, 0, 0xFFFFFF, 0xD8D8D8)
+        # fangs sit inside the deep (texture-left) half of the grin
+        for s, (fx, L) in ((1, (0.9, 0.7)), (-1, (-0.6, 0.45))):
+            K.thorn("fang_" + ("r" if s > 0 else "l"), "jaw", (fx, 34.7, -3.02), L, 0.45, 180, 0, 0xFFFFFF, 0xD8D8D8)
+        def xd(F):
+            W, H = F.w, F.h
+            F.rect(0, 0, W, H, 0x3A3A44)
+            F.rect(1, 1, W - 2, H - 2, 0x8E929C)
+            F.rect(2, 2, W - 4, H - 4, 0x5A5E68)
+            # "XD" in light pixels
+            u = W / 16
+            for i in range(5):
+                F.px(int(3 * u + i), int(H * 0.3 + i), 0xF2F2F2); F.px(int(3 * u + 4 - i), int(H * 0.3 + i), 0xF2F2F2)
+            F.rect(int(9 * u), int(H * 0.3), 1, 5, 0xF2F2F2)
+            for i, dx in enumerate((1, 2, 3, 3, 2)):
+                F.px(int(9 * u) + dx, int(H * 0.3) + i, 0xF2F2F2)
+        m.cube("xd_screen", "head", (-2.7, 34.4, -3.25), (-0.5, 36.6, -3.0), 0x3A3A44, faces=af(flat(0x3A3A44)) | {"north": xd})
     # hair spikes: flaring out at cheek level, crown, back
     spikes = [(2.8, 35.0, -1.0, 4.6, -100, -10), (2.8, 36.4, 0.2, 4.0, -78, 10), (2.6, 33.6, 0.8, 3.6, -125, 15), (2.4, 37.8, 1.2, 3.4, -55, 25),
               (2.0, 38.4, -1.8, 3.0, -35, -20), (1.6, 35.8, 2.4, 3.6, -100, 60)]

@@ -117,41 +117,50 @@ def heartp(F):
 
 
 def face_front(F):
+    """confirmed art: the face sits in the hood's grey shadow; black streak of hair down the brow, a white bandage
+    over his right eye (texel left), ONE big pale almond eye with a slit pupil (his left), wide black maw packed with
+    jagged white fangs, blood drip."""
     W, H = F.w, F.h
+    SHD, SHD_L = 0x3E383C, 0x6A6066
     for y in range(H):
         for x in range(W):
-            F.px(x, y, mix(FACE, FACE_D, 0.1 + 0.5 * y / H))
-    # fur fringe hanging over the forehead (spiky)
+            F.px(x, y, mix(SHD, SHD_L, 0.25 + 0.5 * y / H))
+    # fur fringe (spiky) + black streak hanging to the brow
     for x in range(W):
-        top = 8 + int(4 * abs(math.sin(x * 0.55))) + (3 if x % 7 == 3 else 0)
+        top = int(H * (0.16 + 0.08 * abs(math.sin(x / W * 11)))) + (int(H * 0.06) if x % 13 == 6 else 0)
         for y in range(top):
-            F.px(x, y, mix(FUR_L, FUR_D, y / 14))
+            F.px(x, y, mix(FUR_L, FUR_D, y / max(1, top)))
         F.px(x, top, FUR_DD)
-    # narrow, slanted, menacing eyes: black almond with a tiny red glowing pupil
-    for s in (-1, 1):
-        ex = W / 2 + s * 9
-        for x in range(-6, 7):
-            yy = 19 + int(-s * x * 0.35)
-            th = 3 if abs(x) < 4 else 2
-            F.rect(ex + x, yy, 1, th, BLK_D)
-        F.rect(ex - s * 1 - 1, 19 + 1, 2, 1, 0xFF3030, glow=True)
-        F.line(ex - 7, 15 + s * 0, ex + 7, 16 - s * 4, FUR_DD, 1)     # angry brow
-        F.line(ex - 5, 25, ex + 5, 24, FACE_D, 1)
-    F.line(W / 2 - 1, 23, W / 2 - 1, 27, FACE_D, 1)   # nose ridge
-    F.rect(W / 2 - 2, 28, 4, 1, BLK)
-    # wide jagged grin with many teeth
-    for x in range(6, W - 6):
-        u = (x - 6) / (W - 12)
-        top = 33 - 3 * math.sin(math.pi * u) * 0.3 - (4 if u < 0.08 or u > 0.92 else 0) * 0
-        bot = 34 + 5 * math.sin(math.pi * u)
-        for y in range(int(top), int(bot) + 1):
+    F.poly([(W * 0.4, 0), (W * 0.62, 0), (W * 0.54, H * 0.4), (W * 0.47, H * 0.3)], BLK_D)
+    # bandage patch over the right eye (texel left), tilted
+    bx, by = W * 0.24, H * 0.38
+    pts = [(bx - W * 0.2, by - H * 0.06), (bx + W * 0.15, by - H * 0.12), (bx + W * 0.2, by + H * 0.06), (bx - W * 0.15, by + H * 0.12)]
+    F.poly(pts, BAND_D)
+    F.poly([(x * 0.9 + bx * 0.1, y * 0.85 + by * 0.15) for x, y in pts], 0xF4F0E8)
+    F.line(bx - W * 0.1, by - H * 0.01, bx + W * 0.08, by - H * 0.05, 0x5A5458, max(1.2, W * 0.025))
+    # big pale almond eye, vertical slit pupil (his left, texel right)
+    ex, ey, ew, eh = W * 0.7, H * 0.44, W * 0.17, H * 0.075
+    F.poly([(ex - ew, ey + eh * 0.3), (ex - ew * 0.3, ey - eh), (ex + ew * 0.6, ey - eh * 0.8), (ex + ew, ey), (ex + ew * 0.3, ey + eh), (ex - ew * 0.4, ey + eh * 0.9)], BLK_D)
+    F.poly([(ex - ew * 0.82, ey + eh * 0.25), (ex - ew * 0.25, ey - eh * 0.72), (ex + ew * 0.55, ey - eh * 0.55), (ex + ew * 0.82, ey),
+            (ex + ew * 0.25, ey + eh * 0.72), (ex - ew * 0.35, ey + eh * 0.65)], 0xE8E2DA)
+    F.line(ex - ew * 0.05, ey - eh * 0.6, ex - ew * 0.12, ey + eh * 0.6, BLK_D, max(1.2, W * 0.022))
+    F.line(ex - ew * 1.1, ey - eh * 1.5, ex + ew * 0.9, ey - eh * 2.2, BLK_D, max(1.5, W * 0.03))   # scowl lid
+    # wide black maw, deeper toward texel left, ringed with jagged white fangs
+    top = lambda u: H * (0.64 - 0.05 * u)
+    bot = lambda u: H * (0.66 + 0.24 * math.sin(math.pi * min(1, u * 1.05)) * (1.1 - 0.4 * u))
+    x0, x1 = int(W * 0.08), int(W * 0.94)
+    for x in range(x0, x1):
+        u = (x - x0) / (x1 - x0)
+        for y in range(int(top(u)) - 1, int(bot(u)) + 1):
             F.px(x, y, BLK_D)
-        if x % 2 == 0:
-            F.px(x, int(top), 0xFFFFFF); F.px(x, int(top) + 1, 0xFFFFFF)
-            F.px(x, int(bot) - 1, 0xF4F0E8)
-        F.px(x, int(top) - 1, BLK)
-    F.line(5, 30, 7, 33, BLK, 1); F.line(W - 6, 30, W - 8, 33, BLK, 1)       # grin corners
-    F.line(W - 9, 38, W - 9, 43, RED, 1); F.px(W - 9, 44, RED_D)             # blood drip
+    n = 9
+    for i in range(n):
+        u0, u1 = i / n, (i + 1) / n
+        xa, xb = x0 + u0 * (x1 - x0), x0 + u1 * (x1 - x0)
+        F.poly([(xa, top(u0)), (xb, top(u1)), ((xa + xb) / 2, top((u0 + u1) / 2) + H * 0.07)], 0xF4F0E8)   # upper fangs
+        if 0.05 < u0 < 0.85:
+            F.poly([(xa + 1, bot(u0) + 1), (xb + 1, bot(u1) + 1), ((xa + xb) / 2 + 1, bot((u0 + u1) / 2) - H * 0.06)], 0xE6E0D6)  # lower fangs
+    F.line(W * 0.86, H * 0.78, W * 0.86, H * 0.92, RED, 1.2); F.px(int(W * 0.86), int(H * 0.93), RED_D)   # blood drip
 
 
 def faceside(F):
@@ -278,8 +287,8 @@ for i in range(3):
     K.thorn(f"shardp{i}", "shard", (5.0 + (i - 1) * 0.6, 14.2, -0.6), 3.6, 0.9, 170, (i - 1) * 18, BLK, GREY)
 
 # ------------------------------------------------------------------ head: pale face, fur hood with spikes, antlers
-m.cube("skull", "head", (-2.7, 33.4, -3.0), (2.7, 39.2, 2.4), FACE, faces={"north": face_front, "south": furp(), "east": faceside, "west": faceside, "up": furp(), "down": faceside})
-m.cube("jawc", "jaw", (-2.3, 33.0, -3.1), (2.3, 34.4, -0.4), FACE_D, faces={"north": K.combo(flat(FACE_D), lambda F: [F.px(x, 0, 0xFFFFFF) for x in range(0, F.w, 2)]), "south": flat(FACE_D), "east": flat(FACE_D), "west": flat(FACE_D), "up": flat(BLK_D), "down": flat(FACE_D)})
+m.cube("skull", "head", (-2.7, 33.4, -3.0), (2.7, 39.2, 2.4), FACE, faces={"north": face_front, "south": furp(), "east": faceside, "west": faceside, "up": furp(), "down": faceside}, res=16)
+m.cube("jawc", "jaw", (-2.3, 33.0, -3.1), (2.3, 34.4, -0.4), FACE_D, faces={"north": K.combo(flat(0x3E383C), lambda F: [F.px(x, y, 0xE6E0D6) for x in range(F.w) for y in range(max(1, F.h // 2 - abs(x % 4 - 2)))]), "south": flat(FACE_D), "east": flat(FACE_D), "west": flat(FACE_D), "up": flat(BLK_D), "down": flat(FACE_D)})
 m.cube("hood_c", "hood", (-3.3, 35.2, -2.4), (3.3, 40.2, 3.2), FUR, faces=af(furp(), ("north",)) | {"north": clear})
 for s, k in ((1, "r"), (-1, "l")):   # spiky fur framing the face (art: pale shaggy points flaring out)
     for j, (y, z, L, rz, rx) in enumerate(((39.6, -1.6, 3.6, -40, -10), (38.4, -2.4, 3.2, -70, -20), (36.6, -2.0, 3.6, -100, -10), (34.6, -1.0, 3.0, -125, 0), (40.2, 1.0, 3.0, -25, 25))):

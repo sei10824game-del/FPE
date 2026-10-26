@@ -138,8 +138,7 @@ def face_front(F):
     ex, ey = 20, 22
     F.disc(ex, ey, 10.8, LINE)
     F.disc(ex, ey, 8.9, WH_L)
-    F.disc(ex + 1.4, ey + 1.2, 2.4, LINE)
-    F.disc(ex + 1.4, ey + 1.2, 1.0, 0x5A1E2A, glow=True)
+    F.rect(ex - 3, ey - 2, 2, 6, LINE)   # art: tiny vertical slit pupil toward the inner side
     F.line(ex - 6, ey - 4, ex - 3, ey - 6, WH_D, 1)
     F.disc(41, 24, 6.4, LINE)
     F.disc(41, 24, 4.9, WH_L)
@@ -153,12 +152,12 @@ def face_front(F):
             F.px(x, y, WH_L)
     mid = lambda x: top(x) + (bot(x) - top(x)) * 0.48
     for x in range(5, 50):
-        zz = mid(x) + (1.4 if (x // 3) % 2 else -1.4) * min(1, (bot(x) - top(x)) / 9)
+        zz = mid(x)   # art: straight bite line between two rows of big blocky teeth
         F.px(x, int(zz), LINE)
         F.px(x, int(zz) + 1, mix(LINE, WH_D, 0.5))
-    for x in range(8, 50, 5):
-        F.line(x, top(x) + 1, x, mid(x) - 1, WH_D, 1)
-        F.line(x + 2, mid(x) + 2, x + 2, bot(x) - 1, WH_D, 1)
+    for x in range(9, 50, 8):
+        F.line(x, top(x) + 1, x, mid(x) - 1, LINE, 1)
+        F.line(x + 4, mid(x) + 2, x + 4, bot(x) - 1, LINE, 1)
     # the two long fangs (art: upper canines hanging well below the bite line)
     for fx in (14, 38):
         F.poly([(fx - 3.5, top(fx)), (fx + 3.5, top(fx)), (fx + 0.5, top(fx) + 13), (fx - 0.5, top(fx) + 13)], LINE)

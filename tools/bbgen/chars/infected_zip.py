@@ -77,14 +77,20 @@ def face_p(B):
     def f(F):
         W, H = F.w, F.h
         ink(B, 0.5)(F)
+        # ref (infected_zip.jpg): deep hollow scribbled sockets, a thin grey pen ring, only a pinprick of light inside
         for cx in (0.27 * W, 0.73 * W):
-            cy = 0.42 * H
-            F.disc(cx, cy, 0.24 * W, EYE_RING)
-            F.disc(cx, cy, 0.19 * W, INK_D)
-            F.disc(cx, cy, 0.13 * W, 0x000000)
-            F.disc(cx + (0.04 * W if cx < W / 2 else -0.04 * W), cy - 0.03 * H, 0.05 * W, GLINT, glow=True)
-        F.line(0.05 * W, 0.12 * H, 0.42 * W, 0.2 * H, INK_D, 1)
-        F.line(0.95 * W, 0.12 * H, 0.58 * W, 0.2 * H, INK_D, 1)
+            cy = 0.44 * H
+            F.disc(cx, cy, 0.25 * W, mix(INK_D, EYE_RING, 0.35))
+            F.disc(cx, cy, 0.215 * W, INK_D)
+            F.disc(cx, cy + 0.02 * H, 0.18 * W, 0x000000)
+            for k in range(6):  # scribble hatching around the socket
+                ang = k * 1.05 + (0.4 if cx < W / 2 else 0)
+                x0, y0 = cx + math.cos(ang) * 0.2 * W, cy + math.sin(ang) * 0.2 * W
+                F.line(x0, y0, x0 + math.cos(ang) * 0.07 * W, y0 + math.sin(ang) * 0.07 * W, mix(INK_D, EYE_RING, 0.5), 1)
+            F.disc(cx + (0.05 * W if cx < W / 2 else -0.05 * W), cy - 0.01 * H, 0.03 * W, GLINT, glow=True)
+        # heavy sunken brows slanting down to the middle
+        F.line(0.03 * W, 0.14 * H, 0.44 * W, 0.24 * H, 0x000000, 2)
+        F.line(0.97 * W, 0.14 * H, 0.56 * W, 0.24 * H, 0x000000, 2)
         for x in (0.2, 0.8):  # ink drips under the eyes
             F.line(x * W, 0.66 * H, x * W, H, INK_D, 1)
     return f

@@ -163,13 +163,18 @@ def liquid(F):
     outline(LIQ_D)(F)
 
 
-def lens_paint(F):
+def lens_paint(F, outer_left=True, eye=False):
+    """face pass: big angular white goggle lens, its point flaring OUTWARD like the drawing; optional closed eye seen through it."""
     W, H = F.w, F.h
     F.rect(0, 0, W, H, MASK_DD)
-    pts = [(2, 2), (W - 2, 1), (W - 1, H - 3), (W * 0.45, H - 2), (2, H - 4)]
-    F.poly(pts, LENS_D, glow=True)
-    F.poly([(3, 3), (W - 3, 2.5), (W - 2.5, H - 4.5), (W * 0.45, H - 3.5), (3, H - 5)], LENS, glow=True)
-    F.rect(4, 4, 3, 1, 0xFFFFFF, glow=True)
+    fx = (lambda x: x) if outer_left else (lambda x: W - x)
+    F.poly([(fx(0), 1), (fx(W - 2), 2), (fx(W - 1), H - 2), (fx(W * 0.4), H - 1), (fx(1), H * 0.55)], LENS_D, glow=True)
+    F.poly([(fx(1.5), 2.5), (fx(W - 3), 3), (fx(W - 2.5), H - 3.5), (fx(W * 0.4), H - 2.5), (fx(2.5), H * 0.55)], LENS, glow=True)
+    F.line(fx(4), 3.5, fx(7), 3.5, 0xFFFFFF, 1, glow=True)
+    if eye:  # sleepy closed eye: lid line + two lashes
+        F.line(fx(W * 0.3), H * 0.55, fx(W * 0.72), H * 0.5, LINE, 1.2)
+        F.line(fx(W * 0.72), H * 0.5, fx(W * 0.8), H * 0.35, LINE, 1)
+        F.line(fx(W * 0.45), H * 0.56, fx(W * 0.42), H * 0.72, LINE, 1)
 
 
 def case_side(F):
@@ -300,15 +305,17 @@ m.cube("strap_lo", "mask", (-3.42, 28.6, -2.0), (3.42, 29.2, 3.3), TIE, origin=(
 m.cube("gog_band", "mask", (-3.35, 30.3, -3.75), (3.35, 32.6, -3.2), MASK, color2=MASK_D, grad=True, faces={"north": outline(MASK_DD)})
 for s, k in ((1, "r"), (-1, "l")):
     m.cube("lens_" + k, "mask", (1.65 * s - 1.45, 30.2, -4.15), (1.65 * s + 1.45, 32.6, -3.6), LENS, origin=(1.65 * s, 31.4, -3.9), rot=(0, -10 * s, 0),
-           faces={"north": lens_paint if s > 0 else (lambda F: (lens_paint(F)))})
+           faces={"north": (lambda F: lens_paint(F, True)) if s > 0 else (lambda F: lens_paint(F, False, eye=True))})
     m.cube("lrim_" + k, "mask", (1.65 * s - 1.65, 32.4, -4.25), (1.65 * s + 1.65, 32.9, -3.5), MASK_DD, origin=(1.65 * s, 31.4, -3.9), rot=(0, -10 * s, -6 * s))
     m.cube("cheek_" + k, "mask", (1.0 * s - 1.0, 27.7, -3.85), (1.0 * s + 1.0, 30.4, -3.25), MASK, color2=MASK_D, grad=True,
            origin=(1.2 * s, 29, -3.5), rot=(0, 24 * s, 0), faces={"north": outline(MASK_D)})
     m.cube("filter_" + k, "mask", (2.3 * s - 0.75, 28.0, -4.3), (2.3 * s + 0.75, 29.6, -3.4), MASK_DD, origin=(2.3 * s, 28.8, -3.8), rot=(0, 34 * s, 0),
            faces={"north": lambda F: (F.disc(F.w / 2, F.h / 2, F.w / 2 - 1, MASK_D), F.disc(F.w / 2, F.h / 2, 2, MASK_DD))})
 m.cube("snout", "mask", (-1.3, 27.6, -4.4), (1.3, 30.4, -3.4), MASK, color2=MASK_D, grad=True, faces={"north": outline(MASK_D)})
-m.cube("snout_tip", "mask", (-0.95, 28.0, -5.0), (0.95, 30.0, -4.35), MASK_L, color2=MASK, grad=True,
-       faces={"north": lambda F: (outline(MASK_DD)(F), [F.rect(2, y, F.w - 4, 1, MASK_DD) for y in range(3, F.h - 2, 3)])})
+# face pass: the respirator front is the drawing's DIAMOND filter (square turned 45 deg, dark rim, pale centre)
+m.cube("snout_tip", "mask", (-0.95, 28.6, -5.0), (0.95, 30.6, -4.35), MASK_L, color2=MASK, grad=True, origin=(0, 29.6, -4.7), rot=(0, 0, 45),
+       faces={"north": lambda F: (F.rect(0, 0, F.w, F.h, MASK_DD), F.rect(3, 3, F.w - 6, F.h - 6, MASK_L), F.rect(3, 3, F.w - 6, 1, 0xFFFFFF),
+                                  F.rect(5, 5, F.w - 10, F.h - 10, MASK))})
 m.cube("nose_ridge", "mask", (-0.45, 30.1, -4.1), (0.45, 31.0, -3.6), MASK_D)
 # hair: cap + crown spikes + tuft + bangs + face-framing locks + back spikes
 m.cube("hair_cap", "head", (-3.6, 33.4, -3.5), (3.6, 35.4, 3.6), HAIR, faces=all_faces(HS))
@@ -323,10 +330,11 @@ for i, (x, z, h, rx, rz, w) in enumerate([(0.0, 0.0, 6.4, -6, 4, 2.2), (-1.6, -0
            origin=org, rot=(rx, 0, rz), faces=all_faces(HS))
 m.cube("tuft_a", "tuft", (-3.4, 34.6, -0.4), (-2.0, 38.2, 1.2), TUFT, origin=(-2.6, 35.0, 0.4), rot=(0, 0, 30), faces=all_faces(TS))
 m.cube("tuft_b", "tuft", (-3.0, 37.8, 0.0), (-2.3, 39.4, 0.8), TUFT_D, origin=(-2.6, 35.0, 0.4), rot=(0, 0, 38), faces=all_faces(TS))
+BY = 1.6  # face pass: blunt bangs lifted so their points stop at the goggle rims (lenses fully visible, as drawn); sizes unchanged
 for i, (x, ln, rz) in enumerate([(-3.0, 3.0, 14), (-2.0, 2.0, -8), (-1.0, 3.0, 10), (0.0, 2.2, -12), (1.0, 3.2, 8), (2.0, 2.0, -10), (3.0, 3.0, -16)]):
-    m.cube(f"bang{i}", "bangs", (x - 0.65, 34.3 - ln, -3.95 - (i % 2) * 0.15), (x + 0.65, 34.5, -3.45), HAIR if i % 2 else HAIR_D,
+    m.cube(f"bang{i}", "bangs", (x - 0.65, 34.3 - ln + BY, -3.95 - (i % 2) * 0.15), (x + 0.65, 34.5 + BY, -3.45), HAIR if i % 2 else HAIR_D,
            origin=(x, 34.3, -3.7), rot=(6, 0, rz), faces=all_faces(HS))
-    m.cube(f"bangt{i}", "bangs", (x - 0.3, 34.3 - ln - 1.0, -3.95), (x + 0.3, 34.3 - ln + 0.2, -3.55), HAIR_D,
+    m.cube(f"bangt{i}", "bangs", (x - 0.3, 34.3 - ln - 1.0 + BY, -3.95), (x + 0.3, 34.3 - ln + 0.2 + BY, -3.55), HAIR_D,
            origin=(x, 34.3, -3.7), rot=(6, 0, rz))
 m.cube("hb_main", "hair_b", (-3.7, 27.2, 2.0), (3.7, 33.8, 4.0), HAIR, faces=all_faces(HS))
 for i in range(8):

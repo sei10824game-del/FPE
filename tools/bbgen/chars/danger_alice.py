@@ -84,37 +84,61 @@ def diamond(col, edge, cx=0.5, cy=0.5, s=0.32):
 
 
 def face_p1(C):
+    """confirmed art: eyes drowned in a dark shadow band under the bangs (one pale glint on texture-left),
+    pink lower face with soft blush, barely-there mouth, V-chin framed by hair."""
+    SHB = 0x231A1E
     def f(F):
         W, H = F.w, F.h
         for y in range(H):
             for x in range(W):
-                F.px(x, y, mix(C.SKIN, C.SKIN_D, max(0, (0.45 - y / H) / 0.45) * 0.8))
-        # eyes hidden: just thin closed-lid lines peeking under the fringe
-        for cx in (0.3 * W, 0.7 * W):
-            F.line(cx - 0.12 * W, 0.5 * H, cx + 0.12 * W, 0.53 * H, C.LID, max(1, W * 0.03))
-        F.disc(0.24 * W, 0.66 * H, 0.08 * W, mix(C.SKIN, C.BLUSH, 0.6))
-        F.disc(0.76 * W, 0.66 * H, 0.08 * W, mix(C.SKIN, C.BLUSH, 0.6))
-        F.line(0.5 * W, 0.6 * H, 0.52 * W, 0.66 * H, C.SKIN_D, 1)
-        F.line(0.42 * W, 0.8 * H, 0.58 * W, 0.79 * H, C.LID, 1.2)  # flat, tired mouth
+                edge = (0.6 + 0.05 * math.sin(math.pi * x / W)) * H        # band dips in the middle
+                c = mix(C.SKIN, C.SKIN_D, 0.25 * y / H)
+                if y < edge:
+                    c = SHB
+                elif y < edge + 0.06 * H:
+                    c = mix(SHB, mix(C.SKIN, C.BLUSH, 0.35), (y - edge) / (0.06 * H))
+                F.px(x, y, c)
+        for cx, cy in ((0.24 * W, 0.71 * H), (0.76 * W, 0.71 * H)):     # soft blush
+            for j in range(int(cy - 0.08 * H), int(cy + 0.08 * H) + 1):
+                for i in range(int(cx - 0.16 * W), int(cx + 0.16 * W) + 1):
+                    d = ((i + .5 - cx) / (0.15 * W)) ** 2 + ((j + .5 - cy) / (0.06 * H)) ** 2
+                    if d < 1 and 0 <= i < W and 0 <= j < H:
+                        base = F.cv.get(F.x + i, F.y + j)
+                        F.px(i, j, mix((base[0] << 16) | (base[1] << 8) | base[2], C.BLUSH, 0.55 * (1 - d) ** 0.6))
+        # pale glint of her right eye in the shadow + a faint dull one on the other side
+        F.line(0.16 * W, 0.53 * H, 0.4 * W, 0.5 * H, 0xE8E2DC, max(1.5, W * 0.03))
+        F.line(0.62 * W, 0.5 * H, 0.8 * W, 0.52 * H, 0x4A3A3E, 1.2)
+        F.line(0.47 * W, 0.84 * H, 0.54 * W, 0.84 * H, mix(C.SKIN_D, C.LID, 0.4), 1.2)   # tiny tired mouth
+        for x0, x1 in ((0, 0.22 * W), (W, 0.78 * W)):                     # V-chin framed by hair
+            F.poly([(x0, 0.76 * H), (x1, H), (x0, H)], C.HAIR)
+            F.line(x0, 0.76 * H, x1, H, C.HAIR_D, 1.2)
     return f
 
 
 def face_p2(C):
+    """confirmed art: pitch-black head, small narrow slanted magenta-red eyes close to the centre,
+    wide crescent grin packed with thin white teeth, corners hooked up."""
     def f(F):
         W, H = F.w, F.h
         F.rect(0, 0, W, H, C.BODY)
-        for cx, s in ((0.3 * W, 1), (0.7 * W, -1)):  # angry red slanted eyes
-            ey = 0.42 * H
-            F.poly([(cx - 0.15 * W, ey - (0.07 * H if s > 0 else 0)), (cx + 0.15 * W, ey - (0.07 * H if s < 0 else 0)),
-                    (cx + 0.11 * W, ey + 0.07 * H), (cx - 0.11 * W, ey + 0.07 * H)], C.EYE, glow=True)
-            F.rect(cx - 0.03 * W, ey - 0.03 * H, max(1, 0.06 * W), 0.08 * H, 0xFFC0C8, glow=True)
-        top = [(0.14 * W + i * 0.072 * W, 0.6 * H + 0.03 * H * math.sin(math.pi * i / 10)) for i in range(11)]
-        bot = [(0.86 * W - i * 0.072 * W, 0.66 * H + 0.17 * H * math.sin(math.pi * i / 10)) for i in range(11)]
+        for cx, s in ((0.36 * W, 1), (0.64 * W, -1)):
+            ey = 0.44 * H
+            outer, inner = cx - s * 0.13 * W, cx + s * 0.1 * W
+            F.poly([(outer, ey - 0.06 * H), (inner, ey + 0.0 * H), (inner - s * 0.02 * W, ey + 0.04 * H), (outer + s * 0.03 * W, ey + 0.01 * H)],
+                   C.EYE_D, glow=True)
+            F.poly([(outer + s * 0.02 * W, ey - 0.045 * H), (inner - s * 0.01 * W, ey + 0.005 * H), (inner - s * 0.03 * W, ey + 0.03 * H),
+                    (outer + s * 0.04 * W, ey + 0.005 * H)], C.EYE, glow=True)
+            F.disc(cx + s * 0.01 * W, ey - 0.005 * H, max(1, 0.018 * W), 0xFFC0C8, glow=True)
+        n = 12
+        top = [(0.16 * W + i * 0.68 * W / n, 0.62 * H + 0.05 * H * math.sin(math.pi * i / n) - (0.05 * H if i in (0, n) else 0)) for i in range(n + 1)]
+        bot = [(0.84 * W - i * 0.68 * W / n, 0.65 * H + 0.15 * H * math.sin(math.pi * i / n)) for i in range(n + 1)]
         F.poly(top + bot, C.TEETH, glow=True)
-        for i in range(1, 14):
-            x = 0.15 * W + i * 0.052 * W
-            F.line(x, 0.6 * H, x, 0.82 * H, C.TEETH_D, 1)
-        F.line(0.15 * W, 0.7 * H, 0.85 * W, 0.7 * H, C.BODY, 1)
+        for k in range(int(0.68 * W)):             # mouth seam following the curve
+            F.px(int(0.16 * W + k), int(0.69 * H + 0.08 * H * math.sin(math.pi * k / (0.68 * W))), C.BODY)
+        for i in range(1, 22):                     # thin teeth gaps
+            x = 0.17 * W + i * 0.03 * W
+            F.line(x, 0.6 * H, x, 0.84 * H, C.TEETH_D, 1)
+        F.poly([(0, 0.6 * H), (0.17 * W, 0.56 * H), (0.17 * W, 0.62 * H)], C.BODY)
     return f
 
 
@@ -278,7 +302,7 @@ def build_p1(B):
     c("band_end", prev, (2.7, 13.6 - 6 * 1.8 - 0.6, -0.15), (3.3, 13.6 - 6 * 1.8 + 0.1, 0.15), C.BAND_D)
 
     # ---- head
-    c("skull", "head", (-2.8, 25.6, -2.7), (2.8, 31.0, 2.7), C.SKIN, faces={"north": face_p1(C)})
+    c("skull", "head", (-2.8, 25.6, -2.7), (2.8, 31.0, 2.7), C.SKIN, faces={"north": face_p1(C)}, res=16)
     c("jaw", "head", (-1.8, 25.3, -2.5), (1.8, 25.8, 0.6), C.SKIN_D)
     c("hair_cap", "head", (-3.1, 28.9, -3.0), (3.1, 32.4, 3.0), C.HAIR, faces=B.all(st))
     c("hair_top", "head", (-2.6, 32.2, -2.5), (2.6, 33.0, 2.6), C.HAIR, faces=B.all(stp))
@@ -293,7 +317,7 @@ def build_p1(B):
             blade(f"hs_{k}{i}", "hair_" + k, (3.0 * s, y, z), ln, 1.6, 0.8, (0, 0, -rz * s), C.HAIR, C.HAIR_D, paint=stp)
     # bangs cover the eyes
     c("fringe", "bangs", (-3.05, 29.2, -3.1), (3.05, 31.0, -2.65), C.HAIR, faces=B.all(st))
-    for i, (x, ln, rz) in enumerate([(-2.5, 2.4, 8), (-1.4, 2.9, 2), (-0.2, 2.6, -6), (1.0, 3.0, -10), (2.2, 2.5, -16)]):
+    for i, (x, ln, rz) in enumerate([(-2.5, 2.2, 22), (-1.4, 2.6, 18), (-0.2, 2.8, 14), (1.0, 3.0, 10), (2.2, 2.8, 4)]):   # sweep toward her right
         B.lock(f"bang{i}", "bangs", (x, 29.6, -2.95), ln, 1.4, 0.4, (8, 0, rz), C.HAIR, C.HAIR_D, paint=stp)
     # ahoge
     c("ahs0", "ah0", (0.0, 32.6, 0.1), (0.6, 35.8, 0.7), C.HAIR, faces=B.all(stp))
@@ -660,11 +684,20 @@ def build_p2(B):
     for i in range(3):  # back ridge spikes
         blade(f"ridge{i}", "chest", (0, 19.0 + i * 1.4, 1.0), 1.2, 0.4, 0.3, (60, 0, 0), C.BODY, C.BODY_HI)
     # head: big round skull, face with red eyes + white grin
-    c("skull", "head", (-3.0, 25.0, -2.8), (3.0, 31.2, 2.8), C.BODY, faces={"north": face_p2(C), "south": body, "east": body, "west": body, "up": body, "down": body})
+    c("skull", "head", (-3.0, 25.0, -2.8), (3.0, 31.2, 2.8), C.BODY, faces={"north": face_p2(C), "south": body, "east": body, "west": body, "up": body, "down": body}, res=8)
     c("skull_r", "head", (2.9, 25.8, -2.2), (3.4, 30.4, 2.2), C.BODY, faces=bd)
     c("skull_l", "head", (-3.4, 25.8, -2.2), (-2.9, 30.4, 2.2), C.BODY, faces=bd)
     c("cheek", "head", (-2.4, 24.6, -2.6), (2.4, 25.2, 1.2), C.BODY)
-    c("maw", "jaw", (-2.0, 25.6, -2.9), (2.0, 26.6, -2.6), C.TEETH, glow=True, faces={"north": lambda F: [F.px(x, y, C.TEETH_D, glow=True) for x in range(0, F.w, 3) for y in range(F.h)]})
+    def maw_paint(F):   # lower teeth row continuing the grin crescent (clear outside the curve)
+        for x in range(F.w):
+            bottom = F.h * (0.3 + 0.7 * math.sin(math.pi * (x + .5) / F.w))
+            for y in range(F.h):
+                F.px(x, y, (C.TEETH_D if x % 3 == 0 else C.TEETH) if y < bottom else CLEAR, glow=y < bottom)
+                if y >= bottom:
+                    F.glow.set(F.x + x, F.y + y, (0, 0, 0, 255))   # no glow outside the teeth
+    c("maw", "jaw", (-2.0, 25.6, -2.9), (2.0, 26.6, -2.6), C.TEETH, glow=True,
+      faces={"north": maw_paint, "south": maw_paint, "east": lambda F: F.rect(0, 0, F.w, F.h, C.BODY), "west": lambda F: F.rect(0, 0, F.w, F.h, C.BODY),
+             "down": lambda F: F.rect(0, 0, F.w, F.h, C.BODY)})
     c("hair_cap", "head", (-3.2, 29.6, -3.0), (3.2, 31.8, 3.0), C.BODY, faces=bd)
     for i, (x, z, ln, rx, rz) in enumerate([(-2.0, -1.0, 2.6, -10, 30), (-0.6, -1.8, 2.2, -20, 6), (1.0, -1.2, 2.6, -14, -24), (2.2, 0.6, 2.2, 0, -50), (-2.4, 1.2, 2.4, 20, 50), (0.4, 1.6, 2.0, 30, -10)]):
         blade(f"tuft{i}", "head", (x, 31.4, z), ln, 1.4, 0.8, (rx, 0, rz), C.BODY, C.BODY_HI)

@@ -154,7 +154,11 @@ public abstract class FpeEntity extends Monster {
         cooldowns[idx] = current.cooldown;
         entityData.set(ANIM, idx + 1);
         if (current.onStart != null && target != null) current.onStart.run(this, target, 0);
+        if (target != null) onAbilityStart(current, target);
     }
+
+    /** hook for voice lines etc.; called on the server when an ability begins */
+    protected void onAbilityStart(Ability a, LivingEntity target) {}
 
     private void endAbility(@Nullable LivingEntity target) {
         Ability a = current;

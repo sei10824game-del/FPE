@@ -132,51 +132,74 @@ class Builder:
 
 # ================================================================== face painters
 def face_p1(C):
+    """confirmed art: bangs cast a diagonal shadow over the upper face (deepest over her right eye, texture-left),
+    one big half-lidded yellow almond eye with a slit pupil (her left), soft round blush, tiny flat mouth, V-chin."""
+    SH = mix(C.SKIN, 0x7A5A58, 0.42)
     def f(F):
         W, H = F.w, F.h
         for y in range(H):
             for x in range(W):
-                F.px(x, y, mix(C.SKIN, C.SKIN_D, max(0, (0.3 - y / H) / 0.3) * 0.7))
-        # eyes: half-lidded, heavy upper lid, yellow iris, slit pupil (her right = texture-left, under the bangs)
-        for cx in (0.3 * W, 0.7 * W):
-            ey = 0.52 * H
-            ew = 0.13 * W
-            F.poly([(cx - ew, ey), (cx + ew, ey - 0.02 * H), (cx + ew * 0.8, ey + 0.08 * H), (cx - ew * 0.8, ey + 0.08 * H)], C.EYE)
-            F.rect(cx - ew * 0.2, ey, max(1, W * 0.04), 0.08 * H, C.EYE_D)
-            F.line(cx - ew * 1.15, ey - 0.005 * H, cx + ew * 1.15, ey - 0.03 * H, C.LID, max(1.5, W * 0.045))
-            F.line(cx + ew * 1.1, ey - 0.03 * H, cx + ew * 1.4, ey - 0.07 * H, C.LID, 1)
-            F.line(cx - ew * 0.7, ey + 0.1 * H, cx + ew * 0.7, ey + 0.1 * H, C.SKIN_D, 1)
-            F.line(cx - ew, ey - 0.12 * H, cx + ew, ey - 0.14 * H, C.HAIR_D, 1)  # brow
-        for cx in (0.2 * W, 0.8 * W):  # blush
-            F.disc(cx, 0.7 * H, 0.09 * W, mix(C.SKIN, C.BLUSH, 0.75))
-            F.disc(cx, 0.7 * H, 0.05 * W, C.BLUSH)
-        F.line(0.5 * W, 0.62 * H, 0.52 * W, 0.68 * H, C.SKIN_D, 1)  # nose
-        # small frown
-        F.line(0.43 * W, 0.83 * H, 0.57 * W, 0.83 * H, C.MOUTH, 1.3)
-        F.px(int(0.42 * W), int(0.85 * H), C.MOUTH); F.px(int(0.58 * W), int(0.85 * H), C.MOUTH)
+                edge = (0.74 - 0.2 * x / W) * H          # shadow line: low on texture-left, rising to the right
+                c = mix(C.SKIN, C.SKIN_D, 0.18 * y / H)
+                if y < edge:
+                    c = mix(SH, C.SKIN, max(0, min(1, (y - edge + 0.06 * H) / (0.06 * H))) * 0.5)
+                F.px(x, y, c)
+        # blush: big soft ovals under the eyes
+        for cx, cy in ((0.22 * W, 0.66 * H), (0.76 * W, 0.64 * H)):
+            for j in range(int(cy - 0.08 * H), int(cy + 0.08 * H) + 1):
+                for i in range(int(cx - 0.15 * W), int(cx + 0.15 * W) + 1):
+                    d = ((i + .5 - cx) / (0.14 * W)) ** 2 + ((j + .5 - cy) / (0.065 * H)) ** 2
+                    if d < 1 and 0 <= i < W and 0 <= j < H:
+                        base = F.cv.get(F.x + i, F.y + j)
+                        bc = (base[0] << 16) | (base[1] << 8) | base[2]
+                        F.px(i, j, mix(bc, C.BLUSH, 0.6 * (1 - d) ** 0.6))
+        # eyes: long half-lidded almond rising to the outer corner; the texture-left one sits under the bangs
+        for cx, s in ((0.3 * W, 1), (0.69 * W, -1)):
+            ey, ew, eh = 0.53 * H, 0.17 * W, 0.075 * H
+            inner, outer = cx + s * ew, cx - s * ew          # inner corner toward the nose
+            top = [(inner, ey + 0.01 * H), (cx, ey - 0.025 * H), (outer, ey - 0.06 * H)]
+            bot = [(outer, ey - 0.03 * H), (cx, ey + eh), (inner, ey + 0.035 * H)]
+            F.poly(top + bot, C.EYE)
+            F.poly([(inner, ey + 0.01 * H), (cx, ey - 0.025 * H), (outer, ey - 0.06 * H), (outer, ey - 0.02 * H), (cx, ey + 0.015 * H)], C.EYE_D)
+            F.rect(cx + s * 0.05 * W - 1, ey - 0.03 * H, 2, 0.1 * H, C.LID)          # slit pupil
+            for (x1, y1), (x2, y2) in zip(top, top[1:]):
+                F.line(x1, y1, x2, y2, C.LID, max(2, W * 0.03))                     # heavy upper lid
+            F.line(outer, ey - 0.06 * H, outer - s * 0.04 * W, ey - 0.085 * H, C.LID, 2)  # lash flick
+            for (x1, y1), (x2, y2) in zip(bot, bot[1:]):
+                F.line(x1, y1, x2, y2, C.LID, 1.2)
+        F.line(0.5 * W, 0.66 * H, 0.52 * W, 0.7 * H, mix(C.SKIN_D, C.SKIN, 0.3), 1)    # nose hint
+        # tiny flat mouth
+        F.line(0.45 * W, 0.8 * H, 0.56 * W, 0.8 * H, C.MOUTH, 1.6)
+        F.line(0.47 * W, 0.83 * H, 0.54 * W, 0.83 * H, mix(C.SKIN, C.SKIN_D, 0.6), 1)
+        # V-chin: hair frames the jaw on both sides
+        for x0, x1 in ((0, 0.22 * W), (W, 0.78 * W)):
+            F.poly([(x0, 0.78 * H), (x1, H), (x0, H)], C.HAIR)
+            F.line(x0, 0.78 * H, x1, H, C.HAIR_D, 1.2)
     return f
 
 
 def face_p2(C):
+    """confirmed art: upper face drowned in black under the bangs, grey lower face, ONE glowing slit eye peeking out,
+    thin glowing crescent grin, a dark drip from the right corner."""
+    GREY, GREY_D = 0x5E5A63, 0x3E3B43
     def f(F):
         W, H = F.w, F.h
         for y in range(H):
             for x in range(W):
-                F.px(x, y, mix(C.SKIN_L, C.SKIN, y / H))
-        # glowing slanted slit eyes
-        for cx, s in ((0.3 * W, 1), (0.7 * W, -1)):
-            ey = 0.42 * H
-            F.poly([(cx - 0.17 * W, ey - s * 0.0 * H - (0.04 * H if s < 0 else 0)), (cx + 0.15 * W, ey - (0.04 * H if s > 0 else 0)),
-                    (cx + 0.12 * W, ey + 0.09 * H), (cx - 0.12 * W, ey + 0.09 * H)], C.EYE, glow=True)
-            F.rect(cx - 0.02 * W, ey - 0.02 * H, max(1, 0.04 * W), 0.07 * H, C.EYE_D, glow=True)
-        # huge grin, crescent from cheek to cheek
-        pts_top = [(0.1 * W + i * 0.08 * W, 0.66 * H - 0.11 * H * math.sin(math.pi * i / 10) * -0.4 - (0.06 * H if i in (0, 10) else 0)) for i in range(11)]
-        pts_bot = [(0.9 * W - i * 0.08 * W, 0.7 * H + 0.16 * H * math.sin(math.pi * i / 10)) for i in range(11)]
-        F.poly(pts_top + pts_bot, C.EYE, glow=True)
-        for i in range(1, 12):  # teeth gaps
-            x = 0.12 * W + i * 0.065 * W
-            F.line(x, 0.64 * H, x, 0.84 * H, C.MOUTH, 1)
-        F.line(0.12 * W, 0.73 * H, 0.88 * W, 0.73 * H, C.MOUTH, 1)
+                edge = (0.6 + 0.04 * math.sin(x / W * 9)) * H
+                F.px(x, y, C.SKIN if y < edge else mix(GREY, GREY_D, (y - edge) / (H - edge) * 0.6))
+        # visible slit eye (her left - the same side as phase 1; her right one stays under the bangs)
+        cx, ey = 0.69 * W, 0.5 * H
+        F.poly([(cx + 0.17 * W, ey - 0.03 * H), (cx - 0.06 * W, ey - 0.035 * H), (cx - 0.17 * W, ey + 0.015 * H), (cx + 0.05 * W, ey + 0.035 * H)], C.EYE, glow=True)
+        F.line(cx - 0.12 * W, ey - 0.005 * H, cx + 0.12 * W, ey - 0.01 * H, C.GLOW, 1, glow=True)
+        # crescent grin
+        top = [(0.2 * W + i * 0.06 * W, 0.7 * H + 0.05 * H * math.sin(math.pi * i / 10)) for i in range(11)]
+        bot = [(0.8 * W - i * 0.06 * W, 0.71 * H + 0.14 * H * math.sin(math.pi * i / 10)) for i in range(11)]
+        F.poly(top + bot, C.EYE, glow=True)
+        F.line(0.24 * W, 0.735 * H, 0.76 * W, 0.735 * H, C.EYE_D, 1, glow=True)
+        F.line(0.17 * W, 0.67 * H, 0.21 * W, 0.71 * H, C.LID, 1.5)
+        F.line(0.83 * W, 0.67 * H, 0.79 * W, 0.71 * H, C.LID, 1.5)
+        F.rect(0.73 * W, 0.74 * H, max(2, 0.03 * W), 0.16 * H, C.LID)   # drip
     return f
 
 
@@ -384,8 +407,9 @@ def build(B):
             B.lock("thumbc_" + k, "thumb_" + k, (x - 1.0 * s, 9.0, -0.8), 4.0 * big, 0.6, 0.5, (-30, 0, -s * 30), C.CLAW, C.CLAW_HI, paint=B.edges(C.CLAW_HI))
 
     # ---------------- head
-    c("skull", "head", (-2.7, 27.2, -2.6), (2.7, 32.6, 2.6), C.SKIN, faces={"north": face_p2(C) if boss else face_p1(C)})
-    c("jaw", "head", (-1.7, 26.8, -2.45), (1.7, 27.4, 0.8), C.SKIN_D)
+    c("skull", "head", (-2.7, 27.2, -2.6), (2.7, 32.6, 2.6), C.SKIN, faces={"north": face_p2(C) if boss else face_p1(C)},
+      res=(8 if boss else 16))
+    c("jaw", "head", (-1.1, 26.8, -2.45), (1.1, 27.4, 0.8), C.SKIN_D)
     for s, k in ((1, "r"), (-1, "l")):
         c("ear_" + k, "head", (2.6 * s - 0.2, 28.8, -0.4), (2.6 * s + 0.2, 30.6, 0.6), C.SKIN_D)
     c("earring1", "head", (-3.05, 28.3, -0.1), (-2.75, 28.9, 0.3), C.COAT_D)
@@ -403,10 +427,11 @@ def build(B):
             blade(f"hs_{k}{i}", "hair_" + k, (3.0 * s, y, z), ln + (0.5 if s < 0 else 0), 1.7, 0.9, (0, 0, -rz * s), C.HAIR, C.HAIR_D, paint=st_plain)
     # bangs: heavy sweep from her left over her right eye
     c("fringe", "bangs", (-3.0, 31.0, -3.05), (3.0, 32.8, -2.6), C.HAIR, faces=B.all(st))
-    for i, (x, ln, rz) in enumerate([(2.6, 2.6, -6), (-0.6, 1.0, -16), (-1.7, 1.2, -20), (-2.7, 1.6, -10)]):
-        B.lock(f"bang{i}", "bangs", (x, 31.4, -2.95), ln, 1.6, 0.4, (6, 0, rz), C.HAIR, C.HAIR_D, paint=st_plain)
-    B.lock("bang_long", "bangs", (1.3, 31.6, -3.0), 3.2, 2.2, 0.4, (6, 0, -10), C.HAIR, C.HAIR_D, paint=st_plain)
-    B.lock("bang_long2", "bangs", (2.2, 31.4, -3.0), 3.0, 1.8, 0.4, (6, 0, -12), C.HAIR, C.HAIR_D, paint=st_plain)
+    # (confirmed art: one diagonal sheet sweeping from above her left eye down over her right eye and cheek)
+    for i, (x, ln, rz) in enumerate([(2.7, 3.4, 6), (-0.9, 1.5, 32), (-1.9, 1.2, 28), (-2.8, 1.6, 16)]):
+        B.lock(f"bang{i}", "bangs", (x, 31.6, -2.95), ln, 1.6, 0.4, (6, 0, rz), C.HAIR, C.HAIR_D, paint=st_plain)
+    B.lock("bang_long", "bangs", (-0.1, 32.0, -3.0), 4.4, 2.6, 0.45, (6, 0, 36), C.HAIR, C.HAIR_D, paint=st_plain)
+    B.lock("bang_long2", "bangs", (1.3, 31.9, -3.05), 3.8, 2.2, 0.45, (6, 0, 26), C.HAIR, C.HAIR_D, paint=st_plain)
     # ahoge: long arching strand
     c("ahs0", "ah0", (0.1, 34.3, -0.1), (0.7, 37.2, 0.5), C.HAIR, faces=B.all(st_plain))
     c("ahs1", "ah1", (0.15, 37.0, -0.05), (0.65, 39.6, 0.45), C.HAIR, faces=B.all(st_plain))
@@ -455,9 +480,9 @@ def build(B):
                 c(nm + "c", nm, (tx - w, ty - w, z0), (tx + w, ty + w, z0 + 3.1), C.SHADOW, faces=B.all(B.edges(C.SHADOW_HI)))
             blade(f"tent{t}_tip", prev, (tx, ty, 1.6 + 12 - 0.2), 2.0, 0.6, 0.4, (90, 0, 0), C.SHADOW, C.SHADOW_HI)
         # eye beam (hidden unless eye_beam)
-        g("beam", (0, 30.0, -2.7), "head")
-        c("beam_core", "beam", (-0.35, 29.65, -60), (0.35, 30.35, -2.7), C.GLOW, glow=True)
-        c("beam_halo", "beam", (-0.8, 29.2, -40), (0.8, 30.8, -2.8), 0xFF9A2A, glow=True)
+        g("beam", (-1.0, 30.0, -2.7), "head")   # fires from the one visible eye (her left)
+        c("beam_core", "beam", (-1.35, 29.65, -60), (-0.65, 30.35, -2.7), C.GLOW, glow=True)
+        c("beam_halo", "beam", (-1.8, 29.2, -40), (-0.2, 30.8, -2.8), 0xFF9A2A, glow=True)
 
 
 def combo(*fns):

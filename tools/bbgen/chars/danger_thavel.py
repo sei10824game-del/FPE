@@ -152,37 +152,36 @@ def warning(F):
 
 def face_front(F):
     W, H = F.w, F.h  # 48 x 48
+    # face pass (matches the drawing): the orange eye is on the VIEWER'S LEFT (character's right, texel x small), the bangs
+    # sweep over the other eye; a lopsided crescent grin rises toward the eye side; small ring mark on the far cheek.
     for y in range(H):
         for x in range(W):
             F.px(x, y, mix(SKIN, SKIN_D, max(0, (10 - y) / 10) * 0.55))
-    cx = W / 2
-    # glowing orange triangle eye on the character's LEFT (viewer's right)
-    pts = [(26, 15), (43, 14), (35, 27)]
-    F.poly([(25, 13.5), (44.5, 12.5), (35, 29.5)], EYE_D)
-    F.poly(pts, EYE, glow=True)
-    F.poly([(30, 16), (39, 15.5), (35, 22)], 0xFFC060, glow=True)
-    F.rect(34, 16, 2, 5, 0x3A1004)
-    # cheek mark (small ring) under the eye
-    F.disc(42, 30, 2.0, SKIN_D); F.disc(42, 30, 1.0, SKIN)
-    # huge shark grin, corners pulled up
-    for x in range(3, W - 3):
-        u = (x + .5 - cx) / (cx - 3)
-        top = 33 - 1.6 * (1 - u * u) - 6 * u * u
-        bot = 44.5 - 11 * u * u
+    # glowing orange almond/triangle eye, point toward the nose, dark-red ring pupil on the outer side
+    F.poly([(3.5, 12.5), (24, 13.5), (14, 29.5)], EYE_D)
+    F.poly([(5, 14), (22.5, 15), (14, 27)], EYE, glow=True)
+    F.poly([(9, 15.5), (19, 16), (14, 22)], 0xFFC060, glow=True)
+    F.disc(9.5, 18, 3.4, 0x6A1A08, glow=True); F.disc(9.5, 18, 2.2, 0xE0601A, glow=True); F.disc(9.5, 18, 1.0, 0x3A1004)
+    F.line(3, 11, 23, 11.5, LIP, 1.2)  # heavy upper lid line
+    # cheek ring + tiny stem (the drawing's little 'o-' mark) on the far cheek, beside the grin
+    F.disc(41, 33, 2.2, LIP); F.disc(41, 33, 1.2, SKIN); F.line(39, 33, 36.5, 33.5, LIP, 1)
+    # lopsided crescent shark grin: higher on the eye side, deep bottom curve, big white fangs on dark mouth
+    def top_(x): return 31.5 - 4.5 * ((x - 22) / 20) ** 2 - 2.0 * (22 - x) / 20
+    def bot_(x): return 43.5 - 13 * ((x - 22) / 20) ** 2 - 2.0 * (22 - x) / 20
+    for x in range(2, W - 4):
+        top, bot = top_(x), bot_(x)
         if bot <= top + 1: continue
         for y in range(int(top), int(bot) + 1):
             F.px(x, y, MOUTH if y > top + 0.5 else LIP)
         F.px(x, int(bot) + 1, LIP)
-    for i in range(10):
-        x0 = 4 + i * 4
-        u = (x0 + 2 - cx) / (cx - 3)
-        top = 33 - 1.6 * (1 - u * u) - 6 * u * u
-        bot = 44.5 - 11 * u * u
+    for i in range(9):
+        x0 = 4 + i * 4.4
+        top, bot = top_(x0 + 2.2), bot_(x0 + 2.2)
         span = bot - top
         if span < 3: continue
-        th = min(5.5, span * 0.48)
-        F.poly([(x0, top), (x0 + 4, top), (x0 + 2, top + th)], TEETH)
-        F.poly([(x0 + 2, bot + 1), (x0 + 6, bot + 1), (x0 + 4, bot + 1 - th)], TEETH)
+        th = min(6.0, span * 0.5)
+        F.poly([(x0, top + 0.5), (x0 + 4.4, top + 0.5), (x0 + 2.2, top + th)], TEETH)
+        F.poly([(x0 + 2.2, bot + 0.5), (x0 + 6.6, bot + 0.5), (x0 + 4.4, bot + 0.5 - th)], TEETH)
 
 
 def glow_fill(c1, c2):
@@ -337,10 +336,13 @@ m.cube("spark_out", "spark", (0.1, 42.2, 0.1), (1.9, 44.4, 1.9), F_MID, glow=Tru
        paint=GF(F_MID, F_OUT))
 # hair under the hat + bangs (cover the character's right eye)
 m.cube("hair_crown", "head", (-3.7, 27.0, 0.0), (3.7, 33.6, 3.9), HAIR, faces=all_faces(HS))
-m.cube("bang_main", "bangs", (0.3, 29.0, -3.55), (3.5, 33.3, -3.0), HAIR, origin=(1.9, 33.2, -3.2), rot=(2, 0, -6), faces=all_faces(HS2))
-for i, (x, ln, rz) in enumerate([(3.0, 6.6, 6), (2.0, 5.4, 2), (0.9, 4.6, -12), (-0.6, 1.4, -20), (-1.9, 1.0, -26), (-3.0, 4.4, -4)]):
-    m.cube(f"bang{i}", "bangs", (x - 0.55, 33.2 - ln, -3.7), (x + 0.55, 33.2, -3.05), HAIR if i % 2 else HAIR_HI if i == 2 else HAIR_D,
-           origin=(x, 33.2, -3.3), rot=(5, 0, rz), faces=all_faces(HS2))
+# (face pass: mirrored to the character's LEFT (-X) like the drawing; sizes unchanged so the random stream is identical)
+#  tops are raised into the beanie so the locks end above the grin; the two side locks frame the face edges.
+m.cube("bang_main", "bangs", (-3.5, 29.7, -3.55), (-0.3, 34.0, -3.0), HAIR, origin=(-1.9, 33.2, -3.2), rot=(2, 0, 12), faces=all_faces(HS2))
+for i, (x, ln, rz, y0) in enumerate([(-3.4, 6.6, -6, 33.2), (-2.0, 5.4, -4, 35.0), (-0.6, 4.6, 22, 34.6), (0.6, 1.4, 20, 33.2),
+                                     (1.9, 1.0, 26, 33.2), (3.45, 4.4, 4, 33.4)]):
+    m.cube(f"bang{i}", "bangs", (x - 0.55, y0 - ln, -3.7), (x + 0.55, y0, -3.05), HAIR if i % 2 else HAIR_HI if i == 2 else HAIR_D,
+           origin=(x, min(y0, 33.2), -3.3), rot=(5, 0, rz), faces=all_faces(HS2))
 m.cube("hb_main", "hair_b1", (-4.4, 20.4, 2.1), (4.4, 31.8, 5.0), HAIR, faces=all_faces(HS))
 m.cube("hb_lower", "hair_b2", (-5.0, 10.8, 2.6), (5.0, 21.2, 5.6), HAIR, color2=HAIR_D, grad=True, faces=all_faces(HS))
 for i in range(11):  # long jagged tips below the knees

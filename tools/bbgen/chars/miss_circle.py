@@ -85,37 +85,59 @@ def folds(base, dark, light, n=3):
 
 
 def face_front(F):
-    W, H = F.w, F.h  # 45 x 45; texture left = her right (+X); her left half is under the bang
+    """45x45 (8 tex/unit): u = (2.8 - x) * 8, v = (33 - y) * 8. Texture left = her right (+X).
+    Ref (miss_circle_face_a/b): fringe cut straight down to the eyelids, her RIGHT eye open - heavy black upper lid, pointed
+    outer corner, small pupil hard against the lid with a star glint; her LEFT eye squinting under the big bang; a huge
+    crescent shark grin (two rows of small triangular teeth) curling up into the cheeks, pale grey-white skin."""
+    W, H = F.w, F.h
     for y in range(H):
         for x in range(W):
-            F.px(x, y, mix(SKIN, SKIN_D, max(0, (16 - y) / 16) * 0.7 + (0.25 if y > 40 else 0)))
-    # one visible eye: narrow, slanted up toward the temple, heavy dark upper lid
-    F.poly([(4, 21), (16, 17), (19, 21), (8, 24)], EYE, glow=True)
-    F.disc(13, 20.6, 1.9, GRAPH)
-    F.px(12, 20, EYE, glow=True)
-    F.line(3, 20, 19, 15.5, DARK_D, 1.6)
-    F.line(14, 13.5, 21, 12.5, SKIN_D, 1)
-    # huge shark grin under the eye, corners curling up to the cheek
-    cx, hw = 19.0, 16.0
+            sh = max(0, (17 - y) / 6) * 0.55 + max(0, (y - 39) / 6) * 0.35 + (abs(x - 22) / 22) ** 3 * 0.25
+            F.px(x, y, mix(SKIN_L, SKIN_D, min(0.8, sh)))
+    # her RIGHT eye (texture left): big half-lidded almond, flat heavy lid sloping up to a pointed outer corner
+    F.poly([(3, 16), (19, 17), (18, 21), (13, 24.1), (8, 23.7), (4.5, 20)], EYE, glow=True)
+    F.disc(12.0, 19.5, 3.1, GRAPH, glow=True)                        # pupil pressed up under the lid
+    F.disc(12.0, 19.5, 1.9, 0x343C55, glow=True)
+    for gx, gy in ((12, 19), (11, 19), (13, 19), (12, 18), (12, 20), (10, 19), (14, 19), (12, 17), (12, 21)):  # star glint
+        F.px(gx, gy, 0xFFFFFF, glow=True)
+    F.px(10, 17, 0xE8ECF8, glow=True); F.px(14, 21, 0xE8ECF8, glow=True)
+    F.line(2, 15.7, 19.5, 16.9, GRAPH, 2.6, glow=True)               # thick black upper lid
+    F.line(1, 14.3, 3.5, 16.1, GRAPH, 1.4, glow=True)                # lash flick at the outer corner
+    F.line(7, 24.9, 15, 24.5, SKIN_D, 1)                  # lower lid crease
+    # her LEFT eye (texture right): squinting slit, half under the bang
+    F.poly([(25, 16.6), (42, 15.0), (39, 18.6), (29, 19.4)], EYE, glow=True)
+    F.disc(30.6, 17.2, 1.6, GRAPH, glow=True)
+    F.px(30, 17, 0xFFFFFF, glow=True)
+    F.line(24, 16.2, 43, 14.0, GRAPH, 2.2, glow=True)
+    F.line(27, 20.6, 37, 20.0, SKIN_D, 1)
+    # huge crescent grin, wider and higher on her right (smirk), lips ending in curled cheek creases
+    cx, hw = 22.0, 18.5
     def tb(x):
         u = (x + .5 - cx) / hw
-        return 29.5 - 1.0 * (1 - u * u) - 6.5 * u * u, 39.5 - 10.5 * u * u
+        lift = 1.5 * max(0.0, -u)                          # texture-left corner rides higher
+        return 29.5 - 3.5 * u * u - lift, 39.0 - 10.0 * u * u - lift
     for x in range(int(cx - hw), int(cx + hw) + 1):
         top, bot = tb(x)
-        if bot <= top + 0.5: continue
-        F.rect(x, int(top), 1, int(bot) - int(top) + 1, MOUTH)
-    for i in range(8):
-        x0 = cx - hw + 2 + i * 3.9
-        top, bot = tb(x0 + 2)
-        span = bot - top
-        if span < 2: continue
-        th = min(5.0, span * 0.55)
-        F.poly([(x0, top), (x0 + 3.9, top), (x0 + 1.95, top + th)], TEETH)
-        x1 = x0 + 1.9
-        top2, bot2 = tb(x1 + 2)
-        if bot2 - top2 > 2: F.poly([(x1, bot2 + 1), (x1 + 3.9, bot2 + 1), (x1 + 1.95, bot2 + 1 - min(4.5, (bot2 - top2) * 0.5))], TEETH)
-    F.line(cx - hw - 1, 27, cx - hw + 2, 24.5, SKIN_D, 1)  # cheek crease
-    F.line(22, 23, 21, 25, SKIN_D, 1)  # nose hint
+        if bot <= top + 0.6: continue
+        F.rect(x, int(round(top)), 1, int(round(bot)) - int(round(top)) + 1, MOUTH)
+        F.px(x, int(round(top)) - 1, mix(SKIN_D, GRAPH, 0.4))   # upper lip ink line
+    # upper teeth: small triangles hanging from the top edge
+    n = 8
+    for i in range(n):
+        x0 = cx - hw + 2.2 + i * (2 * hw - 4.4) / n
+        w = (2 * hw - 4.4) / n
+        top, bot = tb(x0 + w / 2)
+        if bot - top < 1.6: continue
+        F.poly([(x0, top - 0.3), (x0 + w, top - 0.3), (x0 + w / 2, top + min(5.0, (bot - top) * 0.55))], TEETH)
+    # lower teeth: offset half a tooth, pointing up
+    for i in range(n - 1):
+        x0 = cx - hw + 2.2 + (i + 0.5) * (2 * hw - 4.4) / n
+        w = (2 * hw - 4.4) / n
+        top, bot = tb(x0 + w / 2)
+        if bot - top < 2.4: continue
+        F.poly([(x0, bot + 1), (x0 + w, bot + 1), (x0 + w / 2, bot + 1 - min(4.4, (bot - top) * 0.5))], TEETH)
+    F.line(cx - hw - 1.5, 26.0, cx - hw + 0.5, 23.6, SKIN_D, 1)   # cheek curl (her right)
+    F.line(cx + hw + 0.5, 27.6, cx + hw + 1.5, 25.4, SKIN_D, 1)   # cheek curl (her left)
 
 
 def chest_front(F):
@@ -216,22 +238,30 @@ m.cube("torso", "chest", (-2.85, 20.3, -1.65), (2.85, 25.9, 1.65), DARK, color2=
 m.cube("bust", "chest", (-2.4, 21.6, -2.0), (2.4, 24.6, -1.5), DARK, faces={"north": lambda F: F.disc(F.w * 0.66, F.h * 0.5, 2.0, TEAL)})
 m.cube("collar", "chest", (-1.9, 25.4, -1.85), (1.9, 26.9, 1.4), DARK_D, faces={"north": hstripe(LINE, 0, 1)})
 m.cube("lapel", "chest", (0.3, 23.6, -2.05), (2.6, 26.6, -1.75), 0xB4B8C2, origin=(1.3, 26.6, -1.9), rot=(0, 0, -18))
+# bow tie at the collar (face_a): two dark wings with light ink edges around a small knot, white collar points behind
+for s_, k in ((1, "r"), (-1, "l")):
+    m.cube("collarpt_" + k, "chest", (min(0, 0.7 * s_), 25.2, -2.15), (max(0, 0.7 * s_), 26.7, -1.95),
+           PANT_L, origin=(0.4 * s_, 26.7, -2.0), rot=(0, 0, 22 * s_))
+    m.cube("bowtie_" + k, "chest", (min(0.25 * s_, 1.35 * s_), 25.35, -2.45), (max(0.25 * s_, 1.35 * s_), 26.45, -2.15), DARK_D,
+           origin=(0.25 * s_, 25.9, -2.3), rot=(0, 0, 14 * s_), faces={"north": outline(LINE, bottom=True)})
+m.cube("bowtie_knot", "chest", (-0.32, 25.55, -2.55), (0.32, 26.25, -2.2), DARK, faces={"north": outline(LINE, bottom=True)})
 m.cube("neck", "chest", (-0.8, 25.8, -0.8), (0.8, 27.6, 0.8), SKIN_D, color2=SKIN, grad=True)
 
 # ------------------------------------------------------------------ head
 m.cube("skull", "head", (-2.8, 27.4, -2.8), (2.8, 33.0, 2.8), SKIN, faces={"north": face_front, "up": lambda F: F.rect(0, 0, F.w, F.h, DARK_D)})
 m.cube("jaw_l", "head", (-2.85, 27.4, -2.0), (-2.6, 29.0, 1.0), SKIN_D)
-m.cube("crown", "head", (-3.2, 30.6, -3.15), (3.2, 34.4, 3.3), DARK, faces=all_faces(strands()))
+m.cube("crown", "head", (-3.2, 31.5, -3.15), (3.2, 34.4, 3.3), DARK, faces=all_faces(strands()))
 m.cube("crown2", "head", (-2.6, 34.0, -2.2), (2.4, 35.2, 2.6), DARK, faces=all_faces(strands()))
 m.cube("fringe", "head", (-3.25, 31.4, -3.45), (3.25, 33.2, -2.9), DARK, faces=all_faces(strands()))
-# bangs over the forehead (spikes down), the right eye stays visible
-for i, (x, ln, rz) in enumerate([(2.6, 2.0, 18), (1.6, 1.6, 8), (0.4, 3.4, -4)]):
+# fringe spikes: one framing her right temple, one between the eyes; the right eye stays clear, the grin uncovered
+for i, (x, ln, rz) in enumerate([(2.85, 2.6, 8), (0.1, 1.9, -6), (-0.8, 1.2, 6)]):
     m.cube(f"bangtip{i}", "head", (x - 0.5, 31.6 - ln, -3.5), (x + 0.5, 31.6, -3.0), DARK, origin=(x, 31.6, -3.2), rot=(6, 0, rz),
            faces=all_faces(strands(ink=False)))
 # big bang covering her left eye (own bone so it can flick)
-m.cube("bang_main", "bang", (-3.3, 27.0, -3.55), (-0.9, 32.6, -3.0), DARK, origin=(-1.2, 32.4, -3.2), rot=(4, 0, -6), faces=all_faces(strands()))
-m.cube("bang_tip", "bang", (-3.0, 24.8, -3.5), (-1.6, 27.4, -3.0), DARK, origin=(-2.3, 27.2, -3.2), rot=(6, 0, -18), faces=all_faces(strands(ink=False)))
-m.cube("bang_tip2", "bang", (-1.2, 25.6, -3.45), (-0.3, 27.4, -3.05), DARK_D, origin=(-0.8, 27.2, -3.2), rot=(6, 0, 14))
+# (squinting eye peeks out at its inner edge, the strand then sweeps down the side of her jaw, off the grin)
+m.cube("bang_main", "bang", (-3.35, 29.2, -3.55), (-1.55, 32.6, -3.0), DARK, origin=(-1.2, 32.4, -3.2), rot=(4, 0, -6), faces=all_faces(strands()))
+m.cube("bang_tip", "bang", (-3.4, 26.4, -3.4), (-2.4, 29.6, -2.95), DARK, origin=(-2.9, 29.4, -3.2), rot=(4, 0, -10), faces=all_faces(strands(ink=False)))
+m.cube("bang_tip2", "bang", (-1.6, 30.2, -3.45), (-1.0, 31.6, -3.05), DARK_D, origin=(-1.3, 31.5, -3.2), rot=(6, 0, 16))
 # wolf-ear hair spikes (the right one wide, the left one tall and thin, like the drawing)
 m.cube("ear_r0", "ear_r", (0.3, 33.4, -1.0), (3.0, 36.6, 1.6), DARK, origin=(1.6, 33.6, 0.4), rot=(0, 0, -10), faces=all_faces(strands()))
 m.cube("ear_r1", "ear_r", (0.8, 36.2, -0.6), (2.6, 39.0, 1.2), DARK, origin=(1.7, 36.4, 0.4), rot=(0, 0, -16),

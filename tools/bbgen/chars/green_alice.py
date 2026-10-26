@@ -144,24 +144,26 @@ def combo(*fns):
 
 # ================================================================== face painters
 def face_p1(C):
+    """confirmed art: hair shadow over the upper face, a V of bangs dipping between the eyes, and two wide-set
+    glowing toxic-green eye patches (no pupils) on the outer cheeks, slanting down toward the middle; mouth barely visible."""
+    SH = mix(C.SKIN, C.HAIR_D, 0.45)
     def f(F):
         W, H = F.w, F.h
         for y in range(H):
             for x in range(W):
-                F.px(x, y, mix(C.SKIN, C.SKIN_D, max(0, (0.38 - y / H) / 0.38) * 0.8))
-        # big glowing toxic-green eyes (dark rim, bright core, small pupil), tired lower lids
-        for cx in (0.29 * W, 0.71 * W):
-            ey = 0.55 * H
-            F.disc(cx, ey, 0.15 * W, C.EYE_RIM)
-            F.disc(cx, ey, 0.115 * W, C.EYE, glow=True)
-            F.disc(cx - 0.02 * W, ey - 0.02 * H, 0.06 * W, C.EYE_HI, glow=True)
-            F.disc(cx + 0.01 * W, ey + 0.01 * H, max(0.8, 0.025 * W), C.EYE_D)
-            F.line(cx - 0.17 * W, ey - 0.12 * H, cx + 0.15 * W, ey - 0.15 * H, C.LID, max(1.5, W * 0.04))  # heavy upper lid
-            F.line(cx - 0.1 * W, ey + 0.16 * H, cx + 0.1 * W, ey + 0.16 * H, C.SKIN_D, 1)  # eye bag
-            F.line(cx - 0.12 * W, ey - 0.24 * H, cx + 0.1 * W, ey - 0.27 * H, C.HAIR_D, 1)  # brow
-        F.line(0.5 * W, 0.68 * H, 0.52 * W, 0.73 * H, C.SKIN_D, 1)  # nose
-        F.line(0.42 * W, 0.86 * H, 0.58 * W, 0.85 * H, C.MOUTH, 1.3)  # flat unimpressed mouth
-        F.px(int(0.59 * W), int(0.84 * H), C.MOUTH)
+                v = abs(x / W - 0.5) * 2                       # 0 centre .. 1 edge
+                edge = (0.36 + 0.14 * (1 - v)) * H             # shadow follows the V of the bangs
+                c = mix(C.SKIN, C.SKIN_D, 0.2 * y / H)
+                F.px(x, y, SH if y < edge else mix(SH, c, min(1, (y - edge) / (0.08 * H))))
+        for s in (1, -1):
+            o = (lambda u: u) if s > 0 else (lambda u: 1 - u)  # mirror for the other eye
+            pts = [(o(0.04) * W, 0.5 * H), (o(0.38) * W, 0.58 * H), (o(0.4) * W, 0.73 * H), (o(0.08) * W, 0.74 * H)]
+            F.poly([(x, y + 0.012 * H) for x, y in pts], mix(C.EYE_D, C.SKIN, 0.3), glow=True)    # soft halo
+            F.poly(pts, C.EYE, glow=True)
+            F.poly([(o(0.1) * W, 0.56 * H), (o(0.3) * W, 0.61 * H), (o(0.3) * W, 0.66 * H), (o(0.12) * W, 0.64 * H)], C.EYE_HI, glow=True)
+            F.line(pts[0][0], pts[0][1], pts[1][0], pts[1][1], C.EYE_RIM, max(1.5, W * 0.025))  # heavy upper lid
+        F.line(0.5 * W, 0.74 * H, 0.52 * W, 0.78 * H, C.SKIN_D, 1)  # nose
+        F.line(0.46 * W, 0.88 * H, 0.55 * W, 0.88 * H, mix(C.MOUTH, C.SKIN, 0.35), 1.2)  # faint flat mouth
     return f
 
 
@@ -379,7 +381,7 @@ def build(B):
             c("web_glob", "webline", (x - 1.0, -28.5, -1.0), (x + 1.0, -26.5, 1.0), C.WEB, faces=B.all(B.frame(C.GLASS_D)))
 
     # ---------------- head
-    c("skull", "head", (-2.6, 26.6, -2.5), (2.6, 31.8, 2.5), C.SKIN, faces={"north": face_p2(C) if boss else face_p1(C)})
+    c("skull", "head", (-2.6, 26.6, -2.5), (2.6, 31.8, 2.5), C.SKIN, faces={"north": face_p2(C) if boss else face_p1(C)}, res=16)
     c("jaw", "head", (-1.7, 26.3, -2.35), (1.7, 26.9, 0.8), C.SKIN_D)
     for s, k in ((1, "r"), (-1, "l")):
         c("ear_" + k, "head", (2.5 * s - 0.2, 28.4, -0.4), (2.5 * s + 0.2, 30.2, 0.6), C.SKIN_D)
@@ -398,7 +400,8 @@ def build(B):
             blade(f"hs_{k}{j}", "hair_" + k, (3.0 * s, y, z), ln, 1.5, 0.8, (0, 0, -rz * s), C.HAIR, C.HAIR_D, paint=st_plain)
     # bangs: choppy, parted, long lock between the eyes
     c("fringe", "bangs", (-2.9, 31.0, -2.95), (2.9, 32.6, -2.5), C.HAIR, faces=B.all(st))
-    for j, (x, ln, rz) in enumerate([(-2.4, 2.2, 10), (-1.3, 1.7, -8), (-0.2, 2.6, 4), (1.0, 1.9, -12), (2.2, 2.3, -6)]):
+    # (confirmed art: the two inner locks meet in a V that dips between the eyes)
+    for j, (x, ln, rz) in enumerate([(-2.4, 1.9, 10), (-1.1, 2.4, -22), (0.0, 3.1, 0), (1.1, 2.4, 22), (2.4, 1.9, -10)]):
         lock(f"bang{j}", "bangs", (x, 31.3, -2.85), ln, 1.4, 0.4, (8, 0, rz), C.HAIR, C.HAIR_D, paint=st_plain)
     # ahoge: thick curling loop (arches up and curls over to her left)
     c("ahs0", "ah0", (-0.35, 32.9, 0.0), (0.35, 35.8, 0.6), C.HAIR, faces=B.all(st_plain))

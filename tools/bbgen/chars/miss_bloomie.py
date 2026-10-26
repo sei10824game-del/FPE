@@ -81,13 +81,14 @@ def face_front(F):
         for x in range(W):
             F.px(x, y, mix(SKIN, SKIN_D, max(0, (14 - y) / 14) * 0.8))
     # closed, smug eyes (heavy lid arcs with lashes flicking outward), right eye half under the bangs
+    # face pass: calm closed lids curving down (the drawing's sleepy eye) with lashes hanging below; the left one sits under the locks
     for cx, s in ((13, 1), (31, -1)):
         for i in range(-6, 7):
-            y = 22 + 0.08 * i * i
-            F.disc(cx + i, y, 1.0, DARK_D)
-        F.line(cx - 6 * s, 22 + 2.8, cx - 9 * s, 20.5, DARK_D, 1.2)  # outer lash flick
-        F.line(cx - 3, 25.5, cx + 3, 25.5, SKIN_D, 1)                  # under-lid crease
-        F.line(cx - 4, 17.5, cx + 4, 16.5 if s > 0 else 18.5, DARK, 1.2)  # brow (raised on one side = smug)
+            y = 23.5 - 0.05 * i * i + 0.12 * i * s
+            F.disc(cx + i, y, 0.9, DARK_D)
+        for k in (-4, -1, 2, 5):  # lashes
+            F.line(cx + k * s, 24 + 0.12 * k, cx + k * s + 1.2 * s, 26.6, DARK_D, 1)
+        F.line(cx - 4, 21.0, cx + 4, 20.5, SKIN_D, 1)  # lid crease
     # small sideways smirk, corner pulled up on her left
     F.line(17, 34, 24, 34.6, MOUTH, 1.3)
     F.line(24, 34.6, 28, 32.4, MOUTH, 1.3)
@@ -249,9 +250,11 @@ for i, (y, z, ln, rz) in enumerate([(31.6, 0.4, 7.4, 70), (30.0, -0.6, 6.0, 102)
 for i, (x, y, ln, rz) in enumerate([(-2.0, 29.4, 4.6, 150), (0.0, 29.0, 5.4, 180), (2.0, 29.4, 4.4, -150)]):
     spike(f"spk_b{i}", "hair_b", (x, y, 3.0), ln, 2.4, 0, 0, rz)
 # bangs: spikes hanging over the forehead (eyes half hidden)
-for i, (x, ln, rz) in enumerate([(2.3, 2.8, -18), (1.1, 3.6, -6), (-0.2, 2.6, 4), (-1.4, 3.8, 10), (-2.5, 3.0, 22)]):
-    spike(f"bang{i}", "bangs", (x, 31.6, -3.0), ln, 1.5, -174, 0, rz)
-m.cube("fringe", "bangs", (-3.1, 30.0, -3.25), (3.1, 32.0, -2.7), DARK, faces=all_faces(strands()))
+# face pass (the drawing): a heavy blunt fringe down to the eyes, long locks completely hiding her left eye (viewer's right),
+# her right eye peeks out under the spike tips.  Sizes unchanged (random stream identical), only positions moved.
+for i, (x, ln, rz, y0) in enumerate([(2.3, 2.8, -18, 31.7), (1.1, 3.6, -6, 32.3), (-0.2, 2.6, 4, 31.6), (-1.15, 3.8, 2, 29.9), (-2.35, 3.0, 10, 29.8)]):
+    spike(f"bang{i}", "bangs", (x, y0, -3.0), ln, 1.5, -174, 0, rz)
+m.cube("fringe", "bangs", (-3.1, 29.2, -3.25), (3.1, 31.2, -2.7), DARK, faces=all_faces(strands()))
 # tuft: tall spikes shooting up/back from the crown (the bow sits at their base)
 for i, (x, ln, rz, rx) in enumerate([(0.2, 7.0, -8, 14), (-0.9, 5.6, 26, 20), (1.2, 5.0, -34, 18), (0.0, 4.6, 2, 44)]):
     spike(f"tuft{i}", "tuft", (x, 32.6, 0.6), ln, 2.2 if i == 0 else 1.7, rx, 0, rz)

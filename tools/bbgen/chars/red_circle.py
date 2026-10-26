@@ -100,34 +100,36 @@ def bandage(F):
 
 def face_front(F):
     W, H = F.w, F.h  # 48 x 48 (6 x 6 units), top = y 33.4
+    # rows 0-23 sit under the hat + visor band; the visible face is rows 23-48 (the drawing: band straight over the eyes,
+    # grin right below it).  Pale lavender-grey skin, darkened right under the band.
     for y in range(H):
         for x in range(W):
-            F.px(x, y, mix(SKIN, SKIN_D, max(0, (14 - y) / 14) * 0.6))  # shadow under the hat band
+            F.px(x, y, mix(SKIN, SKIN_D, max(0.0, (33 - y) / 6) * 0.75))
     cx = W / 2
-    # huge shark grin: corners pulled up
-    for x in range(3, W - 3):
-        u = (x + .5 - cx) / (cx - 3)
-        top = 30 - 2.2 * (1 - u * u) - 6 * u * u
-        bot = 42 - 13 * u * u
+    # huge cheek-to-cheek grin, corners pulled up toward the band; the drawing fills it with WHITE teeth that meet
+    # in a dark zig-zag (shark teeth), with only a thin dark gum line + dark corners.
+    def top_(u): return 30.5 - 2.5 * u * u
+    def bot_(u): return 45.5 - 14.0 * u * u
+    for x in range(2, W - 2):
+        u = (x + .5 - cx) / (cx - 2)
+        top, bot = top_(u), bot_(u)
         if bot <= top + 1: continue
         for y in range(int(top), int(bot) + 1):
-            F.px(x, y, MOUTH if y > top + 0.5 else LIP)
-        F.px(x, int(bot) + 1, LIP)
-        F.px(x, int(top) - 1, mix(SKIN_D, LIP, 0.4))
-    # teeth: upper row pointing down, lower row pointing up
-    for i in range(10):
-        x0 = 4 + i * 4
-        u = (x0 + 2 - cx) / (cx - 3)
-        top = 30 - 2.2 * (1 - u * u) - 6 * u * u
-        bot = 42 - 13 * u * u
-        span = bot - top
-        if span < 3: continue
-        th = min(5.5, span * 0.48)
-        F.poly([(x0, top), (x0 + 4, top), (x0 + 2, top + th)], TEETH)
-        F.poly([(x0 + 2, bot + 1), (x0 + 6, bot + 1), (x0 + 4, bot + 1 - th)], TEETH)
-    for x in range(W):  # cheek dimples
-        pass
-    F.px(4, 22, SKIN_D); F.px(W - 5, 22, SKIN_D)
+            F.px(x, y, TEETH if abs(u) < 0.86 else MOUTH)
+        F.px(x, int(top), LIP); F.px(x, int(top) - 1, mix(SKIN_D, LIP, 0.5))
+        F.px(x, int(bot) + 1, LIP); F.px(x, int(bot) + 2, mix(SKIN, SKIN_D, 0.7))
+        F.px(x, int(top) + 1, mix(TEETH, MOUTH, 0.55))          # upper gum shadow
+        F.px(x, int(bot), mix(TEETH, SKIN_D, 0.5))               # lower teeth shading
+        # interlocking zig-zag seam: 4-texel teeth
+        mid = (top + bot) / 2 + 0.6
+        amp = min(4.5, (bot - top) * 0.32)
+        ph = ((x + 4) % 8) / 8.0
+        seam = mid + amp * (abs(ph - 0.5) * 4 - 1)
+        F.px(x, int(seam), MOUTH); F.px(x, int(seam) + 1, mix(MOUTH, TEETH, 0.4))
+    for s in (-1, 1):  # dark mouth corners curling up + cheek creases
+        x0 = cx + s * (cx - 4)
+        F.line(x0, top_(0.93), x0 + s * 1.5, top_(0.93) - 2.5, LIP, 1.2)
+        F.line(cx + s * 17, 40, cx + s * 19, 37, SKIN_D, 1)
 
 
 def flame_paint(c1, c2):
@@ -240,8 +242,13 @@ for i in range(10):  # back fringe
 
 # ------------------------------------------------------------------ head: grin, orange band over the eyes, wolf-ear hat
 m.cube("skull", "head", (-3.0, 27.4, -3.0), (3.0, 33.4, 3.0), SKIN, faces={"north": face_front, "up": lambda F: F.rect(0, 0, F.w, F.h, HAIR_D)})
-m.cube("band", "head", (-3.2, 30.5, -3.2), (3.2, 32.6, 3.2), BAND, color2=BAND_D, grad=True,
-       faces={"north": lambda F: F.rect(0, F.h - 2, F.w, 2, BAND_D)})
+_rng_state = R.getstate()  # face pass: the band grew; keep the random stream identical for every cube after it
+m.cube("band", "head", (-3.2, 29.9, -3.2), (3.2, 32.6, 3.2), BAND, color2=BAND_D, grad=True,
+       faces={"north": lambda F: (F.poly([(0, 7), (F.w, 5), (F.w, 10), (0, 12)], PON_L),  # bright diagonal sheen of the visor
+                                  F.poly([(0, 13), (F.w, 11), (F.w, 12), (0, 14)], BAND_D),
+                                  F.rect(0, F.h - 2, F.w, 2, 0x5A2A10), F.rect(0, F.h - 3, F.w, 1, BAND_D))})
+R.setstate(_rng_state)
+for _ in range(4 * 51 * 17 + 2 * 51 * 51): R.random()  # = the original 6.4 x 2.1 x 6.4 band's texel noise draws
 m.cube("hat_cap", "hat", (-3.35, 32.4, -3.35), (3.35, 35.0, 3.35), HAT, color2=HAT_L, grad=True,
        faces={"north": lambda F: F.rect(0, 0, F.w, 2, HAT_L)})
 m.cube("hat_top", "hat", (-2.8, 35.0, -2.8), (2.8, 35.8, 2.8), HAT)
@@ -254,8 +261,10 @@ for s, k in ((1, "r"), (-1, "l")):
     m.cube("earp_" + k, "ear_" + k, (ex - 0.3, 39.9, -0.25), (ex + 0.3, 41.2, 0.5), HAT, origin=(ex, 40.0, 0.2), rot=(0, 0, -30 * s))
 # hair mass under the hat, bangs framing the face
 m.cube("hair_crown", "head", (-3.6, 27.6, 0.2), (3.6, 33.6, 3.9), HAIR, faces=all_faces(strands(HAIR, HAIR_HI, HAIR_D)))
-for i, (x, y0, ln, rz) in enumerate([(2.6, 32.6, 5.8, 6), (1.9, 32.4, 3.2, 2), (-2.6, 32.6, 6.4, -6), (-1.7, 32.4, 2.6, -3), (0.6, 32.5, 2.2, 10)]):
-    m.cube(f"bang{i}", "head", (x - 0.5, y0 - ln, -3.45), (x + 0.5, y0, -2.9), HAIR, origin=(x, y0, -3.2), rot=(4, 0, rz),
+# side locks hang just outside the grin; two short bangs tuck behind the visor; one lock slashes across the band (as drawn)
+for i, (x, y0, ln, rz, z0) in enumerate([(3.15, 32.6, 5.8, 4, -3.45), (2.2, 33.8, 3.2, 2, -3.12), (-3.15, 32.6, 6.4, -4, -3.45),
+                                         (-1.9, 33.2, 2.6, -3, -3.12), (1.6, 32.7, 2.2, -28, -3.5)]):
+    m.cube(f"bang{i}", "head", (x - 0.5, y0 - ln, z0), (x + 0.5, y0, z0 + 0.55), HAIR, origin=(x, y0, -3.2), rot=(4 if z0 < -3.3 else 0, 0, rz),
            faces=all_faces(strands(HAIR, HAIR_HI, HAIR_D, 2)))
 m.cube("hb_main", "hair_b1", (-4.2, 20.6, 2.0), (4.2, 31.8, 4.8), HAIR, faces=all_faces(strands(HAIR, HAIR_HI, HAIR_D)))
 m.cube("hb_lower", "hair_b2", (-4.7, 11.2, 2.4), (4.7, 21.2, 5.2), HAIR, color2=HAIR_D, grad=True, faces=all_faces(strands(HAIR, HAIR_HI, HAIR_D)))

@@ -1,5 +1,5 @@
 """Mutant Claire (FPE Green mutant student, CLAIRE 001) - generates assets/fpe/bbmodels/mutant_claire.bbmodel.
-Reference: docs/ref/confirmed/mutants_sheet.png (label CLAIRE 001): white shaggy bob/hood with two pointed wolf ears,
+Reference: docs/ref/confirmed/mutant_claire.png + mutants_sheet.png (label CLAIRE 001): white shaggy bob/hood with two pointed wolf ears,
 the whole face is a HUGE black maw full of jagged white teeth, a single black eye up on her right, oversized white
 collared shirt (sleeves swallow the hands, only black claws poke out), black strap across the chest to a big white
 satchel on her right hip, white shorts, black jagged legs and big black clawed feet. Hunched, ink-outlined, monochrome.
@@ -88,25 +88,118 @@ def teethp(F):
     outline(0x50505A)(F)
 
 
+CLR = (0, 0, 0, 0)
+
+
+def clear(F):
+    for y in range(F.h):
+        for x in range(F.w): F.px(x, y, CLR)
+
+
+def jag(depth, n, seed=0):
+    """cut a zigzag of n downward points into the bottom edge (alpha cutout -> spiky hair tips)"""
+    def f(F):
+        d = depth * F.h
+        for x in range(F.w):
+            t = ((x + 0.5) / F.w * n + 0.13 * seed) % 1.0
+            cut = d * abs(2 * t - 1)
+            for y in range(F.h):
+                if y > F.h - 1 - cut: F.px(x, y, CLR)
+            yb = int(F.h - 1 - cut)  # ink the cut edge
+            if 0 <= yb < F.h: F.px(x, yb, WH_DD)
+    return f
+
+
+def tri_up(lean=0.0, inner=None):
+    """keep only an upward-pointing triangle (ear), apex shifted by lean*W; optional inner grey triangle"""
+    def f(F):
+        W, H = F.w, F.h
+        ax = W / 2 + lean * W
+        for y in range(H):
+            k = (y + 0.5) / H
+            l, r = ax - (ax) * k, ax + (W - ax) * k
+            for x in range(W):
+                if x + 0.5 < l or x + 0.5 > r: F.px(x, y, CLR)
+                elif x + 0.5 < l + 1.2 or x + 0.5 > r - 1.2: F.px(x, y, LINE)
+                elif inner is not None and y > H * 0.35 and l + W * 0.22 < x + 0.5 < r - W * 0.22: F.px(x, y, inner)
+    return f
+
+
+def fangs(spec, down=True):
+    """row of big jagged fangs on a transparent plate. spec = [(width_frac, len_frac, hook)], drawn edge to edge"""
+    def f(F):
+        clear(F)
+        W, H = F.w, F.h
+        x0 = 0.0
+        tot = sum(s[0] for s in spec)
+        for wf, lf, hk in spec:
+            wd = wf / tot * W
+            ln = lf * H
+            cx = x0 + wd / 2 + hk * wd * 0.3
+            if down:
+                pts = [(x0, 0), (x0 + wd, 0), (cx, ln)]
+            else:
+                pts = [(x0, H), (x0 + wd, H), (cx, H - ln)]
+            F.poly(pts, TOOTH)
+            yb = 0 if down else H - 1
+            F.line(x0, yb, cx, pts[2][1], 0x50505A, 1)
+            F.line(x0 + wd, yb, cx, pts[2][1], TOOTH_D, 1)
+            x0 += wd
+    return f
+
+
 def mouthp(F):
     for y in range(F.h):
         for x in range(F.w):
             F.px(x, y, mix(MOUTH_L, MOUTH, min(1, y / max(1, F.h - 1) * 1.6)) if R.random() > 0.05 else GUM)
 
 
+MAW_TOP = 27.4  # rest-pose y where the black maw starts on the skull front
+MAW_L, MAW_R = 0.20, 0.97  # maw span as texel fractions of the face width (texel left = her right, where the eye sits)
+
+
 def face_front(F):
-    """skull front: white hair-shadowed forehead, slanted black eye (char right = texel left), maw top edge"""
+    """skull front (ref CLAIRE 001): white face, ONE slanted black eye on her right (texel left) beside the maw,
+    and the top of a HUGE tall black maw (big fangs are separate cut-out plates in front of it)."""
     W, H = F.w, F.h
+    ppu = H / 5.0
+    top = int((29.6 - MAW_TOP) * ppu)
     for y in range(H):
         for x in range(W):
-            F.px(x, y, mix(WH, WH_D, 0.15 + 0.4 * (y / H)))
-    F.rect(0, H - 2, W, 2, LINE)  # upper lip ink line
-    # the single black eye (slanted almond with a pale glint)
-    ex, ey = 15, int(H * 0.5)
-    F.poly([(ex - 12, ey + 1), (ex - 2, ey - 8), (ex + 11, ey - 4), (ex + 6, ey + 5), (ex - 3, ey + 7)], BLK)
-    F.line(ex - 13, ey - 8, ex + 10, ey - 12, LINE, 1.5)  # angry brow
-    F.disc(ex + 2, ey - 1, 1.3, 0xE8F4FF, glow=True)
+            F.px(x, y, mix(WH, WH_D, 0.10 + 0.45 * (y / H) ** 2))
+    for x in range(W):  # fringe shadow
+        F.px(x, 0, WH_DD); F.px(x, 1, mix(WH, WH_DD, 0.6)); F.px(x, 2, mix(WH, WH_D, 0.6))
+    l, r = int(W * MAW_L), int(W * MAW_R)
+    # maw: tall opening, rounded upper corners, upper lip tilted (higher on her left like the ref's lopsided gape)
+    pts = [(l, top + 4), (l + 3, top + 1), (l + 8, top), ((l + r) // 2, top - 1), (r - 5, top - 3), (r - 1, top - 1), (r, top + 3), (r, H), (l, H)]
+    F.poly(pts, MOUTH)
+    for a_, b_ in zip(pts[:7], pts[1:8]):
+        F.line(a_[0], a_[1], b_[0], b_[1], LINE, 1.3)
+    F.line(l, top + 4, l, H, LINE, 1.3)
+    for y in range(top + 3, H):  # inner throat gradient
+        for x in range(l + 2, r - 1):
+            if R.random() < 0.04: F.px(x, y, GUM)
+    # the single black eye: slanted almond hooked at the outer corner, white slit glint (glows)
+    ex, ey = int(W * 0.12), top - 3
+    F.poly([(ex - 6, ey - 1), (ex - 2, ey - 6), (ex + 4, ey - 7), (ex + 8, ey - 4), (ex + 6, ey + 1), (ex, ey + 2)], BLK)
+    F.line(ex - 7, ey - 9, ex + 8, ey - 11, LINE, 1.4)  # brow under the fringe
+    F.rect(ex - 2, ey - 4, 2, 3, 0xF4F8FF, glow=True)
+    # creased cheek lines under the eye
+    F.line(ex - 4, ey + 5, ex + 1, ey + 8, WH_DD, 1)
     outline()(F)
+
+
+def jaw_front(F):
+    """lower jaw front: bottom of the tall maw with a rounded chin edge, white chin and cheek margins"""
+    W, H = F.w, F.h
+    cloth(n=1, hem=False)(F)
+    l, r = int(W * MAW_L), int(W * MAW_R)
+    lip = int(H * 0.78)
+    pts = [(l, 0), (r, 0), (r, lip - 4), (r - 4, lip), ((l + r) // 2, lip + 1), (l + 4, lip), (l, lip - 4)]
+    F.poly(pts, MOUTH)
+    for a_, b_ in zip(pts[1:], pts[2:] + [pts[0]]):
+        F.line(a_[0], a_[1], b_[0], b_[1], LINE, 1.3)
+    F.rect(0, H - 1, W, 1, LINE); F.rect(0, 0, 1, H, LINE); F.rect(W - 1, 0, 1, H, LINE)
 
 
 # ------------------------------------------------------------------ skeleton
@@ -133,27 +226,27 @@ for s, k in ((1, "r"), (-1, "l")):
     m.group("shin_" + k, (2.3 * s, 8.0, 0.2), parent="leg_" + k)
     m.group("foot_" + k, (2.3 * s, 2.2, 0.4), parent="shin_" + k)
 
-# ------------------------------------------------------------------ legs: white shorts, black jagged legs, BIG black clawed feet
+# ------------------------------------------------------------------ legs: white shorts, THICK black jagged legs, BIG black boot-feet
 for s, k in ((1, "r"), (-1, "l")):
     x = 2.3 * s
-    m.cube("shorts_" + k, "leg_" + k, (x - 2.1, 8.2, -2.2), (x + 2.1, 12.4, 2.2), WH, faces=all_faces(cloth(n=2), ("up",)))
-    m.cube("shcuff_" + k, "leg_" + k, (x - 2.3, 7.7, -2.4), (x + 2.3, 8.8, 2.4), WH_L, color2=WH_D, grad=True, faces=all_faces(outline(), ("up", "down")))
-    m.cube("knee_" + k, "leg_" + k, (x - 1.2, 6.8, -1.1), (x + 1.2, 8.3, 1.3), BLK, faces=all_faces(blackp))
-    m.cube("shin_" + k, "shin_" + k, (x - 1.15, 4.4, -1.0), (x + 1.15, 8.2, 1.4), BLK, faces=all_faces(blackp))
-    m.cube("calf_" + k, "shin_" + k, (x - 1.7, 1.8, -1.5), (x + 1.7, 5.0, 1.9), BLK, faces=all_faces(blackp))  # flared, torn trouser end
-    for i in range(4):  # jagged tatters around the flare
+    m.cube("shorts_" + k, "leg_" + k, (x - 2.2, 8.0, -2.3), (x + 2.2, 12.4, 2.3), WH, faces=all_faces(cloth(n=2), ("up",)))
+    m.cube("shcuff_" + k, "leg_" + k, (x - 2.45, 7.4, -2.5), (x + 2.45, 8.6, 2.5), WH_L, color2=WH_D, grad=True, faces=all_faces(outline(), ("up", "down")))
+    m.cube("knee_" + k, "leg_" + k, (x - 1.6, 6.4, -1.5), (x + 1.6, 8.2, 1.6), BLK, faces=all_faces(blackp))
+    m.cube("shin_" + k, "shin_" + k, (x - 1.55, 4.0, -1.4), (x + 1.55, 8.2, 1.7), BLK, faces=all_faces(blackp))
+    m.cube("calf_" + k, "shin_" + k, (x - 2.0, 1.6, -1.8), (x + 2.0, 4.8, 2.2), BLK, faces=all_faces(blackp))  # flared, torn trouser end
+    for i in range(4):  # jagged black tatters flaring off the calves (the ref's ragged ink legs)
         a = i * 90 + 30
-        px, pz = x + math.cos(math.radians(a)) * 1.6, 0.2 + math.sin(math.radians(a)) * 1.7
-        m.cube(f"tat{i}_" + k, "shin_" + k, (px - 0.45, 1.4, pz - 0.45), (px + 0.45, 3.4, pz + 0.45), BLK_L if i % 2 else BLK,
-               origin=(px, 3.2, pz), rot=(14 * math.sin(math.radians(a)), 0, -14 * math.cos(math.radians(a))))
-    m.cube("foot_" + k, "foot_" + k, (x - 1.8, 0.0, -2.8), (x + 1.8, 2.3, 2.2), BLK, faces=all_faces(blackp))
-    m.cube("instep_" + k, "foot_" + k, (x - 1.4, 1.6, -2.4), (x + 1.4, 2.9, 1.4), BLK_L, color2=BLK, grad=True)
-    m.cube("heel_" + k, "foot_" + k, (x - 0.5, 0.2, 1.8), (x + 0.5, 1.3, 3.3), BLK, origin=(x, 0.8, 2.2), rot=(-25, 0, 0))
-    for i in range(3):  # three hooked claws
-        cx = x - 1.1 + i * 1.1
-        m.cube(f"toe{i}_" + k, "foot_" + k, (cx - 0.45, 0.0, -4.2), (cx + 0.45, 1.4, -2.6), BLK, origin=(cx, 0.8, -2.8), rot=(-12, (i - 1) * -14, 0))
-        m.cube(f"claw{i}_" + k, "foot_" + k, (cx - 0.28, -0.2, -5.4), (cx + 0.28, 0.6, -4.0), BLK_L, color2=WH_DD, grad=True,
-               origin=(cx, 0.4, -4.2), rot=(28, (i - 1) * -16, 0))
+        px, pz = x + math.cos(math.radians(a)) * 1.9, 0.2 + math.sin(math.radians(a)) * 2.0
+        m.cube(f"tat{i}_" + k, "shin_" + k, (px - 0.55, 1.0, pz - 0.55), (px + 0.55, 4.0, pz + 0.55), BLK_L if i % 2 else BLK,
+               origin=(px, 3.8, pz), rot=(20 * math.sin(math.radians(a)), 0, -20 * math.cos(math.radians(a))))
+    m.cube("foot_" + k, "foot_" + k, (x - 2.2, 0.0, -3.4), (x + 2.2, 2.6, 2.4), BLK, faces=all_faces(blackp))
+    m.cube("instep_" + k, "foot_" + k, (x - 1.8, 1.8, -2.8), (x + 1.8, 3.4, 1.8), BLK_L, color2=BLK, grad=True)
+    m.cube("heel_" + k, "foot_" + k, (x - 0.7, 0.2, 2.0), (x + 0.7, 1.6, 3.6), BLK, origin=(x, 0.8, 2.2), rot=(-25, 0, 0))
+    for i in range(3):  # three blunt hooked claws on the big boot-feet
+        cx = x - 1.4 + i * 1.4
+        m.cube(f"toe{i}_" + k, "foot_" + k, (cx - 0.6, 0.0, -4.8), (cx + 0.6, 1.7, -3.0), BLK, origin=(cx, 0.8, -3.2), rot=(-10, (i - 1) * -14, 0))
+        m.cube(f"claw{i}_" + k, "foot_" + k, (cx - 0.32, -0.2, -5.8), (cx + 0.32, 0.7, -4.5), BLK_L, color2=WH_DD, grad=True,
+               origin=(cx, 0.4, -4.7), rot=(28, (i - 1) * -16, 0))
 
 # ------------------------------------------------------------------ hips + oversized shirt tails
 m.cube("pelvis", "body", (-4.2, 10.8, -2.4), (4.2, 13.2, 2.4), WH, faces=all_faces(cloth(n=3, hem=False), ("up",)))
@@ -197,65 +290,80 @@ m.cube("bag_hang", "bag", (4.4, 15.6, 0.3), (5.0, 20.8, 0.9), BLK, origin=(4.7, 
 m.cube("bag_paper", "bag", (6.0, 15.4, -0.8), (8.8, 16.6, 2.2), PAPER, origin=(7.4, 15.5, 0.7), rot=(0, 0, 8),
        faces={"east": lambda F: [F.rect(1, y, F.w - 3, 1, INK) for y in range(2, F.h, 3)], "north": lambda F: F.rect(1, 3, F.w - 2, 1, INK)})
 
-# ------------------------------------------------------------------ head: skull + maw (upper teeth, hinged jaw with lower teeth), one eye
+# ------------------------------------------------------------------ head: skull + tall maw (cut-out fang plates), hinged jaw, one eye
+def PLATE(fn):
+    return {"north": fn, "south": fn, "east": clear, "west": clear, "up": clear, "down": clear}
+
+
+def SIDEPLATE(fn):
+    return {"east": fn, "west": fn, "north": hairp, "south": hairp, "up": clear, "down": clear}
+
+
 m.cube("neck", "head", (-1.4, 20.0, -1.6), (1.4, 23.4, 1.4), BLK_D)
-m.cube("skull", "head", (-3.9, 25.0, -4.6), (3.9, 29.6, 2.6), WH, faces={"north": face_front, "south": hairp, "east": hairp, "west": hairp, "up": hairp})
-m.cube("maw_in", "head", (-3.4, 20.8, -4.4), (3.4, 25.2, 1.6), MOUTH, faces=all_faces(mouthp))
-m.cube("tongue", "jaw", (-2.0, 22.6, -3.6), (2.0, 23.4, 0.6), GUM, color2=MOUTH, grad=True)
-m.cube("jaw_base", "jaw", (-3.8, 20.6, -4.7), (3.8, 23.0, 2.0), WH,
-       faces={"north": combo(cloth(n=1, hem=False), lambda F: F.rect(0, 0, F.w, 2, LINE)), "east": cloth(n=1, hem=False), "west": cloth(n=1, hem=False),
+m.cube("skull", "head", (-3.8, 24.6, -4.4), (3.8, 29.6, 2.6), WH, faces={"north": face_front, "south": hairp, "east": hairp, "west": hairp, "up": hairp})
+m.cube("maw_in", "head", (-3.3, 20.6, -4.2), (3.3, 25.0, 1.6), MOUTH, faces=all_faces(mouthp))
+m.cube("tongue", "jaw", (-2.0, 22.4, -3.6), (1.6, 23.2, 0.6), GUM, color2=MOUTH, grad=True)
+m.cube("jaw_base", "jaw", (-3.8, 20.2, -4.7), (3.8, 23.0, 2.0), WH,
+       faces={"north": jaw_front, "east": cloth(n=1, hem=False), "west": cloth(n=1, hem=False),
               "down": cloth(n=1, hem=False), "up": mouthp, "south": hairp})
-m.cube("chin_shadow", "jaw", (-3.6, 20.45, -4.5), (3.6, 20.7, 1.8), WH_DD)
-# jagged teeth: diamonds (45 deg about z) = pointed white fangs; upper hang down, lower point up
-up_t = [(-3.0, 1.5), (-1.95, 2.1), (-0.9, 1.4), (0.15, 2.3), (1.2, 1.5), (2.2, 2.0), (3.1, 1.4)]
-for i, (x, sz) in enumerate(up_t):
-    m.cube(f"tu{i}", "head", (x - sz / 2, 25.0 - sz / 2, -4.55), (x + sz / 2, 25.0 + sz / 2, -3.7), TOOTH, origin=(x, 25.0, -4.1), rot=(0, 0, 45),
+m.cube("chin_shadow", "jaw", (-3.6, 20.05, -4.5), (3.6, 20.3, 1.8), WH_DD)
+# BIG jagged fangs (ref: ~6 long uneven triangles top and bottom that nearly interlock) as alpha cut-out plates
+MX0, MX1 = 3.8 - 7.6 * MAW_R, 3.8 - 7.6 * MAW_L  # world x of the maw edges
+m.cube("fangs_up", "head", (MX0 + 0.1, 24.0, -4.62), (MX1 - 0.1, 27.5, -4.5), TOOTH,
+       faces=PLATE(fangs([(1.0, 0.62, 1), (1.4, 0.85, -1), (1.1, 0.7, 1), (1.5, 0.9, 0), (1.0, 0.6, -1)])))
+m.cube("fangs_lo", "jaw", (MX0 + 0.25, 20.8, -4.82), (MX1 - 0.25, 24.0, -4.7), TOOTH,
+       faces=PLATE(fangs([(0.9, 0.55, 0), (1.3, 0.85, 1), (1.1, 0.65, -1), (1.4, 0.9, 0), (1.0, 0.6, 1)], down=False)))
+# inner fang rows (depth in 3/4 views)
+for i, (x, sz) in enumerate([(-2.9, 0.6), (-1.8, 0.8), (-0.7, 0.55), (0.4, 0.85), (1.5, 0.55)]):
+    cy = 24.7
+    m.cube(f"tu{i}", "head", (x - sz / 2, cy - sz / 2, -4.0), (x + sz / 2, cy + sz / 2, -3.3), TOOTH, origin=(x, cy, -3.7), rot=(0, 0, 45),
            faces=all_faces(teethp))
-for i, z in enumerate((-3.0, -1.6, -0.3)):  # side fangs (visible in 3/4 views)
+for i, z in enumerate((-3.0, -1.6, -0.3)):  # side fangs
     for s in (1, -1):
-        m.cube(f"tus{i}{'r' if s > 0 else 'l'}", "head", (3.2 * s - 0.45, 24.4, z - 0.55), (3.2 * s + 0.45, 25.5, z + 0.55), TOOTH,
-               origin=(3.2 * s, 25.0, z), rot=(45, 0, 0), faces=all_faces(teethp))
-lo_t = [(-2.8, 1.6), (-1.6, 1.2), (-0.45, 1.9), (0.75, 1.3), (1.85, 1.9), (2.95, 1.3)]
-for i, (x, sz) in enumerate(lo_t):
-    m.cube(f"tl{i}", "jaw", (x - sz / 2, 23.0 - sz / 2, -4.6), (x + sz / 2, 23.0 + sz / 2, -3.8), TOOTH, origin=(x, 23.0, -4.2), rot=(0, 0, 45),
+        m.cube(f"tus{i}{'r' if s > 0 else 'l'}", "head", (3.0 * s - 0.45, 24.1, z - 0.55), (3.0 * s + 0.45, 25.2, z + 0.55), TOOTH,
+               origin=(3.0 * s, 24.7, z), rot=(45, 0, 0), faces=all_faces(teethp))
+for i, (x, sz) in enumerate([(-2.6, 0.55), (-1.5, 0.7), (-0.4, 0.5), (0.7, 0.75), (1.8, 0.5), (2.6, 0.5)]):
+    cy = 23.0
+    m.cube(f"tl{i}", "jaw", (x - sz / 2, cy - sz / 2, -4.1), (x + sz / 2, cy + sz / 2, -3.4), TOOTH, origin=(x, cy, -3.8), rot=(0, 0, 45),
            faces=all_faces(teethp))
 for i, z in enumerate((-2.6, -1.0)):
     for s in (1, -1):
-        m.cube(f"tls{i}{'r' if s > 0 else 'l'}", "jaw", (3.1 * s - 0.4, 22.6, z - 0.5), (3.1 * s + 0.4, 23.6, z + 0.5), TOOTH,
-               origin=(3.1 * s, 23.1, z), rot=(45, 0, 0), faces=all_faces(teethp))
+        m.cube(f"tls{i}{'r' if s > 0 else 'l'}", "jaw", (3.0 * s - 0.4, 22.5, z - 0.5), (3.0 * s + 0.4, 23.5, z + 0.5), TOOTH,
+               origin=(3.0 * s, 23.0, z), rot=(45, 0, 0), faces=all_faces(teethp))
 
-# ------------------------------------------------------------------ shaggy hair hood, bangs, side panels, back, wolf ears
-m.cube("hair_cap", "head", (-4.4, 27.6, -5.0), (4.4, 30.4, 3.2), WH, faces=all_faces(hairp))
-m.cube("hair_top", "head", (-3.8, 30.2, -4.2), (3.8, 31.0, 2.6), WH_L, faces=all_faces(hairp))
-for i, (x, ln, rz) in enumerate([(-3.6, 2.6, 10), (-2.4, 3.4, 4), (-1.2, 2.0, -6), (0.0, 2.9, 3), (1.2, 1.4, -4), (2.6, 0.9, -12), (3.7, 2.4, -16)]):
-    # bangs: short over the eye (x 1..3) so the eye stays visible
-    m.cube(f"bang{i}", "bangs", (x - 0.7, 29.9 - ln, -5.4 - 0.1 * (i % 2)), (x + 0.7, 30.0, -4.8 - 0.1 * (i % 2)), WH if i % 2 else WH_L,
-           origin=(x, 29.9, -5.0), rot=(6, 0, rz), faces=all_faces(hairp))
-m.cube("hb_main", "hair_b", (-4.5, 21.8, 2.0), (4.5, 30.0, 3.8), WH, faces=all_faces(hairp))
+# ------------------------------------------------------------------ shaggy hair: rounded crown, jagged cut-out bangs + flared side locks, wolf ears
+m.cube("hair_cap", "head", (-4.3, 27.8, -4.2), (4.3, 30.4, 3.1), WH, faces=all_faces(hairp))  # front sits behind the face so the eye shows
+m.cube("hair_top", "head", (-3.5, 30.2, -3.8), (3.5, 31.1, 2.6), WH_L, faces=all_faces(hairp))
+for i, (x, ln, rz) in enumerate([(-3.4, 3.4, 8), (-2.2, 2.9, 2), (-1.0, 2.4, -5), (0.2, 2.0, 4), (1.4, 1.5, -6), (2.6, 1.1, -10), (3.5, 2.6, -14)]):
+    # bangs: jagged points over the forehead; long over her left side, short so the right eye shows
+    m.cube(f"bang{i}", "bangs", (x - 0.85, 30.2 - ln, -5.0 - 0.08 * (i % 2)), (x + 0.85, 30.4, -4.7 - 0.08 * (i % 2)), WH if i % 2 else WH_L,
+           origin=(x, 30.2, -4.8), rot=(8, 0, rz), faces=PLATE(combo(hairp, jag(0.45, 1, i))))
+m.cube("hb_main", "hair_b", (-4.4, 22.4, 2.0), (4.4, 30.2, 3.7), WH, faces=all_faces(hairp))
 for i in range(7):
     x = -3.9 + i * 1.3
-    ln = 1.8 + (i % 3) * 1.0 + R.uniform(0, 0.6)
-    m.cube(f"hb_tip{i}", "hair_b", (x - 0.65, 22.0 - ln, 2.3 + (i % 2) * 0.3), (x + 0.65, 22.4, 3.6 + (i % 2) * 0.3), WH_D if i % 2 else WH,
-           origin=(x, 22.2, 3.0), rot=(-10, 0, (i - 3) * 8), faces=all_faces(hairp))
+    ln = 2.2 + (i % 3) * 1.0 + R.uniform(0, 0.6)
+    m.cube(f"hb_tip{i}", "hair_b", (x - 0.8, 22.6 - ln, 2.6 + (i % 2) * 0.3), (x + 0.8, 23.0, 2.9 + (i % 2) * 0.3), WH_D if i % 2 else WH,
+           origin=(x, 22.8, 2.8), rot=(-14, 0, (i - 3) * 9), faces=PLATE(combo(hairp, jag(0.55, 1, i))))
 for s, k in ((1, "r"), (-1, "l")):
-    # long flat side panels framing the maw, down past the chin (the "hood" look)
-    m.cube("hs_main_" + k, "hair_" + k, (4.0 * s - 0.65, 20.2, -4.8), (4.0 * s + 0.65, 29.8, 2.6), WH,
-           faces={"east": hairp, "west": hairp, "north": hairp, "south": hairp, "down": outline()})
-    for i in range(4):
-        z = -4.2 + i * 1.8
-        ln = 8.8 + (i % 2) * 1.4 + R.uniform(0, 0.8)
-        m.cube(f"hs_lock{i}_" + k, "hair_" + k, (4.5 * s - 0.45, 29.0 - ln, z - 0.6), (4.5 * s + 0.45, 29.0, z + 0.6), WH_D if i % 2 else WH_L,
-               origin=(4.5 * s, 29.0, z), rot=(-3, 0, (6 + i * 3) * s), faces=all_faces(hairp))
-    for i in range(2):  # sharp flicks at the bottom corners
-        m.cube(f"hs_flick{i}_" + k, "hair_" + k, (4.3 * s - 0.4, 18.6, -4.3 + i * 2.2), (4.3 * s + 0.4, 21.4, -3.5 + i * 2.2), WH,
-               origin=(4.3 * s, 21.2, -3.9 + i * 2.2), rot=(10, 0, 26 * s), faces=all_faces(hairp))
-    # pointed wolf ears: two diamonds (outer white, inner grey) sunk into the cap, tilted out
-    ex = 2.6 * s
-    m.cube("ear_o_" + k, "ear_" + k, (ex - 1.45, 29.2, -1.1), (ex + 1.45, 32.1, 0.0), WH, origin=(ex, 30.65, -0.6), rot=(0, 0, 45 - 8 * s),
-           faces=all_faces(hairp))
-    m.cube("ear_i_" + k, "ear_" + k, (ex - 0.9, 29.7, -1.25), (ex + 0.9, 31.5, -1.0), WH_DD, origin=(ex, 30.65, -0.6), rot=(0, 0, 45 - 8 * s))
-    m.cube("ear_tip_" + k, "ear_" + k, (ex - 0.35, 31.6, -0.9), (ex + 0.35, 33.2, -0.2), WH, origin=(ex, 31.6, -0.6), rot=(0, 0, -16 * s),
-           faces=all_faces(hairp))
+    # side panels framing the maw down to the chin, jagged bottom
+    m.cube("hs_main_" + k, "hair_" + k, (4.0 * s - 0.6, 21.4, -4.6), (4.0 * s + 0.6, 29.8, 2.6), WH,
+           faces={"east": combo(hairp, jag(0.16, 4, 1)), "west": combo(hairp, jag(0.16, 4, 2)), "north": hairp, "south": hairp, "down": clear})
+    for i in range(4):  # chunky locks flaring OUT at the tips (the ref's shaggy bob)
+        z = -4.3 + i * 2.0
+        ln = 8.0 + (i % 2) * 1.6 + R.uniform(0, 0.8)
+        m.cube(f"hs_lock{i}_" + k, "hair_" + k, (4.6 * s - 0.25, 29.4 - ln, z - 0.95), (4.6 * s + 0.25, 29.4, z + 0.95), WH_D if i % 2 else WH_L,
+               origin=(4.6 * s, 29.4, z), rot=(-3, 0, (10 + i * 3) * s), faces=SIDEPLATE(combo(hairp, jag(0.3, 1, i))))
+    for i in range(2):  # sharp flicks at the front bottom corners, curling outward
+        m.cube(f"hs_flick{i}_" + k, "hair_" + k, (4.3 * s - 0.25, 19.4, -4.4 + i * 1.6), (4.3 * s + 0.25, 22.0, -3.0 + i * 1.6), WH,
+               origin=(4.3 * s, 21.8, -3.7 + i * 1.6), rot=(8, 0, 34 * s), faces=SIDEPLATE(combo(hairp, jag(0.6, 1))))
+    # BIG pointed wolf ears: triangular cut-out plates (outer white w/ grey inner, back white) leaning outward off the crown corners
+    ex = 2.7 * s
+    m.cube("ear_o_" + k, "ear_" + k, (ex - 1.7, 29.6, -0.75), (ex + 1.7, 34.4, -0.45), WH, origin=(ex, 30.2, -0.6), rot=(-6, 22 * s, -14 * s),
+           faces=PLATE(combo(hairp, tri_up(0.12 * s, WH_DD))))
+    m.cube("ear_i_" + k, "ear_" + k, (ex - 1.7, 29.6, 0.2), (ex + 1.7, 34.4, 0.5), WH_D, origin=(ex, 30.2, 0.35), rot=(-6, 22 * s, -14 * s),
+           faces=PLATE(combo(hairp, tri_up(0.12 * s))))
+    m.cube("ear_tip_" + k, "ear_" + k, (ex - 1.7, 29.6, -0.45), (ex + 1.7, 34.4, 0.2), WH, origin=(ex, 30.2, -0.1), rot=(-6, 22 * s, -14 * s),
+           faces={"east": clear, "west": clear, "up": clear, "down": clear, "north": tri_up(0.12 * s), "south": tri_up(0.12 * s)})
 
 # ------------------------------------------------------------------ arms: huge sleeves swallowing the hands, black claws poking out
 for s, k in ((1, "r"), (-1, "l")):
@@ -291,7 +399,7 @@ PROPS = ["papers_r", "papers_l"]
 HIDE = (.001, .001, .001)
 
 REST = {
-    "chest": (-30, 0, 0), "head": (26, 0, 0), "jaw": (-16, 0, 0),
+    "chest": (-38, 0, 0), "head": (32, 0, 0), "jaw": (-16, 0, 0),
     "arm_r": (34, 0, 6), "fore_r": (10, 0, 0), "hand_r": (0, 0, 0),
     "arm_l": (34, 0, -6), "fore_l": (10, 0, 0), "hand_l": (0, 0, 0),
     "leg_r": (16, 0, 2), "shin_r": (-28, 0, 0), "foot_r": (12, 0, 0),
@@ -683,8 +791,8 @@ for i, T in enumerate((10, 18, 26, 34)):
     else:
         al += [(T - 4, 130, 10, -40), (T, 40, -30, 16), (T + 2, 30, -30, 10)]
         ar += [(T - 4, 10, 0, 14), (T, -20, 0, 20)]
-a.r("chest", *[(t, x - 30, y, z) for (t, x, y, z) in ch], (42, -30, 0, 0))
-a.r("head", *[(t, x + 26, y, z) for (t, x, y, z) in hd], (42, 26, 0, 0))
+a.r("chest", *[(t, x - 38, y, z) for (t, x, y, z) in ch], (42, -38, 0, 0))
+a.r("head", *[(t, x + 32, y, z) for (t, x, y, z) in hd], (42, 32, 0, 0))
 a.r("jaw", *[(t, x - 16, y, z) for (t, x, y, z) in jw], (42, -18, 0, 0))
 a.r("arm_r", *ar, (42, 34, 0, 6))
 a.r("arm_l", *al, (42, 34, 0, -6))

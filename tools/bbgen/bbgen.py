@@ -113,9 +113,10 @@ class Model:
         return x, y
 
     def cube(self, name, parent, frm, to, color=0x808080, origin=None, rot=(0, 0, 0), inflate=0, color2=None, grad=False,
-             grain=0.05, faces=None, glow=False, paint=None):
-        """faces: {face: fn(Face)} custom painters run after the base fill. paint: fn(dict face->Face) for whole cube."""
-        S = self.S
+             grain=0.05, faces=None, glow=False, paint=None, res=None):
+        """faces: {face: fn(Face)} custom painters run after the base fill. paint: fn(dict face->Face) for whole cube.
+        res: texels per unit for this cube only (e.g. a hi-res face); default = model S."""
+        S = res or self.S
         fr, t = [float(x) for x in frm], [float(x) for x in to]
         o = list(origin) if origin else [(fr[i] + t[i]) / 2 for i in range(3)]
         size = [t[i] - fr[i] for i in range(3)]
