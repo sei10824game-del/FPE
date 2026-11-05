@@ -25,5 +25,7 @@
  "entity.fpe.infected_zip": "感染したジップ",
  "item.fpe.infected_zip_spawn_egg": "感染したジップ スポーンエッグ",
  "entity.fpe.danger_alice": "アリス (DANGER AU)",
- "item.fpe.danger_alice_spawn_egg": "アリス (DANGER AU) スポーンエッグ"
+ "item.fpe.danger_alice_spawn_egg": "アリス (DANGER AU) スポーンエッグ",
+ "entity.fpe.insanity_circle": "インサニティ・ミスサークル",
+ "item.fpe.insanity_circle_spawn_egg": "インサニティ・ミスサークル スポーンエッグ"
 }

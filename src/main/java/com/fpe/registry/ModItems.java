@@ -35,6 +35,7 @@ public final class ModItems {
     public static final RegistryObject<Item> INFECTED_BLOOMIE = egg("infected_bloomie", ModEntities.INFECTED_BLOOMIE, 0xC4C9D8, 0x14111C);
     public static final RegistryObject<Item> INFECTED_ZIP = egg("infected_zip", ModEntities.INFECTED_ZIP, 0x15141A, 0xE8E6EE);
     public static final RegistryObject<Item> DANGER_ALICE = egg("danger_alice", ModEntities.DANGER_ALICE, 0x17171D, 0xE8A850);
+    public static final RegistryObject<Item> INSANITY_CIRCLE = egg("insanity_circle", ModEntities.INSANITY_CIRCLE, 0x0B0A10, 0xFF1428);
     public static final RegistryObject<Item> FEN = egg("fen", ModEntities.FEN, 0xE8923C, 0x15131C);
     public static final RegistryObject<Item> AIDEN = egg("aiden", ModEntities.AIDEN, 0x6B4A3A, 0x8A1C1C);
 

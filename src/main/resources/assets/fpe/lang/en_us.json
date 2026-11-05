@@ -25,5 +25,7 @@
  "entity.fpe.infected_zip": "Infected Zip",
  "item.fpe.infected_zip_spawn_egg": "Infected Zip Spawn Egg",
  "entity.fpe.danger_alice": "Alice (DANGER AU)",
- "item.fpe.danger_alice_spawn_egg": "Alice (DANGER AU) Spawn Egg"
+ "item.fpe.danger_alice_spawn_egg": "Alice (DANGER AU) Spawn Egg",
+ "entity.fpe.insanity_circle": "Insanity Miss Circle",
+ "item.fpe.insanity_circle_spawn_egg": "Insanity Miss Circle Spawn Egg"
 }
