@@ -16,7 +16,8 @@ public final class InfectedZipSpec {
 
     static final int INK = 0x15141A, FUR = 0x26242E, FUR2 = 0x34313F, PAPER = 0xE8E6EE, PAPER_DK = 0xB9B7C6, EYE = 0xFFFFFF, OOZE = 0x0A090D;
 
-    public static final ModelSpec SPEC = build();
+    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("infected_zip", 1.2f);
+    static final ModelSpec PROC = build();
 
     private static ModelSpec build() {
         ModelSpec m = new ModelSpec("infected_zip").shadow(1.2f);

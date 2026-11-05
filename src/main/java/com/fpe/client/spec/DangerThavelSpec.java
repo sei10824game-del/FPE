@@ -23,7 +23,8 @@ public final class DangerThavelSpec {
     static final int TAN = 0xE8C844, TAN_D = 0xBE9A2A, BLACK = 0x17151D, GLOVE = 0x1D1A24, BROWN = 0x8A4A2A, BROWN_D = 0x5E301A;
     static final int BRASS = 0xD9A447, HAZ = 0xF2C230, SOCK_L = 0xD8C49A;
 
-    public static final ModelSpec SPEC = build();
+    public static final ModelSpec SPEC = com.fpe.client.model.BbModel.load("danger_thavel", 0.6f);
+    static final ModelSpec PROC = build();
 
     private static ModelSpec build() {
         ModelSpec m = new ModelSpec("danger_thavel");

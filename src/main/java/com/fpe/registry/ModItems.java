@@ -38,6 +38,19 @@ public final class ModItems {
     public static final RegistryObject<Item> INSANITY_CIRCLE = egg("insanity_circle", ModEntities.INSANITY_CIRCLE, 0x0B0A10, 0xFF1428);
     public static final RegistryObject<Item> FEN = egg("fen", ModEntities.FEN, 0xE8923C, 0x15131C);
     public static final RegistryObject<Item> AIDEN = egg("aiden", ModEntities.AIDEN, 0x6B4A3A, 0x8A1C1C);
+    public static final RegistryObject<Item> MUTANT_CLAIRE = egg("mutant_claire", ModEntities.MUTANT_CLAIRE, 0xE6E6EA, 0x14121A);
+    public static final RegistryObject<Item> MUTANT_ENGEL = egg("mutant_engel", ModEntities.MUTANT_ENGEL, 0xF0F0F2, 0x101010);
+    public static final RegistryObject<Item> MUTANT_BUBBLE = egg("mutant_bubble", ModEntities.MUTANT_BUBBLE, 0xF4F2F0, 0xD04060);
+    public static final RegistryObject<Item> MUTANT_LANA = egg("mutant_lana", ModEntities.MUTANT_LANA, 0xB8B0B0, 0x14121A);
+    public static final RegistryObject<Item> MUTANT_ABBIE = egg("mutant_abbie", ModEntities.MUTANT_ABBIE, 0x121014, 0xD05060);
+    public static final RegistryObject<Item> GREEN_THAVEL = egg("green_thavel", ModEntities.GREEN_THAVEL, 0xF0F0F0, 0x58C040);
+    public static final RegistryObject<Item> GREEN_BLOOMIE = egg("green_bloomie", ModEntities.GREEN_BLOOMIE, 0xE8E8EC, 0x58C040);
+    public static final RegistryObject<Item> GREEN_ALICE = egg("green_alice", ModEntities.GREEN_ALICE, 0x5A3A2E, 0x58C040);
+    public static final RegistryObject<Item> GREEN_CIRCLE = egg("green_circle", ModEntities.GREEN_CIRCLE, 0x1C1A22, 0x58C040);
+    public static final RegistryObject<Item> HANSEL_JUVENILE = egg("hansel_juvenile", ModEntities.HANSEL_JUVENILE, 0x3E7A34, 0xF0E8D0);
+    public static final RegistryObject<Item> LORD_HANSEL = egg("lord_hansel", ModEntities.LORD_HANSEL, 0xE8DCC0, 0xB01818);
+    public static final RegistryObject<Item> RILEY = egg("riley", ModEntities.RILEY, 0xE8E8EA, 0x20202A);
+    public static final RegistryObject<Item> DANIEL_BARREL = egg("daniel_barrel", ModEntities.DANIEL_BARREL, 0xB8BCC0, 0x2A2630);
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.fpe"))

@@ -27,3 +27,9 @@ forge*changelog.txt
 logs
 run
 .claude
+
+.DS_Store
+logs/
+build/
+.gradle/
+run/

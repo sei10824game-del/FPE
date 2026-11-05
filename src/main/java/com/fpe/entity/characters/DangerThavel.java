@@ -210,5 +210,52 @@ public class DangerThavel extends FpeEntity {
                 FpeUtil.projectile(e, Kind.ROCKET, at, new Vec3(0, -1.6, 0), e.dmg(1.3f));
             }
         }));
+        // 11. canon Thavel claws: gloved claw rake (9) + rising backhand (17)
+        out.add(Ability.of("claw_swipe", 30, 40).range(0, 3.2).weight(4).tick((e, t, tk) -> {
+            if (tk == 6) e.dashForward(0.35, 0.02);
+            if (tk == 9 || tk == 17) {
+                FpeUtil.hitCone(e, 3.0, 70, e.dmg(tk == 9 ? 1.0f : 1.2f), tk == 9 ? 0.5 : 0.9, tk == 9 ? 0.2 : 0.5);
+                FpeFx f = FpeUtil.fx(e, FpeFx.Kind.ARC, e.position().add(0, tk == 9 ? 1.2 : 1.4, 0), 0, 6, 2.8f, 0).param(150).color(0xCCFF8A2A);
+                f.setYRot(e.getYRot());
+                f.setXRot(tk == 9 ? 8 : -55);
+                FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, tk == 9 ? 1.3f : 1.0f);
+            }
+        }));
+        // 12. slam a smoke grenade, blind everyone close, spin-hop out of the cloud and lob a bomb back in
+        out.add(Ability.of("smoke_bomb", 40, 150).range(0, 6).weight(2).faceUntil(10).tick((e, t, tk) -> {
+            if (tk == 10) {
+                Vec3 at = e.position().add(0, 0.3, 0);
+                FpeUtil.sound(e, SoundEvents.GENERIC_EXTINGUISH_FIRE, 1.5f, 0.6f);
+                FpeUtil.particles(e, ParticleTypes.CAMPFIRE_COSY_SMOKE, at, 30, 1.6, 0.6, 1.6, 0.02);
+                FpeUtil.particles(e, ParticleTypes.LARGE_SMOKE, at, 40, 2.0, 0.8, 2.0, 0.05);
+                for (LivingEntity v : FpeUtil.enemiesInRadius(e, at, 3.5, 2, 1))
+                    v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.BLINDNESS, 60));
+                FpeUtil.hitRadius(e, at, 2.2, e.dmg(0.6f), 0.4, 0.2);
+            }
+            if (tk == 14) {
+                Vec3 side = FpeUtil.right(e).scale(e.getRandom().nextBoolean() ? 3 : -3).add(e.position().subtract(t.position()).normalize().scale(2));
+                e.dashToward(e.position().add(side), 0.85, 0.5);
+                FpeUtil.sound(e, SoundEvents.WITCH_CELEBRATE, 1f, 1.6f);
+            }
+            if (tk == 26) {
+                Vec3 from = hand(e, -1, 1.6, 0.4);
+                FpeUtil.projectile(e, Kind.GRENADE, from, lob(from, lead(t, 14), 0.06, 14), e.dmg(1.5f));
+                FpeUtil.sound(e, SoundEvents.SNOWBALL_THROW, 1f, 0.7f);
+            }
+        }));
+        // 13. throw a sticky charge on the target; beep... beep... then the detonator click at 44
+        out.add(Ability.of("sticky_bomb", 50, 170).range(2.5, 14).weight(2).faceUntil(12).tick((e, t, tk) -> {
+            if (tk == 12) {
+                FpeUtil.sound(e, SoundEvents.SLIME_ATTACK, 1f, 1.2f);
+                FpeUtil.particles(e, ParticleTypes.ITEM_SLIME, t.position().add(0, 1, 0), 10, 0.3, 0.4, 0.3, 0.05);
+            }
+            if (tk > 12 && tk < 44 && (tk == 20 || tk == 28 || tk == 34 || tk == 38 || tk == 41 || tk == 43)) {
+                Vec3 at = t.position().add(0, 1.1, 0);
+                FpeUtil.particles(e, net.minecraft.core.particles.DustParticleOptions.REDSTONE, at, 4, 0.1, 0.1, 0.1, 0);
+                e.level().playSound(null, at.x, at.y, at.z, SoundEvents.NOTE_BLOCK_BIT.value(), net.minecraft.sounds.SoundSource.HOSTILE, 1.2f, 1.6f + tk * 0.01f);
+            }
+            if (tk == 42) FpeUtil.sound(e, SoundEvents.LEVER_CLICK, 1f, 1.8f);
+            if (tk == 44 && e.distanceTo(t) < 24) boom(e, t.position().add(0, 0.8, 0), 3.0, e.dmg(2.1f), 1.3);
+        }));
     }
 }

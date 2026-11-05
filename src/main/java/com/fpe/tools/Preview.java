@@ -54,15 +54,15 @@ public final class Preview {
         @Override public void unsetDefaultColor() { }
     }
 
-    private static final Map<String, Class<? extends FpeEntity>> ENTITY = new java.util.HashMap<>(Map.of(
+    static final Map<String, Class<? extends FpeEntity>> ENTITY = new java.util.HashMap<>(Map.of(
             "miss_circle", MissCircle.class, "miss_thavel", MissThavel.class, "miss_bloomie", MissBloomie.class,
             "alice", Alice.class, "alice_boss", Alice.class, "red_circle", RedCircle.class,
             "danger_thavel", DangerThavel.class, "danger_bloomie", DangerBloomie.class,  "fen", Fen.class, "aiden", Aiden.class));
 
-    static { ENTITY.put("infected_bloomie", InfectedBloomie.class); ENTITY.put("infected_zip", InfectedZip.class); ENTITY.put("danger_alice", DangerAlice.class); ENTITY.put("insanity_circle", InsanityCircle.class); }
+    static { ENTITY.put("insanity_circle", InsanityCircle.class); ENTITY.put("riley", Riley.class); ENTITY.put("daniel_barrel", DanielBarrel.class); ENTITY.put("daniel_barrel_cyborg", DanielBarrel.class); ENTITY.put("green_circle", GreenCircle.class); ENTITY.put("hansel_juvenile", HanselJuvenile.class); ENTITY.put("lord_hansel", LordHansel.class); ENTITY.put("lord_hansel_premature", LordHansel.class); ENTITY.put("lord_hansel_true", LordHansel.class); ENTITY.put("mutant_claire", MutantClaire.class); ENTITY.put("mutant_engel", MutantEngel.class); ENTITY.put("mutant_bubble", MutantBubble.class); ENTITY.put("mutant_lana", MutantLana.class); ENTITY.put("mutant_abbie", MutantAbbie.class); ENTITY.put("green_thavel", GreenThavel.class); ENTITY.put("green_bloomie", GreenBloomie.class); ENTITY.put("green_alice", GreenAlice.class); ENTITY.put("green_alice_boss", GreenAlice.class); ENTITY.put("danger_alice_boss", DangerAlice.class); ENTITY.put("infected_bloomie", InfectedBloomie.class); ENTITY.put("infected_zip", InfectedZip.class); ENTITY.put("danger_alice", DangerAlice.class); }
 
     @SuppressWarnings("unchecked")
-    private static List<Ability> abilitiesOf(Class<? extends FpeEntity> c) throws Exception {
+    static List<Ability> abilitiesOf(Class<? extends FpeEntity> c) throws Exception {
         Field uf = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
         uf.setAccessible(true);
         Object unsafe = uf.get(null);
@@ -107,7 +107,8 @@ public final class Preview {
         ModelParts parts = new ModelParts(root, s);
         Class<? extends FpeEntity> ec = ENTITY.get(s.name);
         List<Ability> abil = ec == null ? List.of() : abilitiesOf(ec);
-        int variant = s.name.equals("alice_boss") || Integer.getInteger("fpe.variant", 0) == 1 ? 1 : 0;
+        if (s.name.startsWith("lord_hansel")) abil = onlyAnimated(s.name, abil); // 3 forms share one class: show each form's own abilities
+        int variant = s.name.equals("alice_boss") || s.name.equals("danger_alice_boss") || s.name.equals("green_alice_boss") || s.name.equals("daniel_barrel_cyborg") || Integer.getInteger("fpe.variant", 0) == 1 ? 1 : 0;
 
         // framing from idle pose
         float[] bb = bounds(root, parts, s, 0, 0, null);
@@ -146,6 +147,18 @@ public final class Preview {
         for (int r = 0; r < rows.size(); r++) for (int c = 0; c < rows.get(r).size(); c++) g.drawImage(rows.get(r).get(c), c * FW, r * FH, null);
         g.dispose();
         return img;
+    }
+
+    static List<Ability> onlyAnimated(String spec, List<Ability> all) throws Exception {
+        java.util.Set<String> names = new java.util.HashSet<>();
+        try (java.io.InputStream in = Preview.class.getResourceAsStream("/assets/fpe/bbmodels/" + spec + ".bbmodel")) {
+            if (in == null) return all;
+            for (com.google.gson.JsonElement e : com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject().getAsJsonArray("animations"))
+                names.add(e.getAsJsonObject().get("name").getAsString());
+        }
+        List<Ability> out = new ArrayList<>();
+        for (Ability a : all) if (names.contains(a.id)) out.add(a);
+        return out;
     }
 
     static AnimCtx idleCtx(int variant, float a, float b) { AnimCtx c = new AnimCtx(); c.variant = variant; c.dur = 1; c.age = 5; return c; }

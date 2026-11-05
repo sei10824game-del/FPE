@@ -23,10 +23,14 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Danger AU Bloomie: a silent rifle gunner who keeps her distance. Many weak bullets, a grenade launcher,
  * and close-quarters answers (hip-fire blast, rifle butt, ribbon lash, back-flip). Spray/suppress/hail end in a
- * forced, vulnerable reload.
+ * forced, vulnerable reload. The rifle is carried in her LEFT hand (muzzle offset to her left).
+ * Extra: fixed-bayonet lunge, hazard mines (warning-triangle traps) and a telegraphed marksman shot.
  */
 public class DangerBloomie extends FpeEntity {
     public DangerBloomie(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
+
+    /** marksman aim, frozen at tick 30 so the shot can be side-stepped */
+    Vec3 lockDir;
 
     @Override public Faction faction() { return Faction.DANGER; }
 
@@ -45,7 +49,7 @@ public class DangerBloomie extends FpeEntity {
 
     // ------------------------------------------------------------------ gun helpers
     static Vec3 muzzle(FpeEntity e) {
-        return e.position().add(0, 1.45, 0).add(FpeUtil.forward(e).scale(1.35)).add(FpeUtil.right(e).scale(0.22));
+        return e.position().add(0, 1.45, 0).add(FpeUtil.forward(e).scale(1.35)).add(FpeUtil.right(e).scale(-0.22));
     }
 
     static Vec3 spread(FpeEntity e, Vec3 v, double deg) {
@@ -96,7 +100,7 @@ public class DangerBloomie extends FpeEntity {
         out.add(Ability.of("grenade_launcher", 36, 100).range(7, 22).weight(3).tick((e, t, tk) -> {
             if (tk == 11) FpeUtil.sound(e, SoundEvents.CROSSBOW_LOADING_MIDDLE, 1f, 0.6f);
             if (tk == 16) {
-                Vec3 m = e.position().add(0, 1.0, 0).add(FpeUtil.forward(e).scale(1.3)).add(FpeUtil.right(e).scale(0.22));
+                Vec3 m = e.position().add(0, 1.0, 0).add(FpeUtil.forward(e).scale(1.3)).add(FpeUtil.right(e).scale(-0.22));
                 int fl = (int) Math.max(12, Math.min(30, e.distanceTo(t) * 1.4));
                 Vec3 to = t.position().add(t.getDeltaMovement().multiply(fl, 0, fl));
                 FpeUtil.projectile(e, Kind.GRENADE, m, lob(m, to, 0.06, fl), e.dmg(1.8f));
@@ -107,7 +111,7 @@ public class DangerBloomie extends FpeEntity {
         // 4. hip-fire buckshot cone (close range), recoil slides her back
         out.add(Ability.of("shotgun", 26, 60).range(0, 6).weight(3).tick((e, t, tk) -> {
             if (tk == 10) {
-                Vec3 m = e.position().add(0, 1.05, 0).add(FpeUtil.forward(e).scale(1.3)).add(FpeUtil.right(e).scale(0.22));
+                Vec3 m = e.position().add(0, 1.05, 0).add(FpeUtil.forward(e).scale(1.3)).add(FpeUtil.right(e).scale(-0.22));
                 Vec3 base = FpeUtil.aim(m, t, 2.6, 0.2);
                 for (int i = 0; i < 8; i++) FpeUtil.projectile(e, Kind.BULLET, m, spread(e, base, 11), e.dmg(0.45f));
                 FpeUtil.particles(e, ParticleTypes.FLAME, m, 12, 0.2, 0.15, 0.2, 0.08);
@@ -173,6 +177,48 @@ public class DangerBloomie extends FpeEntity {
             }
             if (tk >= 50 && tk <= 74 && (tk - 50) % 4 == 0) aimed(e, t, 2.5, 0.35f);
         }).end((e, t, tk) -> e.forceAbility("reload")));
+        // 11. snap the bayonet on, coil low, dash and run the target through (twist = second, smaller hit)
+        out.add(Ability.of("bayonet_lunge", 30, 70).range(1.5, 6.5).weight(3).faceUntil(11).tick((e, t, tk) -> {
+            if (tk == 5) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_IRON, 1f, 1.6f);
+            if (tk == 12) { e.dashForward(0.85, 0.05); FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 1.4f); }
+            if (tk == 14) {
+                Vec3 from = e.position().add(0, 1.0, 0);
+                if (FpeUtil.hitLine(e, from, from.add(FpeUtil.forward(e).scale(3.4)), 0.7, e.dmg(1.6f), 0.6, 0.15) > 0)
+                    FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_CRIT, 1f, 0.8f);
+                FpeUtil.particles(e, ParticleTypes.CRIT, FpeUtil.ahead(e, 2.2, 1.0), 10, 0.3, 0.2, 0.3, 0.3);
+            }
+            if (tk == 17 && FpeUtil.hitCone(e, 3.0, 35, e.dmg(0.5f), 1.4, 0.3) > 0)
+                FpeUtil.sound(e, SoundEvents.TRIDENT_HIT, 1f, 1.2f);
+        }));
+        // 12. kneel and slide three hazard mines (warning-triangle discs) out around the target: armed circles that burst
+        out.add(Ability.of("hazard_mine", 36, 140).range(3, 14).weight(2).tick((e, t, tk) -> {
+            if (tk == 5) FpeUtil.sound(e, SoundEvents.ARMOR_EQUIP_CHAIN, 0.8f, 1.2f);
+            if (tk == 12 || tk == 20 || tk == 28) {
+                int i = (tk - 12) / 8;
+                double side = i == 0 ? 0 : (i == 1 ? 1.8 : -1.8);
+                Vec3 to = t.position().add(t.getDeltaMovement().multiply(10, 0, 10));
+                Vec3 at = e.position().lerp(to, 0.75 + 0.15 * i).add(FpeUtil.right(e).scale(side));
+                FpeUtil.fx(e, FpeFx.Kind.RING_TRAP, at, 22, 34, 1.7f, e.dmg(1.3f));
+                FpeUtil.particles(e, ParticleTypes.SMOKE, at.add(0, 0.1, 0), 6, 0.3, 0.05, 0.3, 0.01);
+                FpeUtil.sound(e, SoundEvents.STONE_BUTTON_CLICK_ON, 1f, 1.8f);
+            }
+        }));
+        // 13. marksman: kneel, hold breath while a tracer line paints the target (dodgeable after tick 30), one heavy round on 36
+        out.add(Ability.of("marksman", 50, 160).range(9, 32).weight(2).faceUntil(30).tick((e, t, tk) -> {
+            DangerBloomie b = (DangerBloomie) e;
+            if (tk <= 30 || b.lockDir == null) b.lockDir = t.position().add(0, t.getBbHeight() * 0.6, 0).subtract(muzzle(e)).normalize();
+            if (tk >= 10 && tk <= 34 && tk % 2 == 0) {
+                Vec3 m = muzzle(e);
+                for (int i = 1; i <= 8; i++) FpeUtil.particles(e, ParticleTypes.ELECTRIC_SPARK, m.add(b.lockDir.scale(i * 1.6)), 1, 0, 0, 0, 0);
+                if (tk == 30) FpeUtil.sound(e, SoundEvents.NOTE_BLOCK_PLING.value(), 1f, 2f);
+            }
+            if (tk == 36) {
+                Vec3 m = muzzle(e);
+                shot(e, m, b.lockDir.scale(4.5), e.dmg(2.3f), true);
+                FpeUtil.sound(e, SoundEvents.GENERIC_EXPLODE, 0.7f, 1.9f);
+                FpeUtil.particles(e, ParticleTypes.LARGE_SMOKE, m, 5, 0.1, 0.1, 0.1, 0.02);
+            }
+        }));
     }
 
     private static float smooth(float x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }

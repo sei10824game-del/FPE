@@ -19,6 +19,8 @@ public final class Ability {
     public final int duration, cooldown;
     public double min = 0, max = 4;
     public int weight = 1;
+    /** gap closer (dash/leap/charge): stays selectable while a melee-focused character is far from its target */
+    public boolean closer;
     /** stop pathfinding while active */
     public boolean rooted = true;
     public boolean needsSight = true;
@@ -27,12 +29,16 @@ public final class Ability {
     @Nullable public Fn onStart, onTick, onEnd;
     public Predicate<FpeEntity> cond = e -> true;
 
-    private Ability(String id, int duration, int cooldown) { this.id = id; this.duration = duration; this.cooldown = cooldown; this.faceUntil = duration; }
+    private Ability(String id, int duration, int cooldown) {
+        this.id = id; this.duration = duration; this.cooldown = cooldown; this.faceUntil = duration;
+        this.closer = id.toLowerCase().matches(".*(pounce|lunge|charge|dash|leap|rush|dive|chase|sprint|jump|blink|dart|skitter|slide|glide|gallop|dodge|vault|rampage|stalk|approach|close).*");
+    }
 
     public static Ability of(String id, int duration, int cooldown) { return new Ability(id, duration, cooldown); }
 
     public Ability range(double min, double max) { this.min = min; this.max = max; return this; }
     public Ability weight(int w) { this.weight = w; return this; }
+    public Ability closer() { this.closer = true; return this; }
     public Ability moving() { this.rooted = false; return this; }
     public Ability blind() { this.needsSight = false; return this; }
     public Ability faceUntil(int t) { this.faceUntil = t; return this; }

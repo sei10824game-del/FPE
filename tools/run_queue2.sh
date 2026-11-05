@@ -1,0 +1,13 @@
+#!/bin/bash
+# sequentially rebuild the remaining characters with opus agents (one at a time: shared gradle build dir)
+cd "$(dirname "$0")/.." || exit 1
+R="Old model/refs of this character may be WRONG; trust only the confirmed art. Research canon+fan attacks, keep all existing sensible abilities, end with 10-12+ fully animated abilities."
+tools/run_agent.sh miss_circle MissCircle "Confirmed art docs/ref/confirmed/miss_circle.jpg (black-and-white teacher): huge spiky black hair, wolf-ear-like hair spikes, dark top with teal buttons, white trousers with cuffs, striped boots, giant COMPASS (steel) and pencil. Compass attacks incl. sweeping/slashing, drawing circles. The old model shows Red Circle's look instead. $R"
+tools/run_agent.sh danger_bloomie DangerBloomie "Confirmed art docs/ref/confirmed/danger_bloomie.jpg (DANGER AU): navy double-breasted coat, black hat with warning triangle and horns, long cream-striped ribbons, assault rifle. $R"
+tools/run_agent.sh alice Alice "TWO specs: 'alice' (phase 1, art docs/ref/confirmed/alice_phase1.jpg: brown messy hair, black crown, black coat over grey dress, triangle pendant) and 'alice_boss' (phase 2, art docs/ref/confirmed/alice_phase2.jpg). Phase 2 must be GIANT, whole body pitch black, monstrous, rough flashy attacks: tentacles, black attacks erupting from the ground, etc. Keep the existing transform/boss plumbing in Alice.java. $R"
+tools/run_agent.sh danger_alice DangerAlice "Confirmed art docs/ref/confirmed/danger_alice_phase1.jpg (patched dress, bandages, sandals, spikes, crown) and docs/ref/confirmed/danger_alice_phase2.jpg (black, red eyes, huge claws/wings). Needs TWO forms like Alice.java (variant 0/1, transform, giant black phase 2 with tentacles / ground eruptions). Write the second form as spec 'danger_alice_boss'; if a framework change is needed (ClientSetup, Specs.java, getDimensions), list it in your report. $R"
+tools/run_agent.sh infected_bloomie InfectedBloomie "Confirmed art docs/ref/confirmed/infected_bloomie_window.jpg, infected_bloomie_3d.jpg, infected_bloomie_note.jpg: tall spindly black monster, thin long legs with claw feet, blade-like arms, drooling jaw, hair tufts. $R"
+tools/run_agent.sh infected_zip InfectedZip "Confirmed art docs/ref/confirmed/infected_zip.jpg: black ink-sketch winged monster, spiky back, long jaw, hunched. $R"
+tools/run_agent.sh fen Fen "Confirmed art docs/ref/confirmed/fen.jpg: orange long hair covering face, black clothes, long black claws, wolf-like crawling poses, sharp grin. $R"
+tools/run_agent.sh aiden Aiden "Confirmed art docs/ref/confirmed/aiden.jpg: boy with fur ushanka, scarred, wall of knives/axes/saws (weapon user). $R"
+echo QUEUE_DONE

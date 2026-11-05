@@ -1,0 +1,114 @@
+{
+ "miss_circle.you_failed": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/you_failed"
+   }
+  ]
+ },
+ "miss_circle.wrong": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/wrong"
+   }
+  ]
+ },
+ "miss_circle.detention": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/detention"
+   }
+  ]
+ },
+ "miss_circle.zero": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/zero"
+   }
+  ]
+ },
+ "miss_circle.sit_down": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/sit_down"
+   }
+  ]
+ },
+ "miss_circle.pop_quiz": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/pop_quiz"
+   }
+  ]
+ },
+ "miss_circle.do_math": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/do_math"
+   }
+  ]
+ },
+ "miss_circle.try_again": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/try_again"
+   }
+  ]
+ },
+ "miss_circle.class_dismissed": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/class_dismissed"
+   }
+  ]
+ },
+ "miss_circle.late": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/late"
+   }
+  ]
+ },
+ "miss_circle.fail3": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/fail3"
+   }
+  ]
+ },
+ "miss_circle.perfect": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/perfect"
+   }
+  ]
+ },
+ "miss_circle.come_here": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/come_here"
+   }
+  ]
+ },
+ "miss_circle.confiscated": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/confiscated"
+   }
+  ]
+ },
+ "miss_circle.hurt": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/hurt"
+   }
+  ]
+ },
+ "miss_circle.death": {
+  "sounds": [
+   {
+    "name": "fpe:miss_circle/death"
+   }
+  ]
+ }
+}
