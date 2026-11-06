@@ -83,7 +83,6 @@ public final class ModEntities {
             e.put(INFECTED_ZIP.get(), InfectedZip.attributes().build());
             e.put(DANGER_ALICE.get(), DangerAlice.attributes().build());
             e.put(INSANITY_CIRCLE.get(), InsanityCircle.attributes().build());
-            e.put(INSANITY_CIRCLE.get(), InsanityCircle.attributes().build());
             e.put(FEN.get(), Fen.attributes().build());
             e.put(AIDEN.get(), Aiden.attributes().build());
             e.put(RILEY.get(), Riley.attributes().build());
