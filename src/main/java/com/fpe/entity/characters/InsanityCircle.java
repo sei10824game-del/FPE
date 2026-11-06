@@ -88,38 +88,81 @@ public class InsanityCircle extends FpeEntity {
             if (tk == 8) FpeUtil.fx(e, FpeFx.Kind.RING_TRAP, t.position().add(0, 0.05, 0), 36, 46, 6f, e.dmg(2.2f)).color(0xFFE02030);
             if (tk < 40 && tk % 4 == 0) FpeUtil.particles(e, ParticleTypes.CRIT, e.position().add(0, 0.3, 0), 4, 1, 0.1, 1, 0.1);
         }));
-        // giant right hand
-        out.add(Ability.of("claw_smash", 42, 70).range(0, 6.5).weight(4).faceUntil(16).tick((e, t, tk) -> {
-            if (tk == 19) {
-                Vec3 p = FpeUtil.ahead(e, 3, 0);
-                FpeUtil.hitRadius(e, p, 4.5, e.dmg(2f), 1.8, 0.6);
+        // right arm is a tentacle
+        out.add(Ability.of("tentacle_slam", 44, 70).range(0, 9).weight(4).faceUntil(16).tick((e, t, tk) -> {
+            if (tk == 21) {
+                Vec3 p = FpeUtil.ahead(e, 6, 0);
+                FpeUtil.hitRadius(e, p, 4, e.dmg(2f), 1.8, 0.6);
                 FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, p.add(0, 0.1, 0), 0, 14, 8f, e.dmg(0.7f));
                 FpeUtil.particles(e, ParticleTypes.EXPLOSION, p, 2, 1, 0.2, 1, 0);
                 snd(e, SoundEvents.GENERIC_EXPLODE, 1.2f, 0.6f);
             }
         }));
-        out.add(Ability.of("claw_grab", 48, 100).range(0, 4.6).weight(3).faceUntil(14)
+        out.add(Ability.of("tentacle_lash", 40, 50).range(0, 10).weight(4).faceUntil(16).tick((e, t, tk) -> {
+            if (tk == 12 || tk == 19 || tk == 26) {
+                Vec3 a = e.position().add(0, 1.3, 0), b = a.add(FpeUtil.forward(e).scale(9));
+                for (LivingEntity v : FpeUtil.enemiesInRadius(e, FpeUtil.ahead(e, 4.5, 0), 4.6, 2.5, 1)) {
+                    v.invulnerableTime = 0;
+                    FpeUtil.hit(e, v, e.dmg(1f), 1.0, 0.3);
+                }
+                FpeCombat.slashArc(e, 9f, 140, tk == 19 ? -20 : 20, 0, 1.2, 0xE0140810);
+                snd(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1.4f, 0.4f);
+            }
+        }));
+        out.add(Ability.of("tentacle_spear", 36, 60).range(3, 12).weight(3).faceUntil(15).tick((e, t, tk) -> {
+            if (tk == 16) {
+                Vec3 a = e.position().add(0, 1.5, 0), b = a.add(FpeUtil.forward(e).scale(11));
+                FpeUtil.hitLine(e, a, b, 1.0, e.dmg(1.9f), 1.4, 0.3);
+                for (int i = 1; i <= 11; i++) FpeUtil.particles(e, ParticleTypes.SQUID_INK, a.add(FpeUtil.forward(e).scale(i)), 3, 0.2, 0.2, 0.2, 0.02);
+                snd(e, SoundEvents.TRIDENT_HIT, 1.2f, 0.5f);
+            }
+        }));
+        out.add(Ability.of("tentacle_grab", 50, 100).range(2, 10).weight(3).faceUntil(14)
                 .start((e, t, tk) -> ((InsanityCircle) e).grabbed = null)
                 .tick((e, t, tk) -> {
                     InsanityCircle c = (InsanityCircle) e;
-                    if (tk == 14) for (LivingEntity v : FpeCombat.cone(e, 4.2, 40)) { if (FpeUtil.canHurt(e, v)) { c.grabbed = v; break; } }
-                    if (c.grabbed != null && c.grabbed.isAlive() && tk >= 14 && tk < 38) {
+                    if (tk == 14) for (LivingEntity v : FpeUtil.enemiesInRadius(e, FpeUtil.ahead(e, 5, 0), 5.5, 2.5, 1)) { c.grabbed = v; break; }
+                    if (c.grabbed != null && c.grabbed.isAlive() && tk >= 14 && tk < 40) {
                         Vec3 h = c.hand();
-                        c.grabbed.teleportTo(h.x, h.y - c.grabbed.getBbHeight() * 0.5, h.z);
-                        c.grabbed.setDeltaMovement(Vec3.ZERO);
-                        if (tk == 26 || tk == 32) { c.grabbed.invulnerableTime = 0; FpeUtil.hit(e, c.grabbed, e.dmg(1.2f), 0, 0); FpeCombat.bleed(e, c.grabbed, 40); snd(e, SoundEvents.PLAYER_ATTACK_CRIT, 1f, 0.5f); }
+                        Vec3 cur = c.grabbed.position();
+                        Vec3 to = tk < 26 ? h.subtract(cur).scale(0.35) : Vec3.ZERO;
+                        c.grabbed.setDeltaMovement(to);
+                        c.grabbed.hurtMarked = true;
+                        if (tk >= 26) { c.grabbed.teleportTo(h.x, h.y - c.grabbed.getBbHeight() * 0.5, h.z); c.grabbed.setDeltaMovement(Vec3.ZERO); }
+                        if (tk == 28 || tk == 34) { c.grabbed.invulnerableTime = 0; FpeUtil.hit(e, c.grabbed, e.dmg(1.2f), 0, 0); FpeCombat.bleed(e, c.grabbed, 40); snd(e, SoundEvents.PLAYER_ATTACK_CRIT, 1f, 0.5f); }
                     }
-                    if (tk == 38 && c.grabbed != null) {
-                        FpeUtil.hit(e, c.grabbed, e.dmg(1.5f), 0, 0);
-                        FpeUtil.knock(c.grabbed, e.position().subtract(FpeUtil.forward(e)), 2.0, 0.5);
+                    if (tk == 40 && c.grabbed != null) {
+                        FpeUtil.hit(e, c.grabbed, e.dmg(1.6f), 0, 0);
+                        FpeUtil.knock(c.grabbed, e.position().subtract(FpeUtil.forward(e)), 2.2, 0.55);
                         c.grabbed = null;
                     }
                 }));
-        out.add(Ability.of("claw_rake", 36, 45).range(0, 5).weight(4).faceUntil(18).tick((e, t, tk) -> {
-            if (tk == 10 || tk == 16 || tk == 22) {
-                for (LivingEntity v : FpeCombat.cone(e, 4.6, 65)) { v.invulnerableTime = 0; FpeUtil.hit(e, v, e.dmg(0.9f), 0.9, 0.3); }
-                FpeCombat.slashArc(e, 4.6f, 130, tk == 16 ? -30 : 30, 0, 1.5, 0xE0100810);
-                snd(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1.3f, 0.5f);
+        out.add(Ability.of("tentacle_erupt", 46, 90).range(3, 16).weight(3).faceUntil(14).tick((e, t, tk) -> {
+            if (tk == 16) {
+                for (int i = 0; i < 5; i++) {
+                    Vec3 d = FpeCombat.rotY(new Vec3(1, 0, 0), i * 72 + e.getRandom().nextInt(40));
+                    FpeUtil.fx(e, FpeFx.Kind.TENTACLE, t.position().add(d.scale(i == 0 ? 0 : 2.4)), 12 + i * 2, 50, 1.5f, e.dmg(0.9f)).param(1.2f);
+                }
+                snd(e, SoundEvents.SLIME_SQUISH, 1.2f, 0.4f);
+            }
+        }));
+        // rough compass work (left hand)
+        out.add(Ability.of("compass_frenzy", 48, 80).range(0, 6).weight(4).moving().faceUntil(40).tick((e, t, tk) -> {
+            if (tk == 8 || tk == 17 || tk == 25 || tk == 33 || tk == 40) {
+                e.snapFace(t);
+                e.dashForward(0.7, 0.05);
+                for (LivingEntity v : FpeCombat.cone(e, 5, 75)) { v.invulnerableTime = 0; FpeUtil.hit(e, v, e.dmg(0.9f), 0.8, 0.2); }
+                FpeCombat.slashArc(e, 5.5f, 140, (tk * 37) % 80 - 40, 0, 1.3, 0xE8F0F0F4);
+                snd(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1.3f, 0.4f + (tk % 3) * 0.1f);
+            }
+        }));
+        out.add(Ability.of("compass_cleave", 44, 75).range(0, 7).weight(3).faceUntil(18).tick((e, t, tk) -> {
+            if (tk == 22) {
+                Vec3 p = FpeUtil.ahead(e, 3.4, 0);
+                FpeUtil.hitRadius(e, p, 3.6, e.dmg(2.2f), 1.6, 0.55);
+                FpeCombat.slashArc(e, 6f, 100, 80, 0, 1.8, 0xF0FFFFFF);
+                FpeUtil.fx(e, FpeFx.Kind.SPIKE, p, 2, 24, 1f, e.dmg(0.6f)).param(1.4f);
+                snd(e, SoundEvents.PLAYER_ATTACK_STRONG, 1.5f, 0.4f);
             }
         }));
         out.add(Ability.of("hair_lash", 34, 60).range(0, 7).weight(3).faceUntil(8).tick((e, t, tk) -> {

@@ -112,7 +112,7 @@ public final class Preview {
 
         // framing from idle pose
         float[] bb = bounds(root, parts, s, 0, 0, null);
-        float height = Math.max(24f, bb[3] - bb[2]);
+        float height = Math.max(24f, bb[3] - bb[2]); System.out.println("HEIGHT " + s.name + " minY=" + bb[2] + " maxY=" + bb[3] + " w=" + (bb[1]-bb[0]));
         float scale = (FH - 40) / (height * 1.15f);
         float groundY = FH - 22;
 

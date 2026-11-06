@@ -37,7 +37,7 @@ public final class ModEntities {
     public static final RegistryObject<EntityType<InfectedBloomie>> INFECTED_BLOOMIE = chara("infected_bloomie", InfectedBloomie::new, 1.3f, 4.12f);
     public static final RegistryObject<EntityType<InfectedZip>> INFECTED_ZIP = chara("infected_zip", InfectedZip::new, 1.5f, 2.94f);
     public static final RegistryObject<EntityType<DangerAlice>> DANGER_ALICE = chara("danger_alice", DangerAlice::new, 0.7f, 2.51f);
-    public static final RegistryObject<EntityType<InsanityCircle>> INSANITY_CIRCLE = chara("insanity_circle", InsanityCircle::new, 0.8f, 2.4f);
+    public static final RegistryObject<EntityType<InsanityCircle>> INSANITY_CIRCLE = chara("insanity_circle", InsanityCircle::new, 0.75f, 2.57f);
     public static final RegistryObject<EntityType<Fen>> FEN = chara("fen", Fen::new, 1.0f, 3.2f);
     public static final RegistryObject<EntityType<Aiden>> AIDEN = chara("aiden", Aiden::new, 0.6f, 1.64f);
 

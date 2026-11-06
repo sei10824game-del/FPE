@@ -77,19 +77,27 @@ public final class InsanityCircleSpec {
         m.part("lead", "legB", 5.7f, 17, -0.5f, 0.8f, -0.4f, -29, 0.9f, 0.9f, 3, INK).rot(0, -2.5f, 0);
         m.part("needle", "legA", 5.7f, 17, -0.5f, -1.8f, -0.4f, -30, 0.8f, 0.8f, 4, STEEL_D).rot(0, 2.5f, 0);
 
-        // right arm: swollen black clawed hand
+        // right arm: a long black tentacle (segments taper toward a glowing tip)
         m.part("armR", "torso", -5.9f, 1.5f, 0, -2.4f, -1, -2.4f, 4.8f, 6, 4.8f, JACKET).rot(-10, 0, 10);
-        m.part("foreR", "armR", -5.9f, 6.5f, 0, -3.2f, 0, -3.2f, 6.4f, 7, 6.4f, INK).grain(0.05f).decor(Face.FRONT, 1, 2, 4, 1, INK3).decor(Face.FRONT, 1, 5, 4, 1, INK3);
-        m.part("handR", "foreR", -5.9f, 13.5f, 0, -4.6f, 0, -3.6f, 9.2f, 6, 7.2f, INK).grain(0.05f);
-        for (int i = 0; i < 4; i++) {
-            float x = -5.9f - 3.3f + i * 2.2f;
-            m.part("fingerR" + i, "handR", x, 19.5f, -1.5f, -1.2f, 0, -1.2f, 2.4f, 9 + (i == 1 || i == 2 ? 2 : 0), 2.4f, INK).rot(-50, 0, (i - 1.5f) * -5).grain(0.04f);
-            m.part("clawR" + i, "fingerR" + i, x, 29, -1.5f, -0.7f, 0, -0.7f, 1.4f, 6, 1.4f, INK3).rot(-35, 0, 0);
+        m.part("foreR", "armR", -5.9f, 6.5f, 0, -3f, 0, -3f, 6, 7, 6, INK).grain(0.05f).decor(Face.FRONT, 1, 2, 4, 1, INK3).decor(Face.FRONT, 1, 5, 4, 1, INK3);
+        String par = "foreR";
+        for (int i = 0; i < 10; i++) {
+            int wd = Math.max(2, Math.round(5.4f - i * 0.38f));
+            m.part("tent" + i, par, -5.9f, 13.5f + i * 6.5f, 0, -wd / 2f, 0, -wd / 2f, wd, 6.5f, wd, i % 2 == 0 ? INK : INK2).grain(0.05f)
+                    .decor(Face.FRONT, 0, 1, 1, 1, 0x4A2030).decor(Face.FRONT, Math.max(0, wd - 1), 4, 1, 1, 0x4A2030)
+                    .rot(i == 0 ? 6 : i < 3 ? 4 : -22, 0, 0);
+            if (i % 2 == 1) m.part("tspike" + i, "tent" + i, -5.9f, 13.5f + i * 6.5f + 3, 0, -0.4f, 0, 1.6f, 0.8f, 0.8f, 3, INK3).rot(30, 0, 0);
+            par = "tent" + i;
         }
-        m.part("thumbR", "handR", -5.9f + 4.6f, 16, 0, -1, 0, -1, 2.2f, 7, 2.2f, INK).rot(-30, 0, -50);
+        m.part("tentTip", par, -5.9f, 13.5f + 10 * 6.5f, 0, -0.6f, 0, -0.6f, 1.2f, 4, 1.2f, RED).glow();
 
         m.animator(InsanityCircleSpec::animate);
         return m;
+    }
+
+    /** bend all tentacle segments: base curl on the first, rest follow */
+    private static void tent(ModelParts m, float first, float rest, float up, float dn) {
+        for (int i = 0; i < 10; i++) m.addRot("tent" + i, (i == 0 ? 0 : -1) * 0 + (i > 2 ? (-18 * up + 30 * dn) : (-6 * up + 8 * dn)) * rest, 0, 0);
     }
 
     private static void animate(ModelParts m, AnimCtx c) {
@@ -104,14 +112,14 @@ public final class InsanityCircleSpec {
         m.addRot("torso", 6 + Anim.sinr(a * 0.07f) * 1.6f + w * 5, Anim.sinr(ls * 0.55f) * 6 * w, 0);
         m.addRot("head", 8 + Anim.sinr(a * 0.05f + 1) * 3, Math.max(-40, Math.min(40, c.headYaw)) * 0.7f + Anim.sinr(a * 0.33f) * (c.idle() ? 1.5f : 0), Anim.sinr(a * 0.04f) * 2);
         m.addRot("armR", Anim.sinr(ls * 0.55f) * 18 * w + Anim.sinr(a * 0.06f) * 2, 0, 0);
-        m.addRot("handR", Anim.sinr(a * 0.08f) * 4, 0, 0);
-        for (int i = 0; i < 4; i++) { m.addRot("fingerR" + i, Anim.sinr(a * 0.15f + i) * 7, 0, 0); m.addRot("clawR" + i, Anim.sinr(a * 0.17f + i * 1.3f) * 6, 0, 0); }
+        for (int i = 0; i < 10; i++) m.addRot("tent" + i, Anim.sinr(a * 0.1f - i * 0.55f) * 7 + Anim.sinr(ls * 0.55f - i * 0.4f) * 8 * w, 0, Anim.sinr(a * 0.08f - i * 0.5f) * 5);
         m.addRot("armL", Anim.sinr(ls * 0.55f + 3.14f) * 10 * w, 0, 0);
         m.addRot("compass", Anim.sinr(a * 0.09f) * 3 + w * 4, 0, 0);
         m.addRot("hairBack", 3 + Anim.sinr(a * 0.05f) * 2 + w * 8, 0, 0);
         for (int i = 0; i < 18; i++) m.addRot("mane" + i, Anim.sinr(a * 0.1f + i * 0.6f) * 6 + w * 10, 0, Anim.sinr(a * 0.07f + i) * 3);
         m.addRot("hornA", Anim.sinr(a * 0.04f) * 2, 0, 0);
         m.move("spin", 0, Anim.sinr(ls * 1.1f) * 0.5f * w, 0);
+        m.scale("torso", 0.9f, 1, 0.9f);
 
         if (c.is("compass_sweep")) {
             float wind = Anim.curve(t, 0, 0, 14, 1, 16, 0, 38, 0);
@@ -157,30 +165,59 @@ public final class InsanityCircleSpec {
             m.addRot("armR", -30 * st, 0, -60 * st);
             m.addRot("legR", -28 * st, 0, 0); m.addRot("legL", -28 * st, 0, 0);
             m.addRot("boot" + "R", 40 * st, 0, 0); m.addRot("boot" + "L", 40 * st, 0, 0);
-        } else if (c.is("claw_smash")) {
-            float up = Anim.curve(t, 0, 0, 16, 1, 18, 0, 42, 0);
-            float dn = Anim.curve(t, 0, 0, 16, 0, 19, 1, 34, 1, 42, 0);
-            m.addRot("torso", -20 * up + 36 * dn, Anim.curve(t, 0, 0, 16, -20, 19, 14, 42, 0), 0);
-            m.addRot("armR", -165 * up + 190 * dn, 0, 10 * up);
-            m.addRot("handR", -20 * up + 20 * dn, 0, 0);
-            for (int i = 0; i < 4; i++) m.addRot("fingerR" + i, 30 * up - 50 * dn, 0, 0);
+        } else if (c.is("tentacle_slam")) {
+            float up = Anim.curve(t, 0, 0, 17, 1, 19, 0, 44, 0);
+            float dn = Anim.curve(t, 0, 0, 18, 0, 21, 1, 36, 1, 44, 0);
+            m.addRot("torso", -22 * up + 34 * dn, Anim.curve(t, 0, 0, 17, -18, 21, 12, 44, 0), 0);
+            m.addRot("armR", -170 * up + 185 * dn, 0, 10 * up);
+            tent(m, -(-30 * up) , 1, up, dn);
             m.addRot("head", -10 * up + 12 * dn, 0, 0);
             m.addRot("armL", 20 * dn, 0, 0);
-        } else if (c.is("claw_grab")) {
-            float re = Anim.curve(t, 0, 0, 12, 1, 14, 0, 48, 0);
-            float gr = Anim.curve(t, 0, 0, 12, 0, 14, 1, 38, 1, 40, 0, 48, 0);
-            float sq = Anim.curve(t, 0, 0, 26, 0, 28, 1, 30, 0, 32, 1, 34, 0);
-            m.addRot("torso", -6 * re + 14 * gr, 0, 0);
-            m.addRot("armR", -40 * re - 85 * gr, 0, -10 * gr);
-            m.addRot("foreR", 0, 0, 0);
-            for (int i = 0; i < 4; i++) m.addRot("fingerR" + i, -30 * re + (-24 - 20 * sq) * gr, 0, 0);
-            m.addRot("head", 6 * gr, 0, 0);
-        } else if (c.is("claw_rake")) {
-            m.addRot("torso", 8, Anim.curve(t, 0, 0, 10, 24, 16, -20, 22, 24, 36, 0), 0);
-            float r = Anim.curve(t, 0, 0, 5, -120, 10, 60, 13, -120, 16, 60, 19, -120, 22, 60, 28, 0, 36, 0);
+        } else if (c.is("tentacle_lash")) {
+            m.addRot("torso", 8, Anim.curve(t, 0, 0, 10, 30, 14, -26, 19, 30, 24, -26, 28, 20, 40, 0), 0);
+            float r = Anim.curve(t, 0, 0, 6, -100, 12, 40, 14, -110, 19, 40, 21, -110, 26, 40, 32, 0, 40, 0);
             m.addRot("armR", r, 0, 0);
-            m.addRot("handR", r * 0.2f, 0, 0);
+            for (int i = 0; i < 10; i++) m.addRot("tent" + i, (r < 0 ? -24 : 18) * (i < 4 ? 0.4f : 1), 0, 0);
             m.addRot("legR", -14, 0, 0); m.addRot("legL", 14, 0, 0);
+        } else if (c.is("tentacle_spear")) {
+            float dr = Anim.curve(t, 0, 0, 14, 1, 16, 0, 36, 0);
+            float th = Anim.curve(t, 0, 0, 14, 0, 17, 1, 26, 1, 36, 0);
+            m.addRot("torso", -10 * dr + 24 * th, 0, 0);
+            m.addRot("armR", -40 * dr - 85 * th, 0, -8 * th);
+            for (int i = 0; i < 10; i++) m.addRot("tent" + i, (30 + 22) * dr * (i > 2 ? 1 : 0.4f) + (-22 - 0) * 0 - 24 * th * (i > 0 ? 1 : 0) * -1 * 0 + 22 * th * (i > 0 ? 1 : 0), 0, 0);
+            m.addRot("legR", -22 * th, 0, 0); m.addRot("legL", 18 * th, 0, 0);
+        } else if (c.is("tentacle_grab")) {
+            float re = Anim.curve(t, 0, 0, 12, 1, 14, 0, 50, 0);
+            float gr = Anim.curve(t, 0, 0, 12, 0, 15, 1, 26, 1, 40, 0.8f, 42, 0, 50, 0);
+            m.addRot("torso", -6 * re + 14 * gr, 0, 0);
+            m.addRot("armR", -40 * re - 80 * gr, 0, -10 * gr);
+            for (int i = 0; i < 10; i++) m.addRot("tent" + i, 20 * re * (i > 2 ? 1 : 0.3f) - (i > 4 ? 40 : 6) * gr, 0, 0);
+            m.addRot("head", 6 * gr, 0, 0);
+        } else if (c.is("tentacle_erupt")) {
+            float up = Anim.curve(t, 0, 0, 14, 1, 17, 0.6f, 46, 0);
+            m.addRot("torso", -12 * up + 20 * Anim.curve(t, 0, 0, 14, 0, 17, 1, 34, 1, 46, 0), 0, 0);
+            m.addRot("armR", -120 * up + 170 * Anim.curve(t, 0, 0, 15, 0, 18, 1, 34, 0.8f, 46, 0), 0, 0);
+            m.addRot("armL", -40 * up, 0, -40 * up);
+            m.addRot("head", -18 * up, 0, 0);
+        } else if (c.is("compass_frenzy")) {
+            float ph = Anim.sinr(a * 1.15f);
+            m.addRot("torso", 14, Anim.sinr(a * 0.55f) * 38, Anim.sinr(a * 0.5f) * 6);
+            m.addRot("armL", -70 + ph * 60, 0, Anim.sinr(a * 0.55f + 1) * 70);
+            m.addRot("foreL", -20, 0, 0);
+            m.addRot("compass", ph * 25, 0, 0);
+            m.addRot("head", 8, -Anim.sinr(a * 0.55f) * 18, 0);
+            m.addRot("legR", ph * 26, 0, 0); m.addRot("legL", -ph * 26, 0, 0);
+            m.addRot("armR", 25 + ph * 25, 0, 20);
+        } else if (c.is("compass_cleave")) {
+            float up = Anim.curve(t, 0, 0, 20, 1, 22, 0, 44, 0);
+            float dn = Anim.curve(t, 0, 0, 20, 0, 24, 1, 36, 1, 44, 0);
+            m.move("spin", 0, -3 * Anim.curve(t, 0, 0, 16, 0, 20, 1, 24, 0, 44, 0), 0);
+            m.addRot("torso", -28 * up + 50 * dn, Anim.curve(t, 0, 0, 20, -14, 24, 10, 44, 0), 0);
+            m.addRot("armL", -170 * up + 200 * dn, 0, 0);
+            m.addRot("compass", -15 * up + 20 * dn, 0, 0);
+            m.addRot("head", -14 * up + 16 * dn, 0, 0);
+            m.addRot("legR", 20 * up - 14 * dn, 0, 0); m.addRot("legL", -22 * up + 20 * dn, 0, 0);
+            m.addRot("armR", -50 * up + 70 * dn, 0, 40 * up);
         } else if (c.is("hair_lash")) {
             float st = Anim.curve(t, 0, 0, 8, 1, 26, 1, 34, 0);
             m.addRot("spin", 0, Anim.linear(t, 0, 0, 12, 0, 24, -400, 99, -400), 0);
@@ -200,7 +237,6 @@ public final class InsanityCircleSpec {
             m.addRot("armL", -30 - ph * 50, 0, 0);
             m.addRot("head", 12, 0, 0);
             m.addRot("legR", ph * 30, 0, 0); m.addRot("legL", -ph * 30, 0, 0);
-            for (int i = 0; i < 4; i++) m.addRot("fingerR" + i, -20, 0, 0);
         }
         if (!c.is("compass_throw")) m.show("compass", true);
 
