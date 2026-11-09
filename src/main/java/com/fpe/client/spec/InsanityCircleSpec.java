@@ -120,6 +120,7 @@ public final class InsanityCircleSpec {
         m.addRot("hornA", Anim.sinr(a * 0.04f) * 2, 0, 0);
         m.move("spin", 0, Anim.sinr(ls * 1.1f) * 0.5f * w, 0);
         m.scale("torso", 0.9f, 1, 0.9f);
+        m.scale("root", 1.04f, 1.04f, 1.04f);   // match Miss Circle (head top 46.4px vs 44.6px above ground)
 
         if (c.is("compass_sweep")) {
             float wind = Anim.curve(t, 0, 0, 14, 1, 16, 0, 38, 0);
