@@ -348,5 +348,9 @@ public class InfectedZip extends FpeEntity {
                         snd(e, SoundEvents.ANVIL_LAND, 0.8f, 0.6f);
                     }
                 }).end((e, t, tk) -> z(e).held = null));
-    }
+    
+        // ---- extra melee (animations: tools/bbgen/extra_melee.py)
+        out.add(com.fpe.entity.Ability.of("forepaw_slam", 36, 50).range(0, 3.6).weight(3).faceUntil(13).tick((e, t, tk) -> { if (tk == 16) { com.fpe.entity.FpeUtil.hitRadius(e, com.fpe.entity.FpeUtil.ahead(e, 1.5, 0), 3.6, e.dmg(1.5f), 1.5, 0.45); com.fpe.entity.FpeUtil.fx(e, com.fpe.entity.FpeFx.Kind.RING_SHOCK, e.position().add(0, 0.1, 0), 0, 10, 3.6f + 1.5f, 0); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE, 1.2f, 1.4f); } }));
+        out.add(com.fpe.entity.Ability.of("gore_ram", 32, 55).range(2, 7).weight(3).faceUntil(11).tick((e, t, tk) -> { if (tk == 11) e.dashForward(0.95, 0.05); if (tk >= 14 && tk <= 20) { com.fpe.entity.FpeUtil.hitRadius(e, com.fpe.entity.FpeUtil.ahead(e, 1.4, 0), 2.1, e.dmg(1.2f), 1.8, 0.35); } }));
+}
 }

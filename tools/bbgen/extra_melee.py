@@ -112,6 +112,30 @@ def elbow(D, H):
             "head": [(0, 0, 0, 0), (H - 6, 14, 0, 0), (H, -16, 0, 0), (D, 0, 0, 0)]}
 
 
+# ---- quadruped kit (infected_zip: pelvis/body/neck/head/jaw, fore limbs arm_*)
+def forepaw_slam(D, H):
+    return {"body": [(0, 0, 0, 0), (H - 6, 26, 0, 0), (H, -14, 0, 0), (H + 8, -8, 0, 0), (D, 0, 0, 0)],
+            "arm_r": [(0, 0, 0, 0), (H - 6, -120, 0, 20), (H, 60, 0, 0), (H + 8, 30, 0, 0), (D, 0, 0, 0)],
+            "arm_l": [(0, 0, 0, 0), (H - 6, -120, 0, -20), (H, 60, 0, 0), (H + 8, 30, 0, 0), (D, 0, 0, 0)],
+            "fore_r": [(0, 0, 0, 0), (H - 6, -40, 0, 0), (H, -10, 0, 0), (D, 0, 0, 0)],
+            "fore_l": [(0, 0, 0, 0), (H - 6, -40, 0, 0), (H, -10, 0, 0), (D, 0, 0, 0)],
+            "neck": [(0, 0, 0, 0), (H - 6, -16, 0, 0), (H, 20, 0, 0), (D, 0, 0, 0)],
+            "jaw": [(0, 0, 0, 0), (H - 6, -30, 0, 0), (H, -10, 0, 0), (D, 0, 0, 0)],
+            "tail0": [(0, 0, 0, 0), (H - 6, -14, 0, 0), (H, 12, 0, 0), (D, 0, 0, 0)]}
+
+
+def gore_ram(D, H):
+    return {"root": {"position": [(0, 0, 0, 0), (H - 6, 0, 0, 1.5), (H, 0, 0, -4), (H + 8, 0, 0, -2), (D, 0, 0, 0)]},
+            "body": [(0, 0, 0, 0), (H - 6, 8, 0, 0), (H, -12, 0, 0), (H + 8, -8, 0, 0), (D, 0, 0, 0)],
+            "neck": [(0, 0, 0, 0), (H - 6, 22, 0, 0), (H, 34, 0, 0), (H + 8, 12, 0, 0), (D, 0, 0, 0)],
+            "head": [(0, 0, 0, 0), (H - 6, 18, 0, 0), (H, -22, 0, 0), (H + 8, 0, 0, 0), (D, 0, 0, 0)],
+            "arm_r": [(0, 0, 0, 0), (H - 6, -24, 0, 0), (H, 44, 0, 0), (D, 0, 0, 0)],
+            "arm_l": [(0, 0, 0, 0), (H - 6, -24, 0, 0), (H, 44, 0, 0), (D, 0, 0, 0)],
+            "leg_r": [(0, 0, 0, 0), (H - 6, 14, 0, 0), (H, -18, 0, 0), (D, 0, 0, 0)],
+            "leg_l": [(0, 0, 0, 0), (H - 6, 14, 0, 0), (H, -18, 0, 0), (D, 0, 0, 0)],
+            "tail0": [(0, 0, 0, 0), (H, 16, 0, 0), (D, 0, 0, 0)]}
+
+
 # model -> [(ability id, duration ticks, hit tick, builder)]
 PLAN = {
     "red_circle": [("boot_kick", 30, 13, kick), ("shoulder_bash", 34, 14, bash), ("flame_uppercut", 36, 14, uppercut)],
@@ -126,6 +150,7 @@ PLAN = {
     "riley": [("boot_kick", 30, 13, kick), ("elbow_drop", 34, 15, elbow), ("shoulder_bash", 34, 14, bash)],
     "hansel_juvenile": [("headbutt", 26, 11, headbutt), ("haymaker", 30, 13, haymaker)],
     "mutant_abbie": [("knee_strike", 28, 12, knee), ("elbow_drop", 34, 15, elbow)],
+    "infected_zip": [("forepaw_slam", 36, 16, forepaw_slam), ("gore_ram", 32, 14, gore_ram)],
     "mutant_lana": [("boot_kick", 30, 13, kick), ("sweep_kick", 32, 16, sweep)],
 }
 
