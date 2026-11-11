@@ -478,5 +478,9 @@ public class MutantBubble extends FpeEntity {
                 b.pop(1.6f, 0.5f);
             }
         }));
-    }
+    
+        // ---- extra melee (animations: tools/bbgen/extra_melee.py)
+        out.add(com.fpe.entity.Ability.of("shoulder_bash", 34, 55).range(2, 7).weight(3).faceUntil(11).tick((e, t, tk) -> { if (tk == 11) e.dashForward(0.95, 0.05); if (tk >= 14 && tk <= 20) { com.fpe.entity.FpeUtil.hitRadius(e, com.fpe.entity.FpeUtil.ahead(e, 1.4, 0), 2.1, e.dmg(1.0f), 1.5, 0.35); } }));
+        out.add(com.fpe.entity.Ability.of("headbutt", 26, 40).range(0, 2.8).weight(3).faceUntil(8).tick((e, t, tk) -> { if (tk == 11) { for (net.minecraft.world.entity.LivingEntity v : com.fpe.entity.FpeCombat.cone(e, 2.8, 40)) { if (com.fpe.entity.FpeUtil.hit(e, v, e.dmg(1.1f), 0.8, 0.25)) v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 30, 3)); } com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.ANVIL_LAND, 1.2f, 1.5f); } }));
+}
 }

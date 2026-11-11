@@ -299,5 +299,10 @@ public class MutantEngel extends FpeEntity {
                 FpeUtil.sound(e, SoundEvents.PLAYER_ATTACK_CRIT, 1.3f, 0.5f);
             }
         }));
-    }
+    
+        // ---- extra melee (animations: tools/bbgen/extra_melee.py)
+        out.add(com.fpe.entity.Ability.of("boot_kick", 30, 35).range(0, 3.4).weight(3).faceUntil(10).tick((e, t, tk) -> { if (tk == 13) { com.fpe.entity.FpeUtil.hitCone(e, 3.4, 55, e.dmg(1.1f), 1.4, 0.3);  com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_STRONG, 1.2f, 0.7f); } }));
+        out.add(com.fpe.entity.Ability.of("haymaker", 30, 40).range(0, 3.6).weight(3).faceUntil(10).tick((e, t, tk) -> { if (tk == 13) { com.fpe.entity.FpeUtil.hitCone(e, 3.6, 70, e.dmg(1.3f), 1.5, 0.3); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_STRONG, 1.2f, 0.6f); } }));
+        out.add(com.fpe.entity.Ability.of("elbow_drop", 34, 50).range(0, 2.6).weight(3).faceUntil(12).tick((e, t, tk) -> { if (tk == 15) { for (net.minecraft.world.entity.LivingEntity v : com.fpe.entity.FpeUtil.enemiesInRadius(e, com.fpe.entity.FpeUtil.ahead(e, 1.3, 0), 2.6, 2.5, 1)) { if (com.fpe.entity.FpeUtil.hit(e, v, e.dmg(1.5f), 0.6, 0.2)) v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 40, 2)); } com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.ANVIL_LAND, 1.2f, 1.2f); } }));
+}
 }

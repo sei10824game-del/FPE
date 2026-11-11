@@ -87,6 +87,31 @@ def jab(D, H):
             "head": [(0, 0, 0, 0), (H - 5, 0, 20, 0), (H, -6, -16, 0), (D, 0, 0, 0)]}
 
 
+def haymaker(D, H):
+    return {"chest": [(0, 0, 0, 0), (H - 6, 2, -42, 0), (H, -12, 52, 0), (H + 6, -6, 30, 0), (D, 0, 0, 0)],
+            "body": [(0, 0, 0, 0), (H - 6, 0, -14, 0), (H, -6, 18, 0), (D, 0, 0, 0)],
+            "arm_r": [(0, *RA), (H - 6, 30, 0, 74), (H, 84, -44, 12), (H + 6, 60, -30, 8), (D, *RA)],
+            "fore_r": [(0, 10, 0, 0), (H - 6, 70, 0, 0), (H, 22, 0, 0), (D, 10, 0, 0)],
+            "arm_l": [(0, *LA), (H - 6, 30, 0, -20), (H, -30, 0, -24), (D, *LA)],
+            "leg_r": [(0, 0, 0, 0), (H - 6, -16, 0, 0), (H, 22, 0, 0), (D, 0, 0, 0)],
+            "leg_l": [(0, 0, 0, 0), (H - 6, 12, 0, 0), (H, -14, 0, 0), (D, 0, 0, 0)],
+            "head": [(0, 0, 0, 0), (H - 6, 0, 30, 0), (H, -6, -24, 0), (D, 0, 0, 0)]}
+
+
+def elbow(D, H):
+    return {"body": {"rotation": [(0, 0, 0, 0), (H - 6, 6, 0, 0), (H, -14, 0, 0), (D, 0, 0, 0)],
+                     "position": [(0, 0, 0, 0), (H - 6, 0, 1, 0), (H, 0, -3.5, 0), (H + 6, 0, -2.5, 0), (D, 0, 0, 0)]},
+            "chest": [(0, 0, 0, 0), (H - 6, 16, 0, 0), (H, -34, 0, 0), (H + 6, -20, 0, 0), (D, 0, 0, 0)],
+            "arm_r": [(0, *RA), (H - 6, 172, 0, 10), (H, 44, 0, 10), (H + 6, 44, 0, 10), (D, *RA)],
+            "fore_r": [(0, 10, 0, 0), (H - 6, 124, 0, 0), (H, 112, 0, 0), (D, 10, 0, 0)],
+            "arm_l": [(0, *LA), (H - 6, 30, 0, -24), (H, -24, 0, -20), (D, *LA)],
+            "leg_r": [(0, 0, 0, 0), (H, 40, 0, 0), (D, 0, 0, 0)],
+            "shin_r": [(0, 0, 0, 0), (H, -70, 0, 0), (D, 0, 0, 0)],
+            "leg_l": [(0, 0, 0, 0), (H, 30, 0, 0), (D, 0, 0, 0)],
+            "shin_l": [(0, 0, 0, 0), (H, -60, 0, 0), (D, 0, 0, 0)],
+            "head": [(0, 0, 0, 0), (H - 6, 14, 0, 0), (H, -16, 0, 0), (D, 0, 0, 0)]}
+
+
 # model -> [(ability id, duration ticks, hit tick, builder)]
 PLAN = {
     "red_circle": [("boot_kick", 30, 13, kick), ("shoulder_bash", 34, 14, bash), ("flame_uppercut", 36, 14, uppercut)],
@@ -94,6 +119,14 @@ PLAN = {
     "danger_thavel": [("headbutt", 26, 11, headbutt), ("sweep_kick", 32, 16, sweep), ("knee_strike", 28, 12, knee)],
     "infected_bloomie": [("gore_shove", 30, 13, headbutt), ("shoulder_ram", 34, 14, bash)],
     "danger_alice": [("pommel_strike", 28, 11, jab), ("spin_kick", 32, 16, sweep)],
+    "aiden": [("headbutt", 26, 11, headbutt), ("knee_strike", 28, 12, knee), ("haymaker", 30, 13, haymaker)],
+    "mutant_engel": [("boot_kick", 30, 13, kick), ("haymaker", 30, 13, haymaker), ("elbow_drop", 34, 15, elbow)],
+    "mutant_bubble": [("shoulder_bash", 34, 14, bash), ("headbutt", 26, 11, headbutt)],
+    "mutant_claire": [("knee_strike", 28, 12, knee), ("sweep_kick", 32, 16, sweep), ("haymaker", 30, 13, haymaker)],
+    "riley": [("boot_kick", 30, 13, kick), ("elbow_drop", 34, 15, elbow), ("shoulder_bash", 34, 14, bash)],
+    "hansel_juvenile": [("headbutt", 26, 11, headbutt), ("haymaker", 30, 13, haymaker)],
+    "mutant_abbie": [("knee_strike", 28, 12, knee), ("elbow_drop", 34, 15, elbow)],
+    "mutant_lana": [("boot_kick", 30, 13, kick), ("sweep_kick", 32, 16, sweep)],
 }
 
 

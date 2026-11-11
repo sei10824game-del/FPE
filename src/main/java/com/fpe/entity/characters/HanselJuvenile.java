@@ -440,5 +440,9 @@ public class HanselJuvenile extends FpeEntity {
                 }
             }
         }));
-    }
+    
+        // ---- extra melee (animations: tools/bbgen/extra_melee.py)
+        out.add(com.fpe.entity.Ability.of("headbutt", 26, 40).range(0, 2.8).weight(3).faceUntil(8).tick((e, t, tk) -> { if (tk == 11) { for (net.minecraft.world.entity.LivingEntity v : com.fpe.entity.FpeCombat.cone(e, 2.8, 40)) { if (com.fpe.entity.FpeUtil.hit(e, v, e.dmg(1.1f), 0.8, 0.25)) v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 30, 3)); } com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.ANVIL_LAND, 1.2f, 1.5f); } }));
+        out.add(com.fpe.entity.Ability.of("haymaker", 30, 40).range(0, 3.6).weight(3).faceUntil(10).tick((e, t, tk) -> { if (tk == 13) { com.fpe.entity.FpeUtil.hitCone(e, 3.6, 70, e.dmg(1.3f), 1.5, 0.3); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_STRONG, 1.2f, 0.6f); } }));
+}
 }
