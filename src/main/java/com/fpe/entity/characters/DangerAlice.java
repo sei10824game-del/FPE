@@ -664,5 +664,9 @@ public class DangerAlice extends FpeEntity {
                 a.sound(SoundEvents.GENERIC_EXPLODE, 3f, 0.45f);
             }
         }));
-    }
+    
+        // ---- extra melee (animations: tools/bbgen/extra_melee.py)
+        out.add(com.fpe.entity.Ability.of("pommel_strike", 28, 35).range(0, 3.2).weight(3).when(e -> e.getVariant() == 0).faceUntil(8).tick((e, t, tk) -> { if (tk == 11) { com.fpe.entity.FpeUtil.hitCone(e, 3.2, 35, e.dmg(1.0f), 0.8, 0.2); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_CRIT, 1.2f, 1.1f); } }));
+        out.add(com.fpe.entity.Ability.of("spin_kick", 32, 50).range(0, 3.6).weight(3).when(e -> e.getVariant() == 0).faceUntil(13).tick((e, t, tk) -> { if (tk == 16) { for (net.minecraft.world.entity.LivingEntity v : com.fpe.entity.FpeUtil.enemiesInRadius(e, e.position(), 3.6, 2, 1)) { if (com.fpe.entity.FpeUtil.hit(e, v, e.dmg(0.9f), 0.9, 0.35)) v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 40, 2)); } com.fpe.entity.FpeUtil.arc(e, net.minecraft.core.particles.ParticleTypes.SWEEP_ATTACK, e.position().add(0, 0.3, 0), 0, 180, 3.6*0.8, 10); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_SWEEP, 1.2f, 0.8f); } }));
+}
 }

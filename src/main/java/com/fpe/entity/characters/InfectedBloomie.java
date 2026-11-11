@@ -256,5 +256,9 @@ public class InfectedBloomie extends FpeEntity {
                 snd(e, SoundEvents.WARDEN_EMERGE, 0.8f, 1.4f);
             }
         }));
-    }
+    
+        // ---- extra melee (animations: tools/bbgen/extra_melee.py)
+        out.add(com.fpe.entity.Ability.of("gore_shove", 30, 45).range(0, 3.8).weight(3).faceUntil(10).tick((e, t, tk) -> { if (tk == 13) { for (net.minecraft.world.entity.LivingEntity v : com.fpe.entity.FpeCombat.cone(e, 3.8, 40)) { if (com.fpe.entity.FpeUtil.hit(e, v, e.dmg(1.2f), 1.8, 0.25)) v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 30, 3)); } com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.ANVIL_LAND, 1.2f, 1.5f); } }));
+        out.add(com.fpe.entity.Ability.of("shoulder_ram", 34, 60).range(2, 8).weight(3).faceUntil(11).tick((e, t, tk) -> { if (tk == 11) e.dashForward(0.95, 0.05); if (tk >= 14 && tk <= 20) { com.fpe.entity.FpeUtil.hitRadius(e, com.fpe.entity.FpeUtil.ahead(e, 1.4, 0), 2.1, e.dmg(1.1f), 1.6, 0.35); } }));
+}
 }

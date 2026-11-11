@@ -205,5 +205,10 @@ public class RedCircle extends FpeEntity {
             }
             if (tk == 44) e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 60, 1, false, false));
         }));
-    }
+    
+        // ---- extra melee (animations: tools/bbgen/extra_melee.py)
+        out.add(com.fpe.entity.Ability.of("boot_kick", 30, 35).range(0, 3.4).weight(3).faceUntil(10).tick((e, t, tk) -> { if (tk == 13) { com.fpe.entity.FpeUtil.hitCone(e, 3.4, 55, e.dmg(1.1f), 1.4, 0.3); for (net.minecraft.world.entity.LivingEntity v : com.fpe.entity.FpeCombat.cone(e, 3.4, 55)) v.setSecondsOnFire(4); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_STRONG, 1.2f, 0.7f); } }));
+        out.add(com.fpe.entity.Ability.of("shoulder_bash", 34, 55).range(2, 7).weight(3).faceUntil(11).tick((e, t, tk) -> { if (tk == 11) e.dashForward(0.95, 0.05); if (tk >= 14 && tk <= 20) { com.fpe.entity.FpeUtil.hitRadius(e, com.fpe.entity.FpeUtil.ahead(e, 1.4, 0), 2.1, e.dmg(1.0f), 1.5, 0.35); } }));
+        out.add(com.fpe.entity.Ability.of("flame_uppercut", 36, 60).range(0, 3.6).weight(3).faceUntil(11).tick((e, t, tk) -> { if (tk == 14) { for (net.minecraft.world.entity.LivingEntity v : com.fpe.entity.FpeCombat.cone(e, 3.6, 45)) { if (com.fpe.entity.FpeUtil.hit(e, v, e.dmg(1.2f), 0.2, 0)) { v.setDeltaMovement(v.getDeltaMovement().x, 0.95, v.getDeltaMovement().z); v.hurtMarked = true; v.setSecondsOnFire(4); } } com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.2f, 0.8f); } }));
+}
 }

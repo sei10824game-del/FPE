@@ -257,5 +257,10 @@ public class DangerThavel extends FpeEntity {
             if (tk == 42) FpeUtil.sound(e, SoundEvents.LEVER_CLICK, 1f, 1.8f);
             if (tk == 44 && e.distanceTo(t) < 24) boom(e, t.position().add(0, 0.8, 0), 3.0, e.dmg(2.1f), 1.3);
         }));
-    }
+    
+        // ---- extra melee (animations: tools/bbgen/extra_melee.py)
+        out.add(com.fpe.entity.Ability.of("headbutt", 26, 40).range(0, 2.8).weight(3).faceUntil(8).tick((e, t, tk) -> { if (tk == 11) { for (net.minecraft.world.entity.LivingEntity v : com.fpe.entity.FpeCombat.cone(e, 2.8, 40)) { if (com.fpe.entity.FpeUtil.hit(e, v, e.dmg(1.1f), 0.8, 0.25)) v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 30, 3)); } com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.ANVIL_LAND, 1.2f, 1.5f); } }));
+        out.add(com.fpe.entity.Ability.of("sweep_kick", 32, 50).range(0, 3.6).weight(3).faceUntil(13).tick((e, t, tk) -> { if (tk == 16) { for (net.minecraft.world.entity.LivingEntity v : com.fpe.entity.FpeUtil.enemiesInRadius(e, e.position(), 3.6, 2, 1)) { if (com.fpe.entity.FpeUtil.hit(e, v, e.dmg(0.9f), 0.9, 0.35)) v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 40, 2)); } com.fpe.entity.FpeUtil.arc(e, net.minecraft.core.particles.ParticleTypes.SWEEP_ATTACK, e.position().add(0, 0.3, 0), 0, 180, 3.6*0.8, 10); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_SWEEP, 1.2f, 0.8f); } }));
+        out.add(com.fpe.entity.Ability.of("knee_strike", 28, 40).range(0, 3).weight(3).faceUntil(9).tick((e, t, tk) -> { if (tk == 12) { com.fpe.entity.FpeUtil.hitCone(e, 3, 40, e.dmg(1.1f), 1.0, 0.5); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.2f, 0.9f); } }));
+}
 }

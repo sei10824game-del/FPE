@@ -219,7 +219,12 @@ public class DangerBloomie extends FpeEntity {
                 FpeUtil.particles(e, ParticleTypes.LARGE_SMOKE, m, 5, 0.1, 0.1, 0.1, 0.02);
             }
         }));
-    }
+    
+        // ---- extra melee (animations: tools/bbgen/extra_melee.py)
+        out.add(com.fpe.entity.Ability.of("knee_strike", 28, 40).range(0, 3).weight(3).faceUntil(9).tick((e, t, tk) -> { if (tk == 12) { com.fpe.entity.FpeUtil.hitCone(e, 3, 40, e.dmg(1.1f), 1.0, 0.5); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.2f, 0.9f); } }));
+        out.add(com.fpe.entity.Ability.of("shoulder_check", 32, 50).range(1.5, 6).weight(3).faceUntil(10).tick((e, t, tk) -> { if (tk == 10) e.dashForward(0.95, 0.05); if (tk >= 13 && tk <= 19) { com.fpe.entity.FpeUtil.hitRadius(e, com.fpe.entity.FpeUtil.ahead(e, 1.4, 0), 2.1, e.dmg(1.0f), 1.4, 0.35); } }));
+        out.add(com.fpe.entity.Ability.of("sweep_kick", 32, 50).range(0, 3.6).weight(3).faceUntil(13).tick((e, t, tk) -> { if (tk == 16) { for (net.minecraft.world.entity.LivingEntity v : com.fpe.entity.FpeUtil.enemiesInRadius(e, e.position(), 3.6, 2, 1)) { if (com.fpe.entity.FpeUtil.hit(e, v, e.dmg(0.9f), 0.9, 0.35)) v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 40, 2)); } com.fpe.entity.FpeUtil.arc(e, net.minecraft.core.particles.ParticleTypes.SWEEP_ATTACK, e.position().add(0, 0.3, 0), 0, 180, 3.6*0.8, 10); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_SWEEP, 1.2f, 0.8f); } }));
+}
 
     private static float smooth(float x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
 }
