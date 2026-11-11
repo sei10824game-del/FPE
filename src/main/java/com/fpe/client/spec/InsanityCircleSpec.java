@@ -247,5 +247,33 @@ public final class InsanityCircleSpec {
             m.move("root", 0, -2 * d, 0);
             m.addRot("armR", 40 * d, 0, 20 * d); m.addRot("armL", 20 * d, 0, -20 * d);
         }
-    }
+    
+        // ---- extra melee animations
+        if (c.is("boot_stomp")) {
+            float xm_up = Anim.curve(c.t, 0, 0, 9, 1, 14, 0.9f, 15, 0, 32, 0);
+            float xm_dn = Anim.curve(c.t, 0, 0, 14, 0, 15, 1, 32, 0);
+            m.addRot("torso", -16 * xm_up + 14 * xm_dn, 0, 0);
+            m.addRot("legR", -95 * xm_up, 0, 0);
+            m.addRot("bootR", 50 * xm_up, 0, 0);
+            m.addRot("armR", -40 * xm_up + 30 * xm_dn, 0, 30 * xm_up);
+            m.addRot("armL", -40 * xm_up + 30 * xm_dn, 0, -30 * xm_up);
+            m.addRot("head", -10 * xm_up + 10 * xm_dn, 0, 0);
+        }
+        if (c.is("pommel_strike")) {
+            float xm_dr = Anim.curve(c.t, 0, 0, 6, 1, 10, 0, 28, 0);
+            float xm_jb = Anim.curve(c.t, 0, 0, 10, 0, 11, 1, 17, 0, 28, 0);
+            m.addRot("torso", -8 * xm_dr + 16 * xm_jb, 24 * xm_dr - 20 * xm_jb, 0);
+            m.addRot("armL", -50 * xm_dr - 55 * xm_jb, 0, 0);
+            m.addRot("armR", 20 * xm_dr, 0, 0);
+            m.addRot("legR", -14 * xm_jb, 0, 0); m.addRot("legL", 12 * xm_jb, 0, 0);
+        }
+        if (c.is("tentacle_backhand")) {
+            float xm_wd = Anim.curve(c.t, 0, 0, 6, 1, 11, 0, 28, 0);
+            float xm_bh = Anim.curve(c.t, 0, 0, 11, 0, 12, 1, 19, 0, 28, 0);
+            m.addRot("torso", 6, 50 * xm_wd - 70 * xm_bh, 0);
+            m.addRot("armR", -30 * xm_wd - 20 * xm_bh, 0, 90 * xm_wd - 140 * xm_bh);
+            m.addRot("head", 0, -20 * xm_wd + 24 * xm_bh, 0);
+            m.addRot("legR", -10 * xm_bh, 0, 0); m.addRot("legL", 10 * xm_bh, 0, 0);
+        }
+}
 }

@@ -191,5 +191,10 @@ public class InsanityCircle extends FpeEntity {
             }
             if (tk == 64) FpeUtil.fx(e, FpeFx.Kind.RING_SHOCK, e.position().add(0, 0.1, 0), 0, 16, 10f, e.dmg(1f));
         }));
-    }
+    
+        // ---- extra melee
+        out.add(com.fpe.entity.Ability.of("boot_stomp", 32, 40).range(0, 3.6).weight(3).faceUntil(12).tick((e, t, tk) -> { if (tk == 15) { com.fpe.entity.FpeUtil.hitRadius(e, com.fpe.entity.FpeUtil.ahead(e, 1.5, 0), 3.6, e.dmg(1.5f), 1.5, 0.45); com.fpe.entity.FpeUtil.fx(e, com.fpe.entity.FpeFx.Kind.RING_SHOCK, e.position().add(0, 0.1, 0), 0, 10, 3.6f + 1.5f, 0); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE, 1.2f, 1.4f); } }));
+        out.add(com.fpe.entity.Ability.of("pommel_strike", 28, 40).range(0, 3.2).weight(3).faceUntil(8).tick((e, t, tk) -> { if (tk == 11) { com.fpe.entity.FpeUtil.hitCone(e, 3.2, 35, e.dmg(1.2f), 1.0, 0.2); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_CRIT, 1.2f, 1.1f); } }));
+        out.add(com.fpe.entity.Ability.of("tentacle_backhand", 28, 35).range(0, 6).weight(3).faceUntil(9).tick((e, t, tk) -> { if (tk == 12) { com.fpe.entity.FpeUtil.hitCone(e, 6, 80, e.dmg(1.1f), 1.4, 0.3); com.fpe.entity.FpeCombat.slashArc(e, 6f, 130, -15, 0, 1.4, 0xE0140810); com.fpe.entity.FpeUtil.sound(e, net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_SWEEP, 1.2f, 0.6f); } }));
+}
 }
