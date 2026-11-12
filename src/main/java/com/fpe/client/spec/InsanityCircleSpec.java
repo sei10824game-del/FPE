@@ -61,9 +61,9 @@ public final class InsanityCircleSpec {
             m.part("mane" + i, "head", (float) Math.sin(r) * 4.5f, -3 - (float) Math.abs(Math.cos(r)) * 3, 2 + (float) Math.cos(r) * 2f, -1, 0, -0.6f, 2, len, 1.4f, i % 2 == 0 ? INK : INK2)
                     .rot(18 + (i % 3) * 10, 0, a * 0.55f);
         }
-        m.part("hornA", "head", -1.9f, -8, 0.2f, -1, -12, -1, 2, 12, 2, INK).rot(-14, 0, -24).grain(0.02f);
-        m.part("hornB", "head", 2.1f, -8, 0.2f, -1, -14, -1, 2, 14, 2, INK).rot(-10, 0, 26).grain(0.02f);
-        m.part("hornC", "head", 0.1f, -8, 1.4f, -0.8f, -10, -0.8f, 1.6f, 10, 1.6f, INK2).rot(-20, 0, 2);
+        m.part("hornA", "head", -1.9f, -8, 0.2f, -1, -6.5f, -1, 2, 6.5f, 2, INK).rot(-14, 0, -24).grain(0.02f);
+        m.part("hornB", "head", 2.1f, -8, 0.2f, -1, -8, -1, 2, 8, 2, INK).rot(-10, 0, 26).grain(0.02f);
+        m.part("hornC", "head", 0.1f, -8, 1.4f, -0.8f, -6, -0.8f, 1.6f, 6, 1.6f, INK2).rot(-20, 0, 2);
 
         // left arm: compass
         m.part("armL", "torso", 5.7f, 1.5f, 0, -2, -1, -2, 4, 8, 4, JACKET).rot(-30, 0, -4).decor(Face.FRONT, 0, 6, 4, 2, INK2);
@@ -120,7 +120,7 @@ public final class InsanityCircleSpec {
         m.addRot("hornA", Anim.sinr(a * 0.04f) * 2, 0, 0);
         m.move("spin", 0, Anim.sinr(ls * 1.1f) * 0.5f * w, 0);
         m.scale("torso", 0.9f, 1, 0.9f);
-        m.scale("root", 1.04f, 1.04f, 1.04f);   // match Miss Circle (head top 46.4px vs 44.6px above ground)
+        m.scale("root", 1.04f, 1.15f, 1.04f);   // taller body: head top matches Miss Circle (horns trimmed to keep overall height)
 
         if (c.is("compass_sweep")) {
             float wind = Anim.curve(t, 0, 0, 14, 1, 16, 0, 38, 0);
