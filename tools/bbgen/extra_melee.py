@@ -155,6 +155,31 @@ PLAN = {
 }
 
 
+DRAPE = ("hair_", "tail", "coat_", "skirt_", "poncho", "rib_", "mane", "strands", "dress_", "lock_", "band_tail", "fringe", "scarf", "ear_", "antenna", "drool")
+
+
+def drape(tracks, names, D):
+    """secondary motion: hanging parts (hair, coats, tails, ribbons) lag behind the torso instead of staying rigid"""
+    src = tracks.get("chest") or tracks.get("body") or tracks.get("neck")
+    if isinstance(src, dict):
+        src = src.get("rotation")
+    if not src:
+        return
+    for n in names:
+        if n in tracks or not n.startswith(DRAPE):
+            continue
+        depth = next((int(ch) for ch in reversed(n) if ch.isdigit()), 0)
+        lag, gain = 2 + depth, 0.45 + 0.12 * depth
+        keys = [(0, 0, 0, 0)]
+        for (t, x, y, z) in src[1:-1]:
+            tt = min(D - 1, t + lag)
+            keys.append((tt, -x * gain, 0, -(y % 360 if abs(y) < 300 else 0) * 0.12 * (1 if n.endswith(("_r", "r1", "r2", "r3")) else -1 if n.endswith(("_l", "l1", "l2", "l3")) else 0)))
+            keys.append((min(D - 0.5, tt + 4), x * gain * 0.4, 0, 0))   # overshoot back
+        keys.append((D, 0, 0, 0))
+        keys.sort(key=lambda k: k[0])
+        tracks[n] = keys
+
+
 def bones(doc):
     out = {}
     def walk(ns):
@@ -173,7 +198,9 @@ def main():
         b = bones(doc)
         for name, D, H, fn in anims:
             animators = {}
-            for bone, tr in fn(D, H).items():
+            tracks = fn(D, H)
+            drape(tracks, list(b), D)
+            for bone, tr in tracks.items():
                 if bone not in b:
                     continue
                 chans = tr if isinstance(tr, dict) else {"rotation": tr}
