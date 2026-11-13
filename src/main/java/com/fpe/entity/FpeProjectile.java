@@ -141,6 +141,7 @@ public class FpeProjectile extends Projectile {
         if (!(e instanceof LivingEntity l)) return;
         Entity o = getOwner();
         if (k.explodeRadius > 0 && !k.pierce) { detonate(l); return; }
+        if (k == Kind.BULLET || k == Kind.PENCIL || k == Kind.KNIFE || k == Kind.DIAMOND) l.invulnerableTime = 0;   // rapid-fire shots must not be eaten by i-frames
         if (l.hurt(damageSources().thrown(this, o == null ? this : o), damage)) {
             if (o != null) FpeUtil.knock(l, position().subtract(getDeltaMovement()), 0.5, 0.15);
         }

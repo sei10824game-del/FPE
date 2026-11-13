@@ -117,8 +117,13 @@ def face_front(F):
             F.px(x, y, c)
     # shadow cast by the bangs + a faint cold eye under the hair on her right (viewer's left)
     F.rect(0, 0, W, 8, mix(FACE_D, HAIR, 0.5))
-    F.rect(6, 15, 11, 2, mix(FACE_D, 0x2A3A48, 0.6))   # shadowed right eye (viewer's left), barely there
-    F.rect(9, 16, 5, 1, 0x2A3A48)
+    F.rect(5, 13, 12, 5, 0x1E2733)                       # eye socket under the bangs (her right eye = viewer's left)
+    F.rect(6, 14, 10, 3, 0xFFD84A, glow=True)            # yellow eye, clearly visible
+    F.rect(10, 14, 2, 3, 0x2A2410, glow=True)            # pupil
+    F.px(7, 14, 0xFFF4C0, glow=True)
+    F.rect(5, 12, 12, 1, 0x141A22)                       # heavy upper lid
+    F.rect(18, 35, 13, 1, 0x3A2A34)                      # flat, cold mouth line
+    F.rect(19, 36, 11, 1, mix(FACE_D, 0x3A2A34, 0.4))
     F.disc(39, 27, 1.6, mix(FACE, 0xA8B8C4, 0.7))  # cheek tint
 
 
