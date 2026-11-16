@@ -53,5 +53,9 @@
  "entity.fpe.daniel_barrel": "ダニエル・F・バレル",
  "item.fpe.daniel_barrel_spawn_egg": "ダニエル・F・バレル スポーンエッグ",
  "entity.fpe.insanity_circle": "インサニティ・ミスサークル",
- "item.fpe.insanity_circle_spawn_egg": "インサニティ・ミスサークル スポーンエッグ"
+ "item.fpe.insanity_circle_spawn_egg": "インサニティ・ミスサークル スポーンエッグ",
+ "entity.fpe.wild_wolf": "名もなき人狼",
+ "item.fpe.wild_wolf_spawn_egg": "名もなき人狼 スポーンエッグ",
+ "entity.fpe.crazy_one": "クレイジー",
+ "item.fpe.crazy_one_spawn_egg": "クレイジー スポーンエッグ"
 }

@@ -53,5 +53,9 @@
  "entity.fpe.daniel_barrel": "Daniel F. Barrel",
  "item.fpe.daniel_barrel_spawn_egg": "Daniel F. Barrel Spawn Egg",
  "entity.fpe.insanity_circle": "Insanity Miss Circle",
- "item.fpe.insanity_circle_spawn_egg": "Insanity Miss Circle Spawn Egg"
+ "item.fpe.insanity_circle_spawn_egg": "Insanity Miss Circle Spawn Egg",
+ "entity.fpe.wild_wolf": "Nameless Werewolf",
+ "item.fpe.wild_wolf_spawn_egg": "Nameless Werewolf Spawn Egg",
+ "entity.fpe.crazy_one": "Crazy",
+ "item.fpe.crazy_one_spawn_egg": "Crazy Spawn Egg"
 }

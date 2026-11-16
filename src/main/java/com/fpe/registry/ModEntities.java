@@ -37,6 +37,8 @@ public final class ModEntities {
     public static final RegistryObject<EntityType<InfectedBloomie>> INFECTED_BLOOMIE = chara("infected_bloomie", InfectedBloomie::new, 1.3f, 4.12f);
     public static final RegistryObject<EntityType<InfectedZip>> INFECTED_ZIP = chara("infected_zip", InfectedZip::new, 1.5f, 2.94f);
     public static final RegistryObject<EntityType<DangerAlice>> DANGER_ALICE = chara("danger_alice", DangerAlice::new, 0.7f, 2.51f);
+    public static final RegistryObject<EntityType<CrazyOne>> CRAZY_ONE = chara("crazy_one", CrazyOne::new, 0.6f, 1.9f);
+    public static final RegistryObject<EntityType<WildWolf>> WILD_WOLF = chara("wild_wolf", WildWolf::new, 1.1f, 3.0f);
     public static final RegistryObject<EntityType<InsanityCircle>> INSANITY_CIRCLE = chara("insanity_circle", InsanityCircle::new, 0.75f, 2.57f);
     public static final RegistryObject<EntityType<Fen>> FEN = chara("fen", Fen::new, 1.0f, 3.2f);
     public static final RegistryObject<EntityType<Aiden>> AIDEN = chara("aiden", Aiden::new, 0.6f, 1.64f);
@@ -65,7 +67,7 @@ public final class ModEntities {
     /** all character types (for eggs, spawns, attributes) */
     @SuppressWarnings("unchecked")
     public static java.util.List<RegistryObject<? extends EntityType<? extends FpeEntity>>> characters() {
-        return java.util.List.of(MISS_CIRCLE, MISS_THAVEL, MISS_BLOOMIE, ALICE, RED_CIRCLE, DANGER_THAVEL, DANGER_BLOOMIE, INFECTED_BLOOMIE, INFECTED_ZIP, DANGER_ALICE, INSANITY_CIRCLE, FEN, AIDEN,
+        return java.util.List.of(MISS_CIRCLE, MISS_THAVEL, MISS_BLOOMIE, ALICE, RED_CIRCLE, DANGER_THAVEL, DANGER_BLOOMIE, INFECTED_BLOOMIE, INFECTED_ZIP, DANGER_ALICE, INSANITY_CIRCLE, WILD_WOLF, CRAZY_ONE, FEN, AIDEN,
                 MUTANT_CLAIRE, MUTANT_ENGEL, MUTANT_BUBBLE, MUTANT_LANA, MUTANT_ABBIE, GREEN_CIRCLE, HANSEL_JUVENILE, LORD_HANSEL, GREEN_THAVEL, GREEN_BLOOMIE, GREEN_ALICE, RILEY, DANIEL_BARREL);
     }
 
@@ -82,6 +84,8 @@ public final class ModEntities {
             e.put(INFECTED_BLOOMIE.get(), InfectedBloomie.attributes().build());
             e.put(INFECTED_ZIP.get(), InfectedZip.attributes().build());
             e.put(DANGER_ALICE.get(), DangerAlice.attributes().build());
+            e.put(CRAZY_ONE.get(), CrazyOne.attributes().build());
+            e.put(WILD_WOLF.get(), WildWolf.attributes().build());
             e.put(INSANITY_CIRCLE.get(), InsanityCircle.attributes().build());
             e.put(FEN.get(), Fen.attributes().build());
             e.put(AIDEN.get(), Aiden.attributes().build());
