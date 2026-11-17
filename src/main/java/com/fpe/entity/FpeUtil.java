@@ -156,20 +156,20 @@ public final class FpeUtil {
     }
 
     // ------------------------------------------------------------------ crowd control (affect what the victim can DO)
-    /** Freezes the victim's movement for ticks (slowness max + no jumping + mining fatigue). Players cannot walk or jump; mobs stand still. */
+    /** Slowness + ground-jump suppression + mining fatigue and weakness for ticks. */
     public static void stun(LivingEntity v, int ticks) {
-        if (!canHurtLoose(v)) return;
+        if (ticks <= 0 || !canHurtLoose(v)) return;
         v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, ticks, 6, false, false));
-        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.JUMP, ticks, 200, false, false));
+        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(com.fpe.registry.ModEffects.ROOTED.get(), ticks, 0, false, false, false));
         v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN, ticks, 3, false, false));
         v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.WEAKNESS, ticks, 1, false, false));
     }
 
     /** Roots the victim in place (like stun but without weakness/fatigue: it can still hit back). */
     public static void root(LivingEntity v, int ticks) {
-        if (!canHurtLoose(v)) return;
+        if (ticks <= 0 || !canHurtLoose(v)) return;
         v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, ticks, 6, false, false));
-        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.JUMP, ticks, 200, false, false));
+        v.addEffect(new net.minecraft.world.effect.MobEffectInstance(com.fpe.registry.ModEffects.ROOTED.get(), ticks, 0, false, false, false));
     }
 
     /** Disorients: nausea + blindness + slowness. */

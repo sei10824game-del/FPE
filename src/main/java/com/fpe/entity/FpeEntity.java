@@ -70,6 +70,8 @@ public abstract class FpeEntity extends Monster {
     private List<Ability> abilities;
     private int[] cooldowns;
     @Nullable private Ability current;
+    @Nullable private LivingEntity abilityTarget;
+    private int abilitySequence;
     private int rest = 30;
     @Nullable private ServerBossEvent bossEvent;
 
@@ -142,21 +144,39 @@ public abstract class FpeEntity extends Monster {
     public boolean forceAbility(String id) {
         if (level().isClientSide) return false;
         List<Ability> a = abilities();
-        for (int i = 0; i < a.size(); i++) if (a.get(i).id.equals(id)) { beginAbility(i, getTarget()); return true; }
+        for (int i = 0; i < a.size(); i++) if (a.get(i).id.equals(id)) return beginAbility(i, getTarget());
         return false;
     }
 
     public void cancelAbility() {
+        abilitySequence++;
+        abilityTarget = null;
         if (current != null) { current = null; animTime = 0; entityData.set(ANIM, 0); }
     }
 
-    private void beginAbility(int idx, @Nullable LivingEntity target) {
-        current = abilities().get(idx);
+    private boolean validAbilityTarget(@Nullable LivingEntity target) {
+        return target != null && target.level() == level() && FpeUtil.canHurt(this, target);
+    }
+
+    private static boolean animationOnly(Ability a) {
+        return a.onStart == null && a.onTick == null && a.onEnd == null;
+    }
+
+    private boolean beginAbility(int idx, @Nullable LivingEntity target) {
+        Ability started = abilities().get(idx);
+        if (!validAbilityTarget(target) && !animationOnly(started)) return false;
+        current = started;
+        abilityTarget = target;
+        int sequence = ++abilitySequence;
         animTime = 0;
         cooldowns[idx] = current.cooldown;
         entityData.set(ANIM, idx + 1);
         if (current.onStart != null && target != null) current.onStart.run(this, target, 0);
-        if (target != null) onAbilityStart(current, target);
+        if (abilitySequence == sequence) {
+            if (validAbilityTarget(target)) onAbilityStart(started, target);
+            else if (!animationOnly(started)) cancelAbility();
+        }
+        return true;
     }
 
     /** hook for voice lines etc.; called on the server when an ability begins */
@@ -164,7 +184,7 @@ public abstract class FpeEntity extends Monster {
 
     private void endAbility(@Nullable LivingEntity target) {
         Ability a = current;
-        current = null; animTime = 0; rest = restTicks();
+        current = null; abilityTarget = null; abilitySequence++; animTime = 0; rest = restTicks();
         entityData.set(ANIM, 0);
         if (a != null && a.onEnd != null && target != null) a.onEnd.run(this, target, a.duration);
     }
@@ -172,16 +192,23 @@ public abstract class FpeEntity extends Monster {
     private void serverAbilityTick() {
         List<Ability> list = abilities();
         for (int i = 0; i < cooldowns.length; i++) if (cooldowns[i] > 0) cooldowns[i]--;
-        LivingEntity target = getTarget();
-        boolean valid = target != null && target.isAlive();
+        // An attack commits to its initial victim. Aggro changes affect the next
+        // attack, never transfer an active grab to someone who was not hit.
+        LivingEntity target = combatTarget();
+        boolean valid = validAbilityTarget(target);
         if (current != null) {
-            if (!valid) { endAbility(null); return; }
             Ability a = current;
-            if (animTime < a.faceUntil) snapFace(target);
+            boolean animationOnly = animationOnly(a);
+            if (!valid && !animationOnly) { endAbility(null); return; }
+            if (valid && animTime < a.faceUntil) snapFace(target);
+            int sequence = abilitySequence;
             if (a.onTick != null) a.onTick.run(this, target, animTime);
+            if (abilitySequence != sequence) return;
+            valid = validAbilityTarget(target);
+            if (!valid && !animationOnly) { endAbility(null); return; }
             if (a.rooted) getNavigation().stop();
             animTime++;
-            if (animTime >= a.duration) endAbility(target);
+            if (animTime >= a.duration) endAbility(valid ? target : null);
             return;
         }
         if (rest > 0) { rest--; return; }
@@ -206,6 +233,9 @@ public abstract class FpeEntity extends Monster {
             r -= w[i];
         }
     }
+
+    @Nullable
+    private LivingEntity combatTarget() { return current != null ? abilityTarget : getTarget(); }
 
     // ------------------------------------------------------------------ movement helpers for abilities
     /** instantly face the target (yaw + head) */
@@ -249,11 +279,11 @@ public abstract class FpeEntity extends Monster {
         private final FpeEntity e;
         private int repath;
         ApproachGoal(FpeEntity e) { this.e = e; setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK)); }
-        @Override public boolean canUse() { LivingEntity t = e.getTarget(); return t != null && t.isAlive() && !e.isRooted(); }
+        @Override public boolean canUse() { return e.validAbilityTarget(e.combatTarget()) && !e.isRooted(); }
         @Override public boolean canContinueToUse() { return canUse(); }
         @Override public void tick() {
-            LivingEntity t = e.getTarget();
-            if (t == null) return;
+            LivingEntity t = e.combatTarget();
+            if (!e.validAbilityTarget(t)) return;
             e.getLookControl().setLookAt(t, 30f, 30f);
             if (--repath <= 0) {
                 repath = 4 + e.random.nextInt(4);

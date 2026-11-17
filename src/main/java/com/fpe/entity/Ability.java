@@ -9,7 +9,8 @@ import net.minecraft.world.entity.LivingEntity;
 /**
  * One attack/skill. The animation system looks the ability up by {@link #id} (see AnimCtx.is(id)),
  * so the model animator and the server logic share one timeline measured in ticks since start.
- * The target passed to callbacks is never null/dead (the ability is aborted otherwise).
+ * Callbacks keep the target selected at attack start. Null, dead, removed,
+ * cross-level or allied targets abort the attack rather than transferring it.
  */
 public final class Ability {
     @FunctionalInterface

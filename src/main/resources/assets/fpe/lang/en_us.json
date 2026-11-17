@@ -57,5 +57,6 @@
  "entity.fpe.wild_wolf": "Nameless Werewolf",
  "item.fpe.wild_wolf_spawn_egg": "Nameless Werewolf Spawn Egg",
  "entity.fpe.crazy_one": "Crazy",
- "item.fpe.crazy_one_spawn_egg": "Crazy Spawn Egg"
+ "item.fpe.crazy_one_spawn_egg": "Crazy Spawn Egg",
+ "effect.fpe.rooted": "Rooted"
 }
