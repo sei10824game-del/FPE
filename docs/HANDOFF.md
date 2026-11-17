@@ -1,3 +1,5 @@
+> Newer, fuller handoff for any agent: see docs/HANDOFF_CHATGPT.md
+
 # FPE handoff (for Blockbench-based continuation)
 
 Minecraft 1.20.1 / Forge 47.3.0 mod, official mappings, Java 17 toolchain (JDK 21 runs it). No external libs.
