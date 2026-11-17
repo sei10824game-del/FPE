@@ -55,6 +55,9 @@ public class FpeFx extends Entity {
     @Nullable public Entity getOwner() { return ownerId != null && level() instanceof ServerLevel s ? s.getEntity(ownerId) : null; }
 
     public void setup(Kind k, int warmup, int life, float radius, float damage) {
+        // Entity ticks start at 1. Zero-delay eruptions must fire on that tick,
+        // and the synced warmup keeps the renderer on the same timeline.
+        if (k == Kind.SPIKE || k == Kind.TENTACLE || k == Kind.RING_TRAP) warmup = Math.max(1, warmup);
         entityData.set(KIND, k.ordinal()); entityData.set(WARM, warmup); entityData.set(LIFE, life); entityData.set(RADIUS, radius); this.damage = damage;
     }
     public FpeFx param(float p) { entityData.set(PARAM, p); return this; }

@@ -2,9 +2,11 @@ name: build
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,10 +18,24 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew && ./gradlew build --no-daemon
+      - name: Combat regression tests
+        run: ./gradlew runGameTestServer --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: fpe-mod
           path: build/libs/*.jar
+  publish:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: fpe-mod
+          path: build/libs
       # always-current download: Releases -> "Latest build" -> fpe-1.0.0.jar (copy into the Windows mods folder)
       - name: Publish release "latest"
         env:

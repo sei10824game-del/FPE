@@ -22,8 +22,18 @@ public final class FpeUtil {
 
     public static boolean isAlly(Entity a, Entity b) {
         if (b == a) return true;
+        // Area effects and homing queries pass the attack entity, not its caster.
+        // Keep orphaned attacks harmless to FPE until their owner can be resolved.
+        if (a instanceof FpeProjectile p) {
+            Entity owner = p.getOwner();
+            return owner == null ? b instanceof FpeEntity : isAlly(owner, b);
+        }
+        if (a instanceof FpeFx f) {
+            Entity owner = f.getOwner();
+            return owner == null ? b instanceof FpeEntity : isAlly(owner, b);
+        }
         if (!(b instanceof FpeEntity fb)) return false;
-        return !(a instanceof FpeEntity fa) || !FpeEntity.hostile(fa.faction(), fb.faction());
+        return a instanceof FpeEntity fa && !FpeEntity.hostile(fa.faction(), fb.faction());
     }
 
     public static boolean canHurt(Entity attacker, Entity victim) {
