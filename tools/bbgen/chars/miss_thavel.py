@@ -45,17 +45,29 @@ def fill(c):
 
 
 def strands(base=INK, hi=INK_HI, dark=INK_D, ink=True):
+    """Broad ink planes: large locks carry the silhouette, not noisy hair lines."""
     def f(F):
-        cols = [R.random() for _ in range(F.w)]
-        for x in range(F.w):
-            c = mix(base, hi, 0.6) if cols[x] > 0.86 else mix(base, dark, 0.6) if cols[x] < 0.2 else base
-            for y in range(F.h):
-                F.px(x, y, mix(c, dark, 0.4 * abs(y / max(1, F.h - 1) - 0.3)))
-        if ink and F.w >= 4 and F.h >= 8 and R.random() < 0.6:
-            x = R.randint(1, F.w - 2)
-            for y in range(R.randint(0, F.h // 3), F.h - 2):
-                F.px(x, y, LINE)
+        F.rect(0, 0, F.w, F.h, base)
+        F.poly([(0, 0), (F.w * 0.28, 0), (F.w * 0.12, F.h), (0, F.h)], dark)
     return f
+
+
+def card(name, parent, bounds, points, color, z, depth=0.5, origin=None, rot=(0, 0, 0), accent=None):
+    """Two-sided XY cutout with flat ink fills; keep a solid core behind large hair cards."""
+    x0, y0, x1, y1 = bounds
+    def paint(reverse=False):
+        def f(F):
+            F.rect(0, 0, F.w, F.h, (0, 0, 0, 0))
+            def xy(p):
+                u = (p[0] - x0) / (x1 - x0)
+                return ((1 - u if reverse else u) * F.w, (y1 - p[1]) / (y1 - y0) * F.h)
+            F.poly([xy(p) for p in points], color)
+            if accent: F.poly([xy(p) for p in accent[0]], accent[1])
+        return f
+    fs = all_faces(fill((0, 0, 0, 0)))
+    fs.update(north=paint(), south=paint(True))
+    return m.cube(name, parent, (x0, y0, z - depth / 2), (x1, y1, z + depth / 2),
+                  color, origin=origin, rot=rot, grain=0, faces=fs)
 
 
 def edge_lines(c):
@@ -68,20 +80,14 @@ def hstripe(c, y0, h):
 
 def folds(base, dark, light, n=3):
     def f(F):
-        for i in range(n):
-            x = int((i + 0.5) * F.w / n) + R.randint(-1, 1)
-            for y in range(F.h):
-                if R.random() < 0.85:
-                    F.px(x, y, mix(base, dark, 0.45)); F.px(x + 1, y, mix(base, light, 0.45))
+        F.rect(0, 0, F.w, F.h, base)
+        F.poly([(0, 0), (F.w * 0.16, 0), (F.w * 0.06, F.h), (0, F.h)], dark)
     return f
 
 
 def glove(F):
-    """black glove: glossy streak + ink edge"""
-    for y in range(F.h):
-        for x in range(F.w):
-            F.px(x, y, mix(INK, INK_D, x / max(1, F.w - 1) * 0.7))
-    F.rect(max(0, F.w // 4), 0, 1, F.h, INK_HI)
+    F.rect(0, 0, F.w, F.h, INK)
+    F.rect(0, 0, max(1, F.w * 0.12), F.h, INK_D)
 
 
 def face_front(F):
@@ -133,9 +139,9 @@ def letter(ch):
         F.rect(0, 0, W, 1, INK); F.rect(0, H - 1, W, 1, INK); F.rect(0, 0, 1, H, INK); F.rect(W - 1, 0, 1, H, INK)
         F.rect(2, 2, W - 4, 1, BLOCK_D); F.rect(2, H - 3, W - 4, 1, BLOCK_D); F.rect(2, 2, 1, H - 4, BLOCK_D); F.rect(W - 3, 2, 1, H - 4, BLOCK_D)
         a, b, c, d = W * 0.28, H * 0.24, W * 0.72, H * 0.76
-        t = 1.8
+        t = max(2.5, W * 0.105)
         if ch == "A":
-            F.line(a, d, W / 2, b, INK, t); F.line(W / 2, b, c, d, INK, t); F.line(a + 2, H * 0.58, c - 2, H * 0.58, INK, t)
+            F.line(a, d, W / 2, b, INK, t); F.line(W / 2, b, c, d, INK, t); F.line(a + 1, H * 0.58, c - 1, H * 0.58, INK, t)
         elif ch == "B":
             F.line(a, b, a, d, INK, t); F.line(a, b, c - 2, b, INK, t); F.line(a, H / 2, c - 1, H / 2, INK, t); F.line(a, d, c - 1, d, INK, t)
             F.line(c - 2, b, c - 1, H / 2 - 1, INK, t); F.line(c, H / 2 + 1, c - 1, d, INK, t)
@@ -226,46 +232,26 @@ for s, k in ((1, "r"), (-1, "l")):
     m.cube("tip_" + k, "foot_" + k, (x - 0.25, 0.1, -3.6), (x + 0.25, 0.7, -2.4), INK_D, origin=(x, 0.3, -2.4), rot=(-12, 0, 0))
     m.cube("heel_" + k, "foot_" + k, (x - 0.35, 0, 0.5), (x + 0.35, 1.0, 1.1), INK_D)
 
-# ------------------------------------------------------------------ hips + long flared torn skirt
-m.cube("hips", "body", (-2.2, 14.0, -1.5), (2.2, 19.0, 1.5), PAPER_D)
-SK, TOP = 13.6, 19.0
-m.cube("sk_front", "skirt_f", (-3.0, TOP - SK, -2.0), (3.0, TOP, -1.5), PAPER, origin=(0, 18.6, -1.7), rot=(15, 0, 0),
-       faces={"north": skirt_paint(True), "south": fill(GREY_D)})
-m.cube("sk_back", "skirt_b", (-3.0, TOP - SK, 1.5), (3.0, TOP, 2.0), PAPER, origin=(0, 18.6, 1.7), rot=(-15, 0, 0),
-       faces={"south": skirt_paint(False, False), "north": fill(GREY_D)})
-m.cube("sk_right", "skirt_r", (2.1, TOP - SK, -2.5), (2.6, TOP, 2.5), PAPER, origin=(2.3, 18.6, 0), rot=(0, 0, 15),
-       faces={"east": skirt_paint(True, False), "west": fill(GREY_D)})
-m.cube("sk_left", "skirt_l", (-2.6, TOP - SK, -2.5), (-2.1, TOP, 2.5), PAPER, origin=(-2.3, 18.6, 0), rot=(0, 0, -15),
-       faces={"west": skirt_paint(False), "east": fill(GREY_D)})
-m.cube("sk_front2", "skirt_f", (-4.4, TOP - SK, -2.05), (4.4, TOP - 6.0, -1.55), PAPER, origin=(0, 18.6, -1.7), rot=(15, 0, 0),
-       faces={"north": skirt_paint(True), "south": fill(GREY_D)})
-m.cube("sk_back2", "skirt_b", (-4.4, TOP - SK, 1.55), (4.4, TOP - 6.0, 2.05), PAPER, origin=(0, 18.6, 1.7), rot=(-15, 0, 0),
-       faces={"south": skirt_paint(False, False), "north": fill(GREY_D)})
-m.cube("sk_right2", "skirt_r", (2.15, TOP - SK, -4.0), (2.65, TOP - 6.0, 4.0), PAPER, origin=(2.3, 18.6, 0), rot=(0, 0, 15),
-       faces={"east": skirt_paint(True, False), "west": fill(GREY_D)})
-m.cube("sk_left2", "skirt_l", (-2.65, TOP - SK, -4.0), (-2.15, TOP - 6.0, 4.0), PAPER, origin=(-2.3, 18.6, 0), rot=(0, 0, -15),
-       faces={"west": skirt_paint(False), "east": fill(GREY_D)})
-for i, (x, z, ry) in enumerate([(2.3, -1.8, 45), (-2.3, -1.8, -45), (2.3, 1.8, -45), (-2.3, 1.8, 45)]):
-    sx, sz = (1 if x > 0 else -1), (1 if z > 0 else -1)
-    bone = "skirt_f" if z < 0 else "skirt_b"
-    m.cube(f"sk_corner{i}", bone, (x - 1.4, TOP - SK + 0.3, z - 0.25), (x + 1.4, TOP, z + 0.25), PAPER, origin=(x, 18.6, z),
-           rot=(-sz * 13, ry, sx * 13), faces={"north": skirt_paint(x > 0, z < 0), "south": skirt_paint(x < 0, False)})
-# ragged tatters hanging off the hem (rotated triangles-ish)
-PANEL = {"skirt_f": ((0, 18.6, -1.7), (15, 0, 0), "z", -1.8), "skirt_b": ((0, 18.6, 1.7), (-15, 0, 0), "z", 1.8),
-         "skirt_r": ((2.3, 18.6, 0), (0, 0, 15), "x", 2.4), "skirt_l": ((-2.3, 18.6, 0), (0, 0, -15), "x", -2.4)}
-k = 0
-for bone, (org, rr, ax, off) in PANEL.items():
-    for j, u in enumerate((-3.6, -1.8, 0.2, 2.0, 3.6)):
-        ln = 1.0 + R.random() * 1.6
-        w = 0.6 + R.random() * 0.6
-        yb = TOP - SK + 0.3
-        if ax == "z":
-            frm, to = (u - w, yb - ln, off - 0.2), (u + w, yb, off + 0.2)
-        else:
-            frm, to = (off - 0.2, yb - ln, u - w), (off + 0.2, yb, u + w)
-        m.cube(f"tatter{k}", bone, frm, to, PAPER if j % 2 else PAPER_D, origin=org, rot=rr, faces=all_faces(lambda F: F.rect(0, F.h - 1, F.w, 1, LINE)))
-        k += 1
-m.cube("waistband", "body", (-2.4, 18.4, -1.75), (2.4, 19.3, 1.75), GREY, faces=all_faces(hstripe(GREY_D, 0, 1)))
+# ------------------------------------------------------------------ a single readable flared dress, not stacked ribbon panels
+m.cube("hips", "body", (-2.2, 14.0, -1.5), (2.2, 19.0, 1.5), PAPER_D, grain=0)
+# The broad triangular planes retain separate skirt bones for every existing animation.
+outline = [(-2.35, 19), (2.35, 19), (5.4, 5.4), (3.6, 5.9), (1.9, 6.6),
+           (-0.7, 5.9), (-3.0, 6.2), (-5.3, 5.0)]
+wedge = [(-2.35, 19), (2.35, 19), (3.9, 12), (-3.1, 15.6)]
+card("sk_front", "skirt_f", (-5.4, 5, 5.4, 19), outline, PAPER, -1.85,
+     origin=(0, 18.6, -1.7), rot=(12, 0, 0), accent=(wedge, GREY))
+card("sk_back", "skirt_b", (-5.4, 5, 5.4, 19), outline, PAPER_D, 1.85,
+     origin=(0, 18.6, 1.7), rot=(-12, 0, 0))
+# Side panels are cut as trapezoids too; they have visible shape in a 90-degree view.
+side = [(-1.9, 19), (1.9, 19), (4.6, 5.6), (2.7, 6.3), (-4.6, 5.2)]
+for sign, bone in ((1, "skirt_r"), (-1, "skirt_l")):
+    # Rotate a local XY card into the YZ plane around the old side-panel pivot.
+    pts = [(u + sign * 2.3, y) for u, y in side]
+    card("sk_side_" + bone, bone, (-4.6 + sign * 2.3, 5.2, 4.6 + sign * 2.3, 19),
+         pts, PAPER if sign > 0 else PAPER_D, 0,
+         origin=(sign * 2.3, 18.6, 0), rot=(0, 90, sign * 12))
+# Small central volume prevents a hollow waist at oblique angles.
+m.cube("waistband", "body", (-2.4, 18.4, -1.75), (2.4, 19.3, 1.75), GREY, grain=0)
 
 # ------------------------------------------------------------------ torso: white blouse, pointed collar, pendant
 m.cube("waist", "chest", (-1.9, 18.8, -1.25), (1.9, 21.0, 1.25), PAPER, color2=PAPER_D, grad=True, faces={"north": folds(PAPER, PAPER_D, PAPER_L, 2)})
@@ -307,30 +293,35 @@ def spike(name, parent, base, ln, w, rx, ry, rz, col=INK, segs=3):
                origin=base, rot=(rx, ry, rz))
 
 
-# side spikes: wild jagged hair flaring out and down to the shoulders
-for i, (y, z, ln, rz, rx) in enumerate([(31.2, 0.0, 4.4, -84, 0), (30.0, -1.2, 6.4, -118, -8), (28.6, 0.8, 7.4, -136, 10), (27.2, -0.6, 7.0, -152, -6),
-                                        (25.8, 1.2, 5.6, -168, 10), (29.4, 2.0, 6.0, -128, 30)]):
-    spike(f"spk_r{i}", "hair_r", (3.0, y, z), ln, 3.0, rx, 0, rz)
-for i, (y, z, ln, rz, rx) in enumerate([(31.4, 0.4, 5.2, 80, 0), (30.0, -1.0, 6.8, 114, -8), (28.6, 0.8, 7.6, 132, 10), (27.2, -0.4, 7.2, 150, -6),
-                                        (25.6, 1.0, 5.8, 168, 8), (29.2, 2.0, 5.6, 124, 30)]):
-    spike(f"spk_l{i}", "hair_l", (-3.0, y, z), ln, 3.0, rx, 0, rz)
-# back spikes fanning down
-for i, (x, y, ln, rz, rx) in enumerate([(-2.2, 29.0, 6.0, 160, -10), (-0.6, 28.6, 7.0, 176, -14), (1.0, 28.8, 6.6, -172, -12), (2.4, 29.2, 5.6, -156, -8),
-                                        (0.0, 31.0, 4.4, 180, -40)]):
-    spike(f"spk_b{i}", "hair_b", (x, y, 3.0), ln, 3.0, rx, 0, rz)
-# bangs: jagged spikes hanging over the eyes
-for i, (x, ln, rz) in enumerate([(2.4, 3.0, -22), (1.3, 4.2, -8), (0.1, 3.4, 6), (-1.1, 4.4, 12), (-2.3, 3.2, 26)]):
-    spike(f"bang{i}", "bangs", (x, 31.6, -2.9), ln, 1.5, -172, 0, rz)
-# a few crown spikes sticking up / back (messy top)
-for i, (x, z, ln, rz, rx) in enumerate([(1.6, 1.2, 3.6, -40, -30), (-1.8, 1.0, 3.4, 44, -26), (0.2, 2.0, 3.0, 4, -60), (2.4, -1.0, 2.6, -64, 10)]):
-    spike(f"top{i}", "head", (x, 32.6, z), ln, 1.7, rx, 0, rz, segs=2)
+# Short swept, angular locks. Three large masses per side replace the radial quills.
+for sign, side in ((1, "r"), (-1, "l")):
+    for i, (top, bottom, tipx, tipy) in enumerate([(32.3, 29.0, 6.5, 33.5),
+                                                (30.0, 26.8, 6.9, 29.8),
+                                                (27.8, 24.0, 6.4, 24.1)]):
+        p = [(sign * 2.5, top), (sign * tipx, tipy), (sign * 4.8, bottom + 0.2), (sign * 2.6, bottom)]
+        card("swept_" + side + str(i), "hair_" + side,
+             (min(x for x, y in p), bottom, max(x for x, y in p), max(top, tipy)),
+             p, INK, -0.8 + i * 0.8, depth=0.7,
+             origin=(sign * 3, top - 0.5, 0), rot=(0, sign * 12, 0))
+# Rear silhouette stays at the shoulders, with broad triangular tips and no hanging tail.
+for i, (x, tip) in enumerate([(-2.4, -4.2), (0, 0.8), (2.2, 5.0)]):
+    p = [(x - 1.6, 30), (x + 1.6, 30), (tip, 23.9), (x - 0.7, 25.3)]
+    card("back_lock" + str(i), "hair_b", (min(q[0] for q in p), 23.9, max(q[0] for q in p), 30),
+         p, INK, 3.25, depth=0.7, origin=(x, 29, 3), rot=(-8, 0, 0))
+# One broad diagonal fringe hides the eyes; the grin remains clear below it.
+card("bang_sweep", "bangs", (-3.2, 27.1, 3.3, 32.0),
+     [(-3.2, 32), (3.3, 32), (2.6, 29.2), (0.1, 27.1), (0.8, 29.4), (-2.3, 28.4)], INK, -3.24,
+     depth=0.25, accent=([(-2.9, 31.7), (2.5, 31.7), (-1.9, 29.0)], INK_D))
 
 # ------------------------------------------------------------------ ABC blocks headband, white petals, squiggle
 m.cube("band", "blocks", (-3.2, 32.0, -2.0), (3.2, 32.7, -1.2), INK_D, faces={"north": hstripe(INK_HI, 0, 1)})
-for k, ch, x, rz, rx in (("blk_a", "A", 2.9, -24, 8), ("blk_b", "B", 0.0, 4, 10), ("blk_c", "C", -2.9, 22, 6)):
-    m.cube("cube_" + k, k, (x - 1.35, 32.2, -2.6), (x + 1.35, 34.9, 0.1), BLOCK, origin=(x, 33.4, -1.2), rot=(rx, 0, rz),
-           faces={"north": letter(ch), "east": letter("ABC"[("ABC".index(ch) + 1) % 3]), "west": letter("ABC"[("ABC".index(ch) + 2) % 3]),
-                  "up": letter(ch), "south": letter(ch), "down": fill(BLOCK_D)})
+for k, ch, x, y, rz in (("blk_a", "A", 3.45, 31.7, -24),
+                         ("blk_b", "B", 0.35, 33.8, -16),
+                         ("blk_c", "C", -2.85, 34.4, 14)):
+    m.cube("cube_" + k, k, (x - 1.42, y - 1.42, -3.65), (x + 1.42, y + 1.42, -1.25), BLOCK,
+           origin=(x, y, -2.45), rot=(0, 0, rz), grain=0,
+           faces={"north": letter(ch), "east": fill(BLOCK_D), "west": fill(GREY_D),
+                  "up": fill(BLOCK), "south": letter(ch), "down": fill(BLOCK_D)})
 for i, (x, y, rz) in enumerate([(4.2, 32.0, -60), (-4.0, 32.6, 50), (3.6, 30.8, -100)]):
     m.cube(f"petal{i}", "blocks", (x - 0.5, y, -1.9), (x + 0.5, y + 1.6, -1.4), PAPER_L, origin=(x, y, -1.6), rot=(0, 0, rz),
            faces={"north": edge_lines(PAPER_D)})
@@ -355,30 +346,31 @@ for i, (y, ln, rz, rx) in enumerate([(19.0, 2.0, -60, 0), (17.6, 2.8, -70, 10), 
     spike(f"shard_f{i}", "fore_r", base, ln, 1.0, rx, 0, rz, segs=2)
 m.cube("palm_r", "hand_r", (3.9 - 2.0, 12.8, -1.4), (3.9 + 2.0, 15.8, 1.2), INK, faces=all_faces(glove))
 m.cube("knuck_r", "hand_r", (3.9 - 2.2, 12.6, -1.6), (3.9 + 2.2, 13.8, 0.8), INK_D, faces={"north": hstripe(INK_HI, 0, 1)})
-# four long jagged blade-fingers (3 kinked segments each) + thumb
-FAN = [16, 5, -6, -17]
-LEN = [7.6, 9.6, 9.2, 7.0]
+# Four broad triangular black blades, each on its existing articulated finger bone.
+FAN = [23, 8, -8, -23]
+LEN = [6.6, 8.2, 7.8, 6.2]
 for i in range(4):
     g = f"fing{i}"
     x0, y0, z0 = m.groups[g]["origin"]
     L = LEN[i]
-    m.cube(f"f{i}a", g, (x0 - 0.7, y0 - L * 0.42, z0 - 0.3), (x0 + 0.7, y0 + 0.3, z0 + 0.3), INK, origin=(x0, y0, z0), rot=(6, 0, FAN[i]),
-           faces=all_faces(glove))
-    m.cube(f"f{i}b", g, (x0 - 0.55, y0 - L * 0.76, z0 - 0.25), (x0 + 0.55, y0 - L * 0.38, z0 + 0.25), INK, origin=(x0, y0, z0), rot=(16, 0, FAN[i] * 1.3),
-           faces=all_faces(glove))
-    m.cube(f"f{i}c", g, (x0 - 0.3, y0 - L, z0 - 0.2), (x0 + 0.3, y0 - L * 0.72, z0 + 0.2), INK_D, origin=(x0, y0, z0), rot=(28, 0, FAN[i] * 1.6),
-           faces={"north": edge_lines(LINE)})
-    m.cube(f"f{i}j", g, (x0 + 0.4, y0 - L * 0.56, z0 - 0.2), (x0 + 1.3, y0 - L * 0.4, z0 + 0.2), INK_D, origin=(x0, y0, z0), rot=(10, 0, FAN[i] - 30))
+    p = [(x0 - 0.95, y0 + 0.4), (x0 + 1.0, y0 + 0.4),
+         (x0 + 1.2, y0 - L * 0.42), (x0 + 0.2, y0 - L), (x0 - 0.7, y0 - L * 0.56)]
+    card(f"finger_blade{i}", g, (x0 - 0.95, y0 - L, x0 + 1.2, y0 + 0.4), p, INK, z0,
+         depth=0.7, origin=(x0, y0, z0), rot=(12, 0, FAN[i]))
+    # Narrow solid core gives the blade thickness when viewed directly edge-on.
+    m.cube(f"finger_core{i}", g, (x0 - 0.45, y0 - L * 0.54, z0 - 0.38),
+           (x0 + 0.45, y0 + 0.2, z0 + 0.38), INK_D, origin=(x0, y0, z0), rot=(12, 0, FAN[i]), grain=0)
 x0, y0, z0 = m.groups["thumb_r"]["origin"]
 m.cube("thumb_a", "thumb_r", (x0 - 0.4, y0 - 2.6, z0 - 0.4), (x0 + 0.4, y0 + 0.2, z0 + 0.4), INK, origin=(x0, y0, z0), rot=(20, 0, 40), faces=all_faces(glove))
 m.cube("thumb_b", "thumb_r", (x0 - 0.22, y0 - 4.6, z0 - 0.22), (x0 + 0.22, y0 - 2.4, z0 + 0.22), INK_D, origin=(x0, y0, z0), rot=(34, 0, 58))
 # left forearm + small talons
 m.cube("fore_l1", "fore_l", (-3.6 - 0.75, 16.4, -0.75), (-3.6 + 0.75, 20.4, 0.75), INK, faces=all_faces(glove))
 m.cube("palm_l", "hand_l", (-3.7 - 0.8, 15.0, -0.75), (-3.7 + 0.8, 16.6, 0.75), INK, faces=all_faces(glove))
-for i in range(4):
-    x = -3.7 + (i - 1.5) * 0.42
-    m.cube(f"tal{i}", "claws_l", (x - 0.17, 12.4 + 0.3 * abs(i - 1.5), -0.5), (x + 0.17, 15.2, -0.15), INK_D, origin=(x, 15.0, -0.3), rot=(12, 0, (i - 1.5) * -9),
-           faces={"north": edge_lines(LINE)})
+for i in range(3):
+    x = -3.7 + (i - 1) * 0.85
+    p = [(x - 0.65, 15.2), (x + 0.65, 15.2), (x + 0.85, 13.0), (x - 0.15, 10.8 + abs(i - 1) * 0.5), (x - 0.5, 12.8)]
+    card(f"tal_blade{i}", "claws_l", (x - 0.65, 10.8, x + 0.85, 15.2), p, INK, -0.3,
+         depth=0.5, origin=(x, 15, -0.3), rot=(12, 0, (i - 1) * -14))
 m.cube("tal_th", "claws_l", (-3.0 - 0.17, 13.2, -0.9), (-3.0 + 0.17, 15.2, -0.55), INK_D, origin=(-3.0, 15.0, -0.7), rot=(30, 0, 30))
 # held ABC blocks (props for throws)
 for g, sz in (("held_l", 1.0), ("held_r", 1.25)):

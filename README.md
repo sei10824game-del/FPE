@@ -31,6 +31,12 @@ GitHub Actions は main への push と pull request でビルドと戦闘回帰
 
 ## 引き継ぎ資料
 
+通常版 Miss Circle・Miss Thavel・Miss Bloomie の外見を、確認済み資料に合わせて調整しました。髪の大きな輪郭、ABC飾り、爪、スカートを整理し、Circleのコンパスも開きが読める形にしています。骨の支点・高さ・攻撃の発生時刻は維持しています。
+
+下の画像は左から資料・変更前・変更後です。実際のモデルから生成したプレビューで、各キャラは個別に画面へ収めています。
+
+![教師3人の外見比較](docs/preview/teachers-fidelity.png)
+
 - [現在の構成・制作手順](docs/HANDOFF_CHATGPT.md)
 - [キャラクター制作 API](docs/CHARACTER_GUIDE.md)
 - [ユーザーの制作ルールと確認済み資料](docs/HANDOFF.md)

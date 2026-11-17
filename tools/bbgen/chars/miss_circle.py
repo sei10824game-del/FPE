@@ -18,7 +18,7 @@ from bbgen import Model, mix  # noqa: E402
 OUT = os.path.join(os.path.dirname(__file__), "../../../src/main/resources/assets/fpe/bbmodels/miss_circle.bbmodel")
 
 # ------------------------------------------------------------------ palette (reference is a 3-tone ink drawing)
-DARK, DARK_D, DARK_HI = 0x3A3247, 0x221D2A, 0x554B66
+DARK, DARK_D, DARK_HI = 0x373141, 0x241F2D, 0x484151
 LINE = 0x8E889E                     # light ink lines drawn inside the black shapes
 SKIN, SKIN_D, SKIN_L = 0xC8CBD3, 0x8F94A2, 0xDADCE2
 PANT, PANT_D, PANT_L = 0xE4E4DF, 0xA9ADB2, 0xF5F5F1
@@ -30,7 +30,14 @@ WOOD = 0xE9E2CF
 MOUTH, TEETH = 0x1A1520, 0xF4F4F2
 EYE = 0xF7F7FA
 
-m = Model("miss_circle", S=8, atlas=2048)
+class PaperModel(Model):
+    """Clean paper surfaces keep the large silhouette readable at game scale."""
+    def cube(self, *args, **kwargs):
+        kwargs.setdefault("grain", 0)
+        return super().cube(*args, **kwargs)
+
+
+m = PaperModel("miss_circle", S=8, atlas=2048)
 R = m.rng
 
 
@@ -46,19 +53,12 @@ def combo(*fns):
 
 
 def strands(base=DARK, hi=DARK_HI, dark=DARK_D, ink=True):
-    """black hair: streaks + darker roots + an occasional thin light ink line like the drawing."""
+    """Broad, quiet colour areas like the reference's ink-filled hair masses."""
     def f(F):
-        cols = [R.random() for _ in range(F.w)]
         for x in range(F.w):
-            c = mix(base, hi, 0.35) if cols[x] > 0.93 else mix(base, dark, 0.35) if cols[x] < 0.12 else base
             for y in range(F.h):
                 t = y / max(1, F.h - 1)
-                F.px(x, y, mix(c, dark, 0.3 * abs(t - 0.35)))
-        if ink and F.w >= 4 and F.h >= 10 and R.random() < 0.18:
-            x = R.randint(1, F.w - 2)
-            y0 = R.randint(0, F.h // 3)
-            for y in range(y0, min(F.h, y0 + R.randint(F.h // 3, F.h // 2 + 2))):
-                F.px(x + (y // 9) % 2, y, LINE)
+                F.px(x, y, mix(base, dark, 0.10 * t))
     return f
 
 
@@ -77,10 +77,9 @@ def edge_lines(c):
 def folds(base, dark, light, n=3):
     def f(F):
         for i in range(n):
-            x = int((i + 0.5) * F.w / n) + R.randint(-1, 1)
+            x = int((i + 0.5) * F.w / n)
             for y in range(F.h):
-                if R.random() < 0.85:
-                    F.px(x, y, mix(base, dark, 0.45)); F.px(x + 1, y, mix(base, light, 0.5))
+                F.px(x, y, mix(base, dark, 0.20))
     return f
 
 
@@ -95,21 +94,22 @@ def face_front(F):
             sh = max(0, (17 - y) / 6) * 0.55 + max(0, (y - 39) / 6) * 0.35 + (abs(x - 22) / 22) ** 3 * 0.25
             F.px(x, y, mix(SKIN_L, SKIN_D, min(0.8, sh)))
     # her RIGHT eye (texture left): big half-lidded almond, flat heavy lid sloping up to a pointed outer corner
-    F.poly([(3, 16), (19, 17), (18, 21), (13, 24.1), (8, 23.7), (4.5, 20)], EYE, glow=True)
-    F.disc(12.0, 19.5, 3.1, GRAPH, glow=True)                        # pupil pressed up under the lid
-    F.disc(12.0, 19.5, 1.9, 0x343C55, glow=True)
+    F.poly([(3, 16), (19, 17), (18, 21), (13, 24.1), (8, 23.7), (4.5, 20)], EYE)
+    F.disc(12.0, 19.5, 3.1, GRAPH)                        # pupil pressed up under the lid
+    F.disc(12.0, 19.5, 1.9, 0x343C55)
     for gx, gy in ((12, 19), (11, 19), (13, 19), (12, 18), (12, 20), (10, 19), (14, 19), (12, 17), (12, 21)):  # star glint
-        F.px(gx, gy, 0xFFFFFF, glow=True)
-    F.px(10, 17, 0xE8ECF8, glow=True); F.px(14, 21, 0xE8ECF8, glow=True)
-    F.line(2, 15.7, 19.5, 16.9, GRAPH, 2.6, glow=True)               # thick black upper lid
-    F.line(1, 14.3, 3.5, 16.1, GRAPH, 1.4, glow=True)                # lash flick at the outer corner
+        F.px(gx, gy, 0xFFFFFF)
+    F.px(10, 17, 0xE8ECF8); F.px(14, 21, 0xE8ECF8)
+    F.line(2, 15.7, 19.5, 16.9, GRAPH, 2.6)               # thick black upper lid
+    F.line(1, 14.3, 3.5, 16.1, GRAPH, 1.4)                # lash flick at the outer corner
     F.line(7, 24.9, 15, 24.5, SKIN_D, 1)                  # lower lid crease
     # her LEFT eye (texture right): squinting slit, half under the bang
-    F.poly([(25, 16.6), (42, 15.0), (39, 18.6), (29, 19.4)], EYE, glow=True)
-    F.disc(30.6, 17.2, 1.6, GRAPH, glow=True)
-    F.px(30, 17, 0xFFFFFF, glow=True)
-    F.line(24, 16.2, 43, 14.0, GRAPH, 2.2, glow=True)
+    F.poly([(25, 16.6), (42, 15.0), (39, 18.6), (29, 19.4)], EYE)
+    F.disc(30.6, 17.2, 1.6, GRAPH)
+    F.px(30, 17, 0xFFFFFF)
+    F.line(24, 16.2, 43, 14.0, GRAPH, 2.2)
     F.line(27, 20.6, 37, 20.0, SKIN_D, 1)
+    F.px(12, 19, 0xFFFFFF, glow=True)
     # huge crescent grin, wider and higher on her right (smirk), lips ending in curled cheek creases
     cx, hw = 22.0, 18.5
     def tb(x):
@@ -262,20 +262,7 @@ for i, (x, ln, rz) in enumerate([(2.85, 2.6, 8), (0.1, 1.9, -6), (-0.8, 1.2, 6)]
 m.cube("bang_main", "bang", (-3.35, 29.2, -3.55), (-1.55, 32.6, -3.0), DARK, origin=(-1.2, 32.4, -3.2), rot=(4, 0, -6), faces=all_faces(strands()))
 m.cube("bang_tip", "bang", (-3.4, 26.4, -3.4), (-2.4, 29.6, -2.95), DARK, origin=(-2.9, 29.4, -3.2), rot=(4, 0, -10), faces=all_faces(strands(ink=False)))
 m.cube("bang_tip2", "bang", (-1.6, 30.2, -3.45), (-1.0, 31.6, -3.05), DARK_D, origin=(-1.3, 31.5, -3.2), rot=(6, 0, 16))
-# wolf-ear hair spikes (the right one wide, the left one tall and thin, like the drawing)
-m.cube("ear_r0", "ear_r", (0.3, 33.4, -1.0), (3.0, 36.6, 1.6), DARK, origin=(1.6, 33.6, 0.4), rot=(0, 0, -10), faces=all_faces(strands()))
-m.cube("ear_r1", "ear_r", (0.8, 36.2, -0.6), (2.6, 39.0, 1.2), DARK, origin=(1.7, 36.4, 0.4), rot=(0, 0, -16),
-       faces={"north": lambda F: F.line(2, F.h - 1, F.w / 2, 2, LINE, 1)})
-m.cube("ear_r2", "ear_r", (1.3, 38.6, -0.25), (2.3, 41.0, 0.8), DARK, origin=(1.8, 38.8, 0.3), rot=(0, 0, -24))
-m.cube("ear_l0", "ear_l", (-2.6, 33.4, -0.6), (-0.4, 36.4, 1.4), DARK, origin=(-1.4, 33.6, 0.4), rot=(0, 0, 8), faces=all_faces(strands()))
-m.cube("ear_l1", "ear_l", (-2.0, 36.0, -0.3), (-0.8, 39.6, 1.0), DARK, origin=(-1.4, 36.2, 0.4), rot=(0, 0, 12))
-m.cube("ear_l2", "ear_l", (-1.75, 39.3, -0.05), (-1.05, 42.0, 0.7), DARK_D, origin=(-1.4, 39.4, 0.3), rot=(0, 0, 18),
-       faces={"north": lambda F: F.rect(1, 0, 1, F.h, LINE)})
-for i, (x, z, rz, rx) in enumerate([(2.6, 2.2, -50, -20), (-2.8, 2.2, 52, -20), (0.2, 2.8, 4, -40)]):
-    m.cube(f"crown_spike{i}", "head", (x - 0.55, 33.4, z - 0.55), (x + 0.55, 36.6, z + 0.55), DARK, origin=(x, 33.6, z), rot=(rx, 0, rz))
-
-# ------------------------------------------------------------------ hair: huge jagged mantle built from cut-out "cards" (flat, painted silhouettes
-# like the ink drawing) layered over a few solid volume blocks
+# ------------------------------------------------------------------ broad paper-cut hair masses
 CLEAR = (0, 0, 0, 0)
 CLEAR_UV = m._alloc(8, 8)  # atlas starts transparent
 
@@ -318,65 +305,57 @@ def card(name, parent, x0, x1, y0, y1, z, polys, d=0.0, origin=None, rot=(0, 0, 
         c["faces"][f]["uv"] = [CLEAR_UV[0] + 3, CLEAR_UV[1] + 3, CLEAR_UV[0] + 5, CLEAR_UV[1] + 5]
 
 
-def side_spikes(xb, ytop, n, h, length, s, droop=0.8, jitter=0.45):
-    out = []
-    for i in range(n):
-        ya = ytop - i * h
-        ln = length * (1 - jitter + 2 * jitter * R.random())
-        w = h * R.uniform(1.2, 1.9)
-        out.append([(xb - s * 1.0, ya + 0.3), (xb + s * ln, ya - h * droop - ln * R.uniform(0.25, 0.7)), (xb - s * 1.0, ya - w)])
-    return out
 
+# The two pointed ears retain their animated bones and original overall height.
+card("ear_r_shape", "ear_r", 0.0, 3.5, 33.0, 42.0, -0.5,
+     [[(0.1,33.2),(3.4,33.2),(2.7,36.7),(1.0,42.0),(0.8,36.2)]], d=1.8)
+card("ear_l_shape", "ear_l", -3.1, 0.0, 33.0, 40.8, -0.2,
+     [[(-3.0,33.2),(-0.1,33.2),(-1.0,37.2),(-2.8,40.7),(-2.6,35.4)]], d=1.6)
+card("bang_sweep", "bang", -4.0, 5.3, 26.8, 34.9, -3.7,
+     [[(-3.7,34.7),(3.4,34.7),(5.2,33.0),(2.4,32.5),(0.0,31.4),
+       (-1.7,29.2),(-3.1,27.0),(-3.4,30.5)]], d=0.18)
 
-def bottom_spikes(xa, xb, yb, n, length):
-    out, w = [], (xb - xa) / n
-    for i in range(n):
-        x = xa + i * w
-        ln = length * (0.6 + 0.6 * R.random())
-        out.append([(x - 0.2, yb + 1.0), (x + w + 0.2, yb + 1.0), (x + w * R.uniform(0.3, 0.7), yb - ln)])
-    return out
-
-
-# solid volume (gives the mantle thickness from the side)
-m.cube("hb_main", "hair_b1", (-4.4, 21.6, 2.4), (4.4, 33.4, 5.0), DARK, faces=all_faces(strands()))
-m.cube("hb_lower", "hair_b2", (-5.2, 11.2, 2.8), (5.2, 22.2, 5.4), DARK, faces=all_faces(strands()))
-m.cube("hb_base", "hair_b3", (-5.6, 4.0, 3.2), (5.6, 11.8, 5.8), DARK, faces=all_faces(strands()))
-for s, k in ((1, "r"), (-1, "l")):
-    m.cube("hs_top_" + k, "hair_" + k + "1", (3.0 * s - 0.9, 22.0, -1.6), (3.0 * s + 0.9, 32.6, 3.6), DARK, faces=all_faces(strands()))
-    m.cube("hs_mid_" + k, "hair_" + k + "2", (5.0 * s - 1.1, 12.0, 0.6), (5.0 * s + 1.1, 22.6, 4.4), DARK, faces=all_faces(strands()))
-    m.cube("hs_low_" + k, "hair_" + k + "3", (6.0 * s - 1.0, 3.0, 1.0), (6.0 * s + 1.0, 12.6, 4.6), DARK, faces=all_faces(strands()))
-
-# back cards: one per chain bone, wider going down; her right side (+X) flares further, like the drawing
-core1 = [(-4.6, 34.2), (4.6, 34.2), (6.4, 28), (7.2, 21.0), (-7.0, 21.0), (-6.0, 28)]
-p1 = [core1] + side_spikes(6.0, 32.0, 3, 3.6, 6.5, 1) + side_spikes(-5.8, 31.5, 3, 3.6, 4.8, -1)
-card("hcard_b1", "hair_b1", -11, 12, 19.5, 35, 5.0, p1)
-core2 = [(-7.0, 22.6), (7.4, 22.6), (8.8, 16), (9.0, 10.0), (-8.6, 10.0), (-8.0, 16)]
-p2 = [core2] + side_spikes(8.2, 22.5, 4, 3.4, 7.5, 1) + side_spikes(-7.8, 22.0, 4, 3.4, 5.6, -1)
-card("hcard_b2", "hair_b2", -14, 16, 7.5, 23, 5.4, p2)
-core3 = [(-8.6, 12.0), (9.0, 12.0), (9.6, 6), (9.4, 2.0), (-8.8, 2.0), (-9.0, 6)]
-p3 = [core3] + side_spikes(9.0, 12.0, 3, 3.4, 6.5, 1) + side_spikes(-8.6, 11.5, 3, 3.4, 5.0, -1) + bottom_spikes(-8.8, 9.4, 2.0, 6, 2.8)
-card("hcard_b3", "hair_b3", -14, 16, -1.0, 12.5, 5.8, p3)
-# side wing cards (just behind the arms) - fan of blades sweeping outward/down
-for s, k in ((1, "r"), (-1, "l")):
-    big = 1.2 if s > 0 else 1.0
-    xa = 3.4 * s
-    pw1 = [[(xa, 32.5), (xa + 2.4 * s, 31), (xa + 2.8 * s, 22), (xa, 22)]] + side_spikes(xa + 2.4 * s, 31, 4, 2.4, 4.0 * big, s, droop=0.9)
-    card("hcard_" + k + "1", "hair_" + k + "1", min(xa, xa + 9 * s), max(xa, xa + 9 * s), 18.5, 33, 2.4, pw1)
-    xb = 4.6 * s
-    pw2 = [[(xb, 23), (xb + 3.0 * s, 22), (xb + 3.4 * s, 11.5), (xb, 11.5)]] + side_spikes(xb + 3.0 * s, 22, 4, 2.6, 4.6 * big, s, droop=1.0)
-    card("hcard_" + k + "2", "hair_" + k + "2", min(xb, xb + 11 * s), max(xb, xb + 11 * s), 7.5, 23.2, 2.0, pw2)
-    xc = 5.4 * s
-    pw3 = [[(xc, 13), (xc + 3.0 * s, 12), (xc + 2.6 * s, 2.5), (xc, 1.5)]] + side_spikes(xc + 2.8 * s, 12, 4, 2.4, 4.2 * big, s, droop=1.1) \
-        + [[(xc - 0.4 * s, 2.5), (xc + 1.6 * s, 2.5), (xc + 0.4 * s, -0.4)], [(xc + 1.2 * s, 3.0), (xc + 3.0 * s, 3.0), (xc + 2.6 * s, 0.2)]]
-    card("hcard_" + k + "3", "hair_" + k + "3", min(xc, xc + 10 * s), max(xc, xc + 10 * s), -0.8, 13.2, 2.4, pw3)
-# a few chunky 3D spikes so it does not look flat from the side
-for i, (y, rx) in enumerate([(30, -40), (24, -34), (17, -30), (10, -26)]):
-    bone = "hair_b1" if i < 2 else "hair_b2" if i < 3 else "hair_b3"
-    m.cube(f"hb_spike{i}", bone, (-0.9 + (i % 2) * 1.6, y - 5.0, 4.6), (0.9 + (i % 2) * 1.6, y, 6.4), DARK, origin=(0, y, 5.2), rot=(rx, 0, (-1) ** i * 12),
-           faces=all_faces(strands(ink=False)))
-# the little white tick marks drawn on the hair (ink detail on the lower right wing)
-m.cube("hair_mark", "hair_r3", (6.6, 8.0, 2.2), (7.9, 8.3, 2.75), LINE)
-m.cube("hair_mark2", "hair_r3", (6.8, 7.2, 2.2), (8.1, 7.5, 2.75), LINE)
+# Interlocking large lobes: the right (+X) mantle flares farther than the left.
+# Each section stays on the existing three-bone secondary-motion chain.
+m.cube("hb_main", "hair_b1", (-3.8, 21.1, 2.4), (3.9, 33.4, 4.7), DARK, faces=all_faces(strands()))
+m.cube("hb_lower", "hair_b2", (-4.6, 10.6, 2.8), (4.7, 22.2, 5.1), DARK, faces=all_faces(strands()))
+m.cube("hb_base", "hair_b3", (-4.8, 3.0, 3.2), (4.8, 11.8, 5.4), DARK, faces=all_faces(strands()))
+upper = [[(-3.8,34.3),(3.8,34.3),(7.6,32.3),(5.5,30.7),(11.3,28.4),
+          (7.5,28.0),(13.2,23.3),(8.0,24.1),(9.6,20.3),(-6.0,20.3),
+          (-5.9,24.2),(-8.1,27.4),(-4.8,29.1),(-6.5,32.3)]]
+middle = [[(-5.6,23.2),(8.0,23.2),(11.6,20.3),(9.6,19.6),(16.0,15.2),
+           (11.7,15.4),(15.1,10.0),(8.4,10.1),(-6.8,9.5),(-7.0,14.3),
+           (-9.2,18.4),(-6.1,18.0)]]
+lower = [[(-6.6,12.2),(9.4,12.2),(13.8,9.4),(11.5,8.6),(16.3,4.2),
+          (10.9,4.0),(10.7,0.8),(6.8,3.0),(4.3,0.8),(-4.9,1.7),
+          (-5.0,5.7),(-7.5,8.0),(-5.7,8.3)]]
+card("hcard_b1", "hair_b1", -8.5, 13.5, 19.8, 34.6, 4.9, upper, d=0.25)
+card("hcard_b2", "hair_b2", -9.5, 16.5, 9.0, 23.5, 5.1, middle, d=0.25)
+card("hcard_b3", "hair_b3", -8.0, 16.7, 0.4, 12.5, 5.4, lower, d=0.25)
+for sign, side in ((1,"r"),(-1,"l")):
+    # Solid temple/nape volume covers the skull in the side view as well.
+    x = 3.05 * sign
+    m.cube("temple_"+side, "hair_"+side+"1", (x-0.45,27.1,-2.65), (x+0.45,33.4,3.1), DARK,
+           faces=all_faces(strands()))
+    # Broad angled locks give the front and three-quarter view a coherent edge.
+    gain = 1.0 if sign > 0 else 0.72
+    profiles = [
+        [(2.7,33.4),(5.2,32.8),(9.6,29.3),(6.3,28.4),(11.8,24.7),(6.1,23.5),(3.1,22.3)],
+        [(4.5,23.4),(7.4,22.4),(12.6,17.6),(8.8,17.3),(14.5,12.4),(7.1,10.6),(4.2,11.7)],
+        [(5.3,13.1),(8.2,12.0),(13.5,7.5),(10.0,6.8),(15.2,2.7),(8.4,3.0),(6.6,0.8),(5.0,2.1)]
+    ]
+    for i, points in enumerate(profiles,1):
+        poly = [(sign*(2.7+(x-2.7)*gain), y) for x,y in points]
+        xs=[x for x,y in poly]; ys=[y for x,y in poly]
+        card("hcard_"+side+str(i), "hair_"+side+str(i),
+             min(xs)-0.25,max(xs)+0.25,min(ys)-0.25,max(ys)+0.25, 2.0 if i<3 else 2.4,[poly],d=0.35)
+    # A quiet side-facing plane supplies depth when the cutout is edge-on.
+    card("hair_depth_"+side,"hair_"+side+"1",-1.4,1.4,22.0,33.5,3.3,
+         [[(-1.2,33.4),(1.1,32.4),(1.1,25.0),(0.0,22.1),(-1.2,26.0)]],
+         d=0.2, origin=(3.0*sign,32.0,0.8),rot=(0,90,0))
+# Sparse ink ticks are an identifying detail, not a full hair-strand texture.
+m.cube("hair_mark", "hair_r3", (9.3, 4.0, 2.2), (10.3, 4.25, 2.55), LINE)
+m.cube("hair_mark2", "hair_r3", (9.5, 3.4, 2.2), (10.5, 3.65, 2.55), LINE)
 
 # ------------------------------------------------------------------ right arm: puffy sleeve, grey skin, BIG black clawed hand
 m.cube("sleeve_r", "arm_r", (2.55, 22.2, -1.3), (4.75, 26.0, 1.3), DARK, color2=DARK_D, grad=True, faces={"north": folds(DARK, DARK_D, DARK_HI, 1)})
@@ -488,7 +467,7 @@ class A:
 REST = {
     "arm_r": (4, 0, 9), "fore_r": (12, 0, 0), "claws_r": (14, 0, 0),
     "arm_l": (14, 0, -20), "fore_l": (42, 0, 0), "hand_l": (0, 0, 0),
-    "comp": (16, 34, 0), "c_needle": (0, 4, 0), "c_pencil": (0, -4, 0),
+    "comp": (16, 34, 0), "c_needle": (0, 10, 0), "c_pencil": (0, -10, 0),
 }
 HAIR_B = ["hair_b1", "hair_b2", "hair_b3"]
 HAIR_R = ["hair_r1", "hair_r2", "hair_r3"]
@@ -1138,6 +1117,18 @@ a.rot("ear_r", (0, 0, 0, 0), (3, 0, 0, -16), (6, 0, 0, 0), (20, 0, 0, -12), (22,
 a.rot("ear_l", (0, 0, 0, 0), (3, 0, 0, 16), (6, 0, 0, 0), (21, 0, 0, 12), (23, 0, 0, 0), (26, 0, 0, 12), (28, 0, 0, 0), (31, 0, 0, 12),
       (33, 0, 0, 0), (38, -30, 0, 16), (44, 0, 0, 0))
 a.done()
+
+# Keep every rest/recovery compass key consistent with the clearer idle opening.
+for animation in m.anims:
+    for animator in animation["animators"].values():
+        rest_y = 4 if animator["name"] == "c_needle" else -4 if animator["name"] == "c_pencil" else None
+        if rest_y is None:
+            continue
+        for key in animator["keyframes"]:
+            if key["channel"] == "rotation":
+                for point in key["data_points"]:
+                    if (point["x"], point["y"], point["z"]) == (0, rest_y, 0):
+                        point["y"] = 10 if rest_y > 0 else -10
 
 # ------------------------------------------------------------------ scale: the shipped model was hand-scaled to 2.92 blocks (max y 46.72)
 SCALE = 1.1124

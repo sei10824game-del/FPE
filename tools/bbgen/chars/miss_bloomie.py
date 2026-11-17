@@ -44,17 +44,42 @@ def combo(*fns):
 
 
 def strands(base=DARK, hi=DARK_HI, dark=DARK_D, ink=True):
+    """Broad ink planes: no random strand noise on the paper silhouette."""
     def f(F):
-        cols = [R.random() for _ in range(F.w)]
-        for x in range(F.w):
-            c = mix(base, hi, 0.55) if cols[x] > 0.88 else mix(base, dark, 0.6) if cols[x] < 0.18 else base
-            for y in range(F.h):
-                F.px(x, y, mix(c, dark, 0.35 * abs(y / max(1, F.h - 1) - 0.3)))
-        if ink and F.w >= 4 and F.h >= 8 and R.random() < 0.5:
-            x = R.randint(1, F.w - 2)
-            for y in range(R.randint(0, F.h // 3), F.h - 2):
-                F.px(x, y, LINE)
+        F.rect(0, 0, F.w, F.h, base)
+        F.poly([(0, 0), (F.w * .18, 0), (F.w * .05, F.h), (0, F.h)], dark)
     return f
+
+
+def silhouette(name, parent, points, z, color=DARK, yaw=0, depth=.5, skirt=False):
+    """Double-sided cutout with flat ink planes; orthogonal cards fill side views.
+
+    Points are absolute rig-space X/Y coordinates. Skeleton and pivots stay intact.
+    """
+    x0, x1 = min(x for x, y in points), max(x for x, y in points)
+    y0, y1 = min(y for x, y in points), max(y for x, y in points)
+    def paint(F, back=False):
+        for y in range(F.h):
+            for x in range(F.w): F.px(x, y, color, a=0)
+        pts = [((x - x0) / (x1 - x0) * F.w, (y1 - y) / (y1 - y0) * F.h) for x, y in points]
+        if back: pts = [(F.w - x, y) for x, y in pts]
+        F.poly(pts, color)
+        # Shade only pixels already inside the silhouette, retaining transparent corners.
+        for y in range(F.h):
+            for x in range(F.w):
+                if F.cv.get(F.x + x, F.y + y)[3] == 0: continue
+                u = (F.w - 1 - x if back else x) / max(1, F.w - 1)
+                v = y / max(1, F.h - 1)
+                c = (SKIRT_D if v < .15 else SKIRT if v < .62 - .36 * u else SKIRT_L) if skirt else (mix(color, 0x000000, .18) if u < .10 else color)
+                F.px(x, y, c)
+    def clear(F):
+        for y in range(F.h):
+            for x in range(F.w): F.px(x, y, color, a=0)
+    faces = {f: clear for f in ('north', 'south', 'east', 'west', 'up', 'down')}
+    faces['north'] = lambda F: paint(F)
+    faces['south'] = lambda F: paint(F, True)
+    return m.cube(name, parent, (x0, y0, z-depth/2), (x1, y1, z+depth/2), color,
+                  origin=(0, 0, 0), rot=(0, yaw, 0), grain=0, faces=faces)
 
 
 def hstripe(c, y0, h):
@@ -180,20 +205,11 @@ for s, k in ((1, "r"), (-1, "l")):
 
 # ------------------------------------------------------------------ hips, flared skirt, little bomb belt
 m.cube("hips", "body", (-2.3, 14.4, -1.5), (2.3, 18.8, 1.5), DARK_D)
-SK = 7.4  # skirt length
-m.cube("sk_front", "skirt_f", (-3.2, 18.6 - SK, -2.1), (3.2, 18.8, -1.6), SKIRT, origin=(0, 18.4, -1.8), rot=(18, 0, 0),
-       faces={"north": skirt_paint(True), "south": lambda F: F.rect(0, 0, F.w, F.h, SKIRT_D)})
-m.cube("sk_back", "skirt_b", (-3.2, 18.6 - SK, 1.6), (3.2, 18.8, 2.1), SKIRT, origin=(0, 18.4, 1.8), rot=(-18, 0, 0),
-       faces={"south": skirt_paint(False), "north": lambda F: F.rect(0, 0, F.w, F.h, SKIRT_D)})
-m.cube("sk_right", "skirt_r", (2.3, 18.6 - SK, -2.6), (2.8, 18.8, 2.6), SKIRT, origin=(2.5, 18.4, 0), rot=(0, 0, 18),
-       faces={"east": skirt_paint(True), "west": lambda F: F.rect(0, 0, F.w, F.h, SKIRT_D)})
-m.cube("sk_left", "skirt_l", (-2.8, 18.6 - SK, -2.6), (-2.3, 18.8, 2.6), SKIRT, origin=(-2.5, 18.4, 0), rot=(0, 0, -18),
-       faces={"west": skirt_paint(False), "east": lambda F: F.rect(0, 0, F.w, F.h, SKIRT_D)})
-for i, (x, z, ry) in enumerate([(2.4, -1.9, 45), (-2.4, -1.9, -45), (2.4, 1.9, -45), (-2.4, 1.9, 45)]):
-    sx, sz = (1 if x > 0 else -1), (1 if z > 0 else -1)
-    bone = "skirt_f" if z < 0 else "skirt_b"
-    m.cube(f"sk_corner{i}", bone, (x - 1.3, 18.6 - SK + 0.4, z - 0.25), (x + 1.3, 18.8, z + 0.25), SKIRT, origin=(x, 18.4, z),
-           rot=(-sz * 14, ry, sx * 14), faces={"north": skirt_paint(x > 0), "south": skirt_paint(x < 0)})
+# Broad, continuous A-line panels rather than a narrow pleated cylinder.
+silhouette("sk_front", "skirt_f", [(-2.55,18.6),(2.55,18.6),(5.2,11.4),(-4.9,10.5)], -2.05, SKIRT, skirt=True)
+silhouette("sk_back", "skirt_b", [(-2.55,18.6),(2.55,18.6),(5.0,10.8),(-5.0,11.2)], 2.05, SKIRT, skirt=True)
+silhouette("sk_right", "skirt_r", [(-1.65,18.6),(1.65,18.6),(3.15,10.8),(-3.15,10.8)], 2.55, SKIRT, yaw=90, skirt=True)
+silhouette("sk_left", "skirt_l", [(-1.65,18.6),(1.65,18.6),(3.15,10.8),(-3.15,10.8)], -2.55, SKIRT, yaw=90, skirt=True)
 m.cube("waistband", "body", (-2.55, 18.0, -1.85), (2.55, 19.0, 1.85), SKIRT_D, faces=all_faces(hstripe(SKIRT, 0, 1)))
 # bomb belt at the back of the waist: three little grenades
 for i in range(3):
@@ -219,53 +235,25 @@ m.cube("hem_r", "chest", (0.2, 17.6, -1.7), (2.4, 18.8, -1.45), DARK_D, origin=(
 # ------------------------------------------------------------------ head
 m.cube("skull", "head", (-2.7, 25.6, -2.75), (2.7, 31.2, 2.6), SKIN, faces={"north": face_front, "up": lambda F: F.rect(0, 0, F.w, F.h, DARK_D)})
 m.cube("chin", "head", (-1.6, 25.3, -2.6), (1.6, 25.9, 0.8), SKIN_D)
-m.cube("crown", "head", (-3.05, 29.4, -3.0), (3.05, 32.6, 3.05), DARK, faces=all_faces(strands()))
-m.cube("crown2", "head", (-2.6, 32.4, -2.4), (2.6, 33.4, 2.6), DARK, faces=all_faces(strands()))
-m.cube("nape", "hair_b", (-3.0, 26.0, 1.8), (3.0, 30.4, 3.4), DARK, faces=all_faces(strands()))
-m.cube("side_r", "hair_r", (2.55, 25.4, -2.6), (3.9, 31.0, 2.9), DARK, faces=all_faces(strands()))
-m.cube("side_l", "hair_l", (-4.1, 25.0, -2.6), (-2.55, 31.0, 2.9), DARK, faces=all_faces(strands()))
-m.cube("lock_r", "hair_r", (2.0, 24.6, -3.2), (3.4, 28.0, -2.2), DARK, origin=(2.7, 28.0, -2.7), rot=(0, 0, 8), faces=all_faces(strands(ink=False)))
-m.cube("lock_l", "hair_l", (-3.6, 24.0, -3.2), (-2.0, 28.0, -2.2), DARK, origin=(-2.8, 28.0, -2.7), rot=(0, 0, -10), faces=all_faces(strands(ink=False)))
-
-
-def spike(name, parent, base, ln, w, rx, ry, rz, col=DARK, tip=True):
-    """hair spike: flat tapered blade growing +Y from `base` (3 segments), rotated about the base."""
-    x, y, z = base
-    d = max(0.7, w * 0.45)
-    m.cube(name, parent, (x - w / 2, y, z - d / 2), (x + w / 2, y + ln * 0.5, z + d / 2), col, origin=base, rot=(rx, ry, rz),
-           faces=all_faces(strands(ink=False)))
-    if tip:
-        m.cube(name + "m", parent, (x - w * 0.32, y + ln * 0.45, z - d * 0.4), (x + w * 0.32, y + ln * 0.8, z + d * 0.4), col,
-               origin=base, rot=(rx, ry, rz), faces=all_faces(strands(ink=False)))
-        m.cube(name + "t", parent, (x - w * 0.14, y + ln * 0.75, z - d * 0.3), (x + w * 0.14, y + ln, z + d * 0.3), DARK_D,
-               origin=base, rot=(rx, ry, rz))
-
-
-# side spikes: the jagged bob flaring out (her left side flares more, like the drawing)
-for i, (y, z, ln, rz) in enumerate([(30.8, 0.2, 4.0, -84), (29.4, -0.8, 6.0, -108), (27.8, 0.8, 6.8, -128), (26.2, 0.0, 5.0, -150)]):
-    spike(f"spk_r{i}", "hair_r", (3.0, y, z), ln, 2.2, 0, 0, rz)
-for i, (y, z, ln, rz) in enumerate([(31.6, 0.4, 7.4, 70), (30.0, -0.6, 6.0, 102), (28.4, 0.8, 8.0, 120), (26.8, 0.0, 6.2, 140), (25.4, 1.2, 4.2, 164)]):
-    spike(f"spk_l{i}", "hair_l", (-3.0, y, z), ln, 2.4, 0, 0, rz)
-# back spikes fanning down/out
-for i, (x, y, ln, rz) in enumerate([(-2.0, 29.4, 4.6, 150), (0.0, 29.0, 5.4, 180), (2.0, 29.4, 4.4, -150)]):
-    spike(f"spk_b{i}", "hair_b", (x, y, 3.0), ln, 2.4, 0, 0, rz)
-# bangs: spikes hanging over the forehead (eyes half hidden)
-# face pass (the drawing): a heavy blunt fringe down to the eyes, long locks completely hiding her left eye (viewer's right),
-# her right eye peeks out under the spike tips.  Sizes unchanged (random stream identical), only positions moved.
-for i, (x, ln, rz, y0) in enumerate([(2.3, 2.8, -18, 31.7), (1.1, 3.6, -6, 32.3), (-0.2, 2.6, 4, 31.6), (-1.15, 3.8, 2, 29.9), (-2.35, 3.0, 10, 29.8)]):
-    spike(f"bang{i}", "bangs", (x, y0, -3.0), ln, 1.5, -174, 0, rz)
-m.cube("fringe", "bangs", (-3.1, 29.2, -3.25), (3.1, 31.2, -2.7), DARK, faces=all_faces(strands()))
-# tuft: tall spikes shooting up/back from the crown (the bow sits at their base)
-for i, (x, ln, rz, rx) in enumerate([(0.2, 7.0, -8, 14), (-0.9, 5.6, 26, 20), (1.2, 5.0, -34, 18), (0.0, 4.6, 2, 44)]):
-    spike(f"tuft{i}", "tuft", (x, 32.6, 0.6), ln, 2.2 if i == 0 else 1.7, rx, 0, rz)
-# bow (pale ribbon, two loops + knot + tails)
-m.cube("bow_knot", "bow", (-0.7, 33.4, -2.0), (0.7, 34.6, -1.0), BOW_D)
-m.cube("bow_lr", "bow", (0.5, 33.0, -1.9), (3.2, 35.6, -1.1), BOW, origin=(0.5, 34.0, -1.5), rot=(0, 0, -16),
-       faces={"north": lambda F: (F.line(1, F.h / 2, F.w - 2, 1, BOW_D, 1), F.rect(F.w - 1, 0, 1, F.h, BOW_D), F.rect(0, F.h - 1, F.w, 1, BOW_D))})
-m.cube("bow_ll", "bow", (-3.2, 33.0, -1.9), (-0.5, 35.6, -1.1), BOW, origin=(-0.5, 34.0, -1.5), rot=(0, 0, 16),
-       faces={"north": lambda F: (F.line(1, 1, F.w - 2, F.h / 2, BOW_D, 1), F.rect(0, 0, 1, F.h, BOW_D), F.rect(0, F.h - 1, F.w, 1, BOW_D))})
-m.cube("bow_tr", "bow", (0.1, 31.8, -1.85), (0.8, 33.8, -1.35), BOW_D, origin=(0.3, 33.6, -1.6), rot=(0, 0, -22))
-m.cube("bow_tl", "bow", (-0.8, 31.9, -1.85), (-0.1, 33.8, -1.35), BOW_D, origin=(-0.3, 33.6, -1.6), rot=(0, 0, 20))
+# Compact bob volume under the large paper-like locks.
+m.cube("crown", "head", (-2.9,29.8,-2.8),(2.9,32.5,2.65),DARK,grain=0,faces=all_faces(strands()))
+m.cube("nape", "hair_b", (-2.8,26.0,1.6),(2.8,31.8,3.0),DARK,grain=0,faces=all_faces(strands()))
+# Few large, asymmetric wedges: the characteristic broad swept bob.
+silhouette("swept_fringe", "bangs", [(-6.0,32.5),(7.7,34.0),(4.0,31.6),(2.0,28.0),(.5,26.2),(-.4,28.7),(-1.6,30.0),(-3.4,27.0),(-4.3,29.4)], -3.22)
+silhouette("right_bob", "hair_r", [(1.8,32.2),(4.4,32.2),(8.5,29.8),(5.5,29.6),(6.3,27.4),(4.6,28.2),(4.0,25.8),(2.8,27.5)], -.25)
+silhouette("left_bob", "hair_l", [(-2.5,32.2),(-5.0,32.0),(-6.0,30.6),(-4.7,30.9),(-5.6,28.8),(-4.5,29.0),(-3.8,26.5),(-2.5,28.1)], -.1)
+silhouette("back_bob", "hair_b", [(-3.1,32.4),(3.1,32.4),(7.1,30.7),(4.5,29.8),(5.4,28.0),(3.5,28.4),(2.9,25.8),(0,26.7),(-3.3,25.5),(-4.0,28.1),(-5.2,28.6),(-4.2,30.0)], 3.05)
+# Side profiles keep the silhouette substantial at 90 degrees.
+for side in (-1,1):
+    silhouette("profile_"+str(side), "hair_r" if side>0 else "hair_l",
+               [(-2.6,31.9),(1.8,32.4),(4.2,30.5),(2.7,29.8),(4.0,28.0),(2.2,28.2),(1.0,25.8),(-.7,27.0),(-2.6,28.7)], side*2.8, yaw=90)
+# Single tall tied tuft and one subsidiary tip, maintaining the original height.
+silhouette("tuft_main", "tuft", [(-1.8,33.0),(-2.3,37.7),(-.3,39.5),(1.0,39.6),(.5,36.2),(2.0,37.0),(1.8,33.6)], .8)
+silhouette("tuft_profile", "tuft", [(-.5,33.1),(-.7,37.8),(.4,39.6),(1.8,38.3),(2.0,34.0)], .1, yaw=90)
+# Small pale bow, separate loops rather than a crown across the forehead.
+silhouette("bow_lr", "bow", [(.2,34.1),(2.0,35.6),(2.15,33.8),(.2,33.5)], -2.0, BOW)
+silhouette("bow_ll", "bow", [(-.2,34.1),(-2.3,35.2),(-1.9,33.4),(-.2,33.5)], -2.0, BOW)
+m.cube("bow_knot", "bow", (-.4,33.5,-2.35),(.4,34.3,-1.6),BOW_D,grain=0)
 # lit fuse flame on the tuft tip (kamikaze only)
 m.group("flame_g", (0.4, 37.4, 0.9), parent="fuse")
 m.cube("flame", "flame_g", (0.0, 37.3, 0.5), (0.8, 38.6, 1.3), FIRE, glow=True)
@@ -280,14 +268,9 @@ for s, k in ((1, "r"), (-1, "l")):
            faces=all_faces(hstripe(LINE, 0, 1)))
     m.cube("wrist_" + k, "hand_" + k, (3.8 * s - 0.6, 14.8, -0.6), (3.8 * s + 0.6, 15.8, 0.6), SKIN_D)
 # right hand: big pale claws
-m.cube("palm_r", "hand_r", (3.0, 13.2, -0.9), (4.6, 15.2, 0.9), SKIN, color2=SKIN_D, grad=True, faces={"north": edge_lines(SKIN_D)})
-m.cube("thumb_r", "hand_r", (2.6, 12.6, -1.2), (3.2, 14.8, -0.6), SKIN, origin=(2.9, 14.8, -0.9), rot=(16, 0, -28))
-for i in range(4):
-    x = 2.9 + i * 0.5
-    m.cube(f"finger{i}_r", "claws_r", (x, 10.6, -0.75), (x + 0.48, 13.6, -0.05), SKIN, origin=(x + 0.24, 13.4, -0.4), rot=(10, 0, (i - 1.5) * -10),
-           faces={"north": edge_lines(SKIN_D)})
-    m.cube(f"claw{i}_r", "claws_r", (x + 0.06, 7.9, -0.65), (x + 0.42, 10.9, -0.15), SKIN_L, origin=(x + 0.24, 10.8, -0.4), rot=(26, 0, (i - 1.5) * -16),
-           faces={"north": lambda F: F.rect(0, 0, 1, F.h, SKIN_D)})
+m.cube("palm_r", "hand_r", (2.6,12.7,-.9),(5.0,15.2,.9),SKIN,grain=0)
+m.cube("thumb_r", "hand_r", (2.0,12.0,-1.0),(2.8,14.5,-.4),SKIN,origin=(2.8,14.4,-.7),rot=(10,0,-25),grain=0)
+silhouette("clawed_hand", "claws_r", [(2.5,13.6),(5.0,13.6),(5.6,12.1),(5.2,10.1),(4.45,11.7),(4.0,9.4),(3.2,11.3),(2.7,9.8),(2.0,12.1)], -.7, SKIN)
 # left hand: fist around the cleaver
 m.cube("fist_l", "hand_l", (-4.6, 13.6, -0.9), (-3.0, 15.2, 0.9), SKIN, color2=SKIN_D, grad=True, faces={"north": edge_lines(SKIN_D)})
 m.cube("hilt", "blade", (-4.1, 12.6, -0.45), (-3.5, 16.4, 0.45), DARK_D, faces=all_faces(hstripe(LINE, 3, 1)))
