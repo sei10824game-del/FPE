@@ -53,8 +53,8 @@ Resolve by keeping BOTH sides. Past crash: duplicate `e.put(X.get(), ...)` in `M
 | infected_bloomie | InfectedBloomie | INFECTED | 1.3x4.12 | 17 | bbmodel |
 | infected_zip | InfectedZip | INFECTED | 1.5x2.94 | 18 | bbmodel |
 | danger_alice | DangerAlice | DANGER_ALICE | 0.7x2.51 | 10 | bbmodel |
-| crazy_one | CrazyOne | WILD | 0.6x1.9 | 8 | procedural |
-| wild_wolf | WildWolf | WILD | 1.1x3.0 | 8 | procedural |
+| crazy_one | CrazyOne | WILD | 0.6x1.9 | 12 | bbmodel |
+| wild_wolf | WildWolf | WILD | 1.1x3.0 | 12 | bbmodel |
 | insanity_circle | InsanityCircle | MISS | 0.75x2.57 | 18 | procedural |
 | fen | Fen | STUDENT | 1.0x3.2 | 26 | bbmodel |
 | aiden | Aiden | STUDENT | 0.6x1.64 | 16 | bbmodel |
@@ -79,7 +79,7 @@ Reference art the user confirmed: `docs/ref/confirmed/*` (older `docs/ref/*.png`
 (`python3 tools/bbgen/chars/<id>.py`). Conventions at the top of each script (Blockbench space: Y up, ground 0, faces -Z; rotation signs in the doc-string of `miss_circle.py`).
 `tools/bbgen/extra_melee.py` PATCHES extra melee animations (boot_kick, knee_strike, shoulder_bash, sweep_kick, headbutt, haymaker, elbow_drop, uppercut, jab, quadruped
 forepaw_slam/gore_ram) into existing .bbmodel files and adds lagged secondary motion to hair/coat/tail bones. It is idempotent. **If you regenerate a character with
-its chars/<id>.py, re-run `python3 tools/bbgen/extra_melee.py` afterwards** or those animations vanish.
+its chars/<id>.py, re-run the patcher only for characters listed in its PLAN** or those extra animations vanish. Crazie and Nameless Werewolf author all 12 attacks in their own generators and need no shared patcher. See [their guide](CRAZIE_WEREWOLF.md).
 Blockbench can open and edit the generated `.bbmodel` files by hand; keep bone names and animation names.
 
 ## 6. Conventions / lessons

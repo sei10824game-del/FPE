@@ -22,8 +22,10 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Nameless Werewolf (original design): a supersized, cold-proof wolf-man with claws and a heavy pickaxe, whose presence spreads fear
- * (nearby players get darkness/weakness pulses). Ticks match client/spec/WildWolfSpec.
+ * Nameless Werewolf: the horned, black-haired humanoid woman from Kaaatie's works.
+ * Claws, heavy pickaxe and close-range strength drive her combat. Fear pulses,
+ * howl shockwaves and ground-pick spikes are retained mod-original interpretations.
+ * Animation strike ticks are authored in tools/bbgen/chars/wild_wolf.py.
  */
 public class WildWolf extends FpeEntity {
     public WildWolf(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
@@ -116,6 +118,38 @@ public class WildWolf extends FpeEntity {
                 FpeUtil.hitRadius(e, FpeUtil.ahead(e, 2.2, 0), 3.8, e.dmg(1.4f), 1.4, 0.4);
                 FpeCombat.slashArc(e, 5.5f, 150, (tk / 14) % 2 == 0 ? 25 : -25, 0, 1.6, 0xE0E8E4DC);
                 snd(e, SoundEvents.PLAYER_ATTACK_STRONG, 1.3f, 0.5f);
+            }
+        }));
+        out.add(Ability.of("shoulder_bash", 30, 55).range(1.5, 6).weight(3).faceUntil(9).tick((e, t, tk) -> {
+            if (tk == 10) e.dashToward(t.position(), 0.9, 0.05);
+            if (tk == 13) {
+                FpeUtil.hitCone(e, 3.8, 50, e.dmg(1.2f), 1.7, 0.25);
+                snd(e, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.2f, 0.6f);
+            }
+        }));
+        out.add(Ability.of("claw_uppercut", 34, 60).range(0, 4).weight(3).faceUntil(11).tick((e, t, tk) -> {
+            if (tk == 14) {
+                FpeUtil.hitCone(e, 3.8, 65, e.dmg(1.3f), 0.6, 0.8);
+                FpeCombat.slashArc(e, 3.8f, 110, 80, 0, 1.6, 0xC0464C58);
+                snd(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1.1f, 0.5f);
+            }
+        }));
+        out.add(Ability.of("pick_hook", 40, 80).range(1.5, 5.5).weight(3).faceUntil(12).tick((e, t, tk) -> {
+            if (tk == 17) {
+                for (LivingEntity v : FpeCombat.cone(e, 5.0, 40)) {
+                    if (FpeUtil.hit(e, v, e.dmg(1.1f), 0, 0)) {
+                        FpeUtil.pull(v, FpeUtil.ahead(e, 1.3, 0), 0.75);
+                        FpeUtil.root(v, 12);
+                    }
+                }
+                snd(e, SoundEvents.TRIDENT_HIT, 1f, 0.6f);
+            }
+        }));
+        out.add(Ability.of("paw_stomp", 36, 65).range(0, 3.6).weight(2).faceUntil(12).tick((e, t, tk) -> {
+            if (tk == 17) {
+                FpeUtil.hitRadius(e, FpeUtil.ahead(e, 1.4, 0), 2.5, e.dmg(1.35f), 0.7, 0.2);
+                FpeUtil.particles(e, ParticleTypes.CAMPFIRE_COSY_SMOKE, FpeUtil.ahead(e, 1.4, 0.1), 8, 0.6, 0.1, 0.6, 0.01);
+                snd(e, SoundEvents.IRON_GOLEM_STEP, 1.6f, 0.6f);
             }
         }));
     }

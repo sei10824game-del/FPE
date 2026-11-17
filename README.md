@@ -54,3 +54,5 @@ GitHub Actions は main への push と pull request でビルドと戦闘回帰
 - 確認済み資料を基準にシルエットと攻撃動作を改善し、ゲーム内で見え方を確認する。
 
 ライセンスは [LICENSE.txt](LICENSE.txt) を参照してください。
+
+Crazie / Nameless Werewolf: [外見・召喚方法・実装方針](docs/CRAZIE_WEREWOLF.md)
