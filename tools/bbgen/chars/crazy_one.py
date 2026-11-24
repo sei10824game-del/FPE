@@ -59,8 +59,16 @@ def face(F):
     F.rect(0,F.h*.18,F.w,F.h*.42,BAND)
     F.line(0,F.h*.27,F.w,F.h*.43,WH_D,2)
     F.line(0,F.h*.48,F.w,F.h*.31,WHITE,2)
-    F.line(F.w*.40,F.h*.74,F.w*.64,F.h*.70,SCAR,1.5)
-    F.line(F.w*.16,F.h*.69,F.w*.23,F.h*.65,SCAR,1)
+    # Current reference: broad, off-centre open laugh beneath the opaque eye wrap.
+    # Keep a dark mouth cavity around the pale upper teeth rather than a straight neutral line.
+    W,H=F.w,F.h
+    F.poly([(W*.28,H*.68),(W*.85,H*.59),(W*.80,H*.80),
+            (W*.62,H*.91),(W*.40,H*.87)],0x963F3D)
+    F.poly([(W*.35,H*.69),(W*.79,H*.63),(W*.73,H*.72),
+            (W*.47,H*.78)],BAND)
+    F.poly([(W*.58,H*.85),(W*.77,H*.77),(W*.70,H*.85)],0xCD7567)
+    F.line(W*.79,H*.60,W*.88,H*.56,SCAR,1)
+    F.line(W*.20,H*.70,W*.27,H*.65,SCAR,1)
 
 # Skeleton: named secondary-motion groups and articulated limbs.
 m.group('root',(0,0,0));m.group('body',(0,13.5,0),parent='root')

@@ -56,3 +56,5 @@ GitHub Actions は main への push と pull request でビルドと戦闘回帰
 ライセンスは [LICENSE.txt](LICENSE.txt) を参照してください。
 
 Crazie / Nameless Werewolf: [外見・召喚方法・実装方針](docs/CRAZIE_WEREWOLF.md)
+
+[戦闘・表情の調整（2026-11-19）](docs/QUALITY_2026_11_19.md)

@@ -2,8 +2,8 @@
 Reference: ../new-character-refs/nameless-werewolf.webp, confirmed FPE wiki appearance.
 Tall humanoid WOMAN, black horns/hair, face behind hair and mouth wraps, open black
 fur-lined coat, chest wraps, belt, ragged knee pants, shin wraps, black paws/tail.
-No animal muzzle. Existing howl/shockwave/spike attacks are mod-original interpretations.
-Run this file only. All 12 ability names and strike ticks match WildWolf.java.
+No animal muzzle. Existing howl/shockwave effects are mod-original interpretations; all pick attacks are physical.
+Run this file only. All 13 ability names and strike ticks match WildWolf.java.
 """
 import math
 import os
@@ -330,12 +330,33 @@ a.pose(24,body=(28,48,-10),arm_r=(125,35,-12),fore_r=(12,0,0),head=(-18,-25,0));
 for t,v in [(0,(1,1,1)),(16.9,(1,1,1)),(17,(.001,.001,.001)),(34,(.001,.001,.001)),(38,(1,1,1))]:a.key('weapon','scale',t,v)
 a.done()
 
-# Buried pick followed by wrenching drag: ground spikes are a mod-original effect.
-a=Anim('ground_pick',46)
-a.pose(10,body=(-12,-10,0),chest=(-12,0,0),arm_r=(-125,0,20),fore_r=(30,0,0),arm_l=(50,0,-12),fore_l=(40,0,0),head=(4,0,0),thigh_r=(-20,0,5),shin_r=(30,0,0))
-a.pose(19,body=(42,0,-4),chest=(18,0,0),arm_r=(72,0,8),fore_r=(6,0,0),arm_l=(85,0,12),fore_l=(18,0,0),head=(-22,0,0));a.pos(19,'hips',(0,-2,0))
-a.pose(28,body=(26,-18,-7),chest=(12,-14,0),arm_r=(35,-10,12),fore_r=(78,0,0),arm_l=(28,0,8),fore_l=(65,0,0),head=(-10,12,0))
-a.pose(35,body=(14,-28,-4),arm_r=(15,-10,18),fore_r=(95,0,0),arm_l=(12,0,-12));a.pos(40,'hips',(0,0,0));a.done()
+# Braced pick thrust: draw the tool to the ribs, step14, straight contact18, retract.
+# Replaces ground_pick; there are no summoned spikes or tentacles in this character.
+a=Anim('pick_thrust',36)
+a.pose(7,body=(-8,-22,3),chest=(-4,-14,0),head=(3,18,-2),
+       arm_r=(30,-22,22),fore_r=(78,0,0),hand_r=(-8,0,0),weapon=(-12,0,8),
+       arm_l=(42,-15,15),fore_l=(62,10,0),hand_l=(5,0,0),
+       thigh_r=(-22,0,7),thigh_l=(10,0,-5),shin_r=(32,0,0),shin_l=(2,0,0))
+a.pos(7,'hips',(0,-1.1,.3))
+a.pose(13,body=(-12,-30,4),chest=(-6,-18,0),head=(5,24,-2),
+       arm_r=(24,-26,20),fore_r=(90,0,0),hand_r=(-10,0,0),weapon=(-12,0,8),
+       arm_l=(40,-18,18),fore_l=(78,10,0),thigh_r=(-28,0,8),thigh_l=(14,0,-6),
+       shin_r=(38,0,0),shin_l=(2,0,0))
+a.pos(13,'hips',(0,-1.5,.4))
+a.pose(18,body=(22,15,-4),chest=(8,18,0),head=(-8,-20,0),
+       arm_r=(105,5,-8),fore_r=(0,0,0),hand_r=(-5,0,0),weapon=(0,0,0),
+       arm_l=(100,-25,25),fore_l=(20,10,0),hand_l=(12,0,0),
+       thigh_r=(20,0,5),thigh_l=(-28,0,-6),shin_r=(0,0,0),shin_l=(32,0,0),
+       foot_r=(-7,0,0),foot_l=(5,0,0))
+a.pos(18,'hips',(0,-.4,-.6))
+a.pose(21,body=(26,20,-5),chest=(10,18,0),head=(-12,-20,0),
+       arm_r=(109,5,-8),fore_r=(4,0,0),hand_r=(-5,0,0),weapon=(0,0,0),
+       arm_l=(104,-25,25),fore_l=(22,10,0),thigh_r=(16,0,5),thigh_l=(-24,0,-6),shin_l=(28,0,0))
+a.pose(28,body=(4,8,-2),chest=(5,6,0),head=(-2,-8,-2),
+       arm_r=(42,0,12),fore_r=(52,0,0),hand_r=(0,0,0),weapon=(-5,0,-4),
+       arm_l=(30,-10,0),fore_l=(38,0,0),hand_l=(0,0,0),
+       thigh_r=(-8,0,4),thigh_l=(3,0,-4),shin_r=(12,0,0),shin_l=(3,0,0))
+a.pos(30,'hips',(0,0,0));a.done()
 
 # Four weight-shifted charging blows, alternating left/right hips.
 a=Anim('rampage',66)
@@ -367,6 +388,30 @@ a.pose(9,body=(-8,15,8),chest=(2,-12,0),head=(12,-8,0),thigh_r=(68,0,8),shin_r=(
 a.pose(14,body=(-12,12,10),thigh_r=(85,0,6),shin_r=(-65,0,0),foot_r=(25,0,0),head=(18,-8,0))
 a.pose(17,body=(25,-12,-4),chest=(18,8,0),head=(-8,6,0),thigh_r=(-15,0,5),shin_r=(10,0,0),foot_r=(-8,0,0),arm_r=(32,0,24),arm_l=(40,0,-26));a.pos(17,'hips',(0,-1.8,-.4))
 a.pose(23,body=(18,-8,-2),chest=(10,4,0),head=(-4,0,0));a.pos(32,'hips',(0,0,0));a.done()
+
+# Close left-hand slash followed by a deliberate backward step: hit13, retreat15.
+a=Anim('claw_retreat',34)
+a.pose(6,body=(5,26,-5),chest=(5,20,0),head=(-3,-22,-2),
+       arm_l=(-20,22,-52),fore_l=(48,0,0),hand_l=(-12,0,-8),
+       arm_r=(15,0,24),fore_r=(22,0,0),thigh_r=(-10,0,6),thigh_l=(12,0,-6),
+       shin_r=(18,0,0),shin_l=(0,0,0))
+a.pose(10,body=(9,38,-7),chest=(8,22,0),head=(-4,-28,-2),
+       arm_l=(-32,26,-64),fore_l=(55,0,0),hand_l=(-18,0,-12),
+       arm_r=(18,0,28),thigh_l=(18,0,-7),shin_r=(22,0,0))
+a.pose(13,body=(18,-28,6),chest=(12,-22,0),head=(-8,20,0),
+       arm_l=(108,-32,28),fore_l=(10,0,0),hand_l=(28,0,18),
+       arm_r=(22,0,22),fore_r=(32,0,0),thigh_r=(8,0,6),thigh_l=(-18,0,-6),
+       shin_r=(4,0,0),shin_l=(26,0,0))
+a.pose(15,body=(-10,-38,4),chest=(-5,-18,0),head=(2,24,0),
+       arm_l=(68,-28,16),fore_l=(58,0,0),hand_l=(18,0,10),
+       arm_r=(-8,0,36),fore_r=(28,0,0),thigh_r=(-30,0,7),thigh_l=(30,0,-7),
+       shin_r=(26,0,0),shin_l=(-8,0,0),foot_r=(5,0,0),foot_l=(-8,0,0))
+a.pos(15,'hips',(0,-.7,0))
+a.pose(22,body=(-5,-12,0),chest=(4,-6,0),head=(-2,10,-2),
+       arm_l=(28,-10,-15),fore_l=(40,0,0),hand_l=(4,0,0),
+       arm_r=(5,0,20),fore_r=(24,0,0),thigh_r=(12,0,6),thigh_l=(-12,0,-6),
+       shin_r=(-4,0,0),shin_l=(18,0,0))
+a.pos(28,'hips',(0,0,0));a.done()
 
 # Death: stagger, knees buckle, hands release and body collapses sideways.
 a=Anim('death',40)

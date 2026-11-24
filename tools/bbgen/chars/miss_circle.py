@@ -121,21 +121,21 @@ def face_front(F):
         if bot <= top + 0.6: continue
         F.rect(x, int(round(top)), 1, int(round(bot)) - int(round(top)) + 1, MOUTH)
         F.px(x, int(round(top)) - 1, mix(SKIN_D, GRAPH, 0.4))   # upper lip ink line
-    # upper teeth: small triangles hanging from the top edge
-    n = 8
+    # Fewer separated teeth leave a readable dark mouth at normal game distance.
+    n = 6
     for i in range(n):
         x0 = cx - hw + 2.2 + i * (2 * hw - 4.4) / n
         w = (2 * hw - 4.4) / n
         top, bot = tb(x0 + w / 2)
         if bot - top < 1.6: continue
-        F.poly([(x0, top - 0.3), (x0 + w, top - 0.3), (x0 + w / 2, top + min(5.0, (bot - top) * 0.55))], TEETH)
+        F.poly([(x0 + .3, top), (x0 + w - .3, top), (x0 + w / 2, top + min(4.0, (bot - top) * 0.40))], TEETH)
     # lower teeth: offset half a tooth, pointing up
     for i in range(n - 1):
         x0 = cx - hw + 2.2 + (i + 0.5) * (2 * hw - 4.4) / n
         w = (2 * hw - 4.4) / n
         top, bot = tb(x0 + w / 2)
         if bot - top < 2.4: continue
-        F.poly([(x0, bot + 1), (x0 + w, bot + 1), (x0 + w / 2, bot + 1 - min(4.4, (bot - top) * 0.5))], TEETH)
+        F.poly([(x0 + .3, bot), (x0 + w - .3, bot), (x0 + w / 2, bot - min(3.4, (bot - top) * 0.34))], TEETH)
     F.line(cx - hw - 1.5, 26.0, cx - hw + 0.5, 23.6, SKIN_D, 1)   # cheek curl (her right)
     F.line(cx + hw + 0.5, 27.6, cx + hw + 1.5, 25.4, SKIN_D, 1)   # cheek curl (her left)
 

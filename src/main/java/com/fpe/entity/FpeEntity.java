@@ -39,7 +39,7 @@ public abstract class FpeEntity extends Monster {
     public static final int DEATH_TICKS = 40;
 
     /** Which side a character is on; see {@link #hostile}. FPE characters fight members of hostile factions. */
-    public enum Faction { MISS, DANGER, INFECTED, ALICE, DANGER_ALICE, STUDENT, GREEN_TEACHER, MUTANT, OUTSIDER, WILD }
+    public enum Faction { MISS, DANGER, INFECTED, ALICE, DANGER_ALICE, STUDENT, GREEN_TEACHER, MUTANT, OUTSIDER, WILD, INSANITY }
 
     private static final Faction[][] FEUDS = {
             {Faction.MISS, Faction.INFECTED}, {Faction.MISS, Faction.DANGER}, {Faction.MISS, Faction.DANGER_ALICE},
@@ -55,8 +55,17 @@ public abstract class FpeEntity extends Monster {
             {Faction.WILD, Faction.INFECTED}, {Faction.WILD, Faction.GREEN_TEACHER}, {Faction.WILD, Faction.MUTANT}, {Faction.WILD, Faction.OUTSIDER}};
 
     public static boolean hostile(Faction a, Faction b) {
+        // Insanity Circle keeps the original teachers' feuds, but fights teachers
+        // from the normal, Danger and Green groups in both directions.
+        if ((a == Faction.INSANITY && isTeacher(b)) || (b == Faction.INSANITY && isTeacher(a))) return true;
+        if (a == Faction.INSANITY) a = Faction.MISS;
+        if (b == Faction.INSANITY) b = Faction.MISS;
         for (Faction[] f : FEUDS) if ((f[0] == a && f[1] == b) || (f[0] == b && f[1] == a)) return true;
         return false;
+    }
+
+    private static boolean isTeacher(Faction faction) {
+        return faction == Faction.MISS || faction == Faction.DANGER || faction == Faction.GREEN_TEACHER;
     }
 
     public Faction faction() { return Faction.MISS; }

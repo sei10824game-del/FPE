@@ -23,8 +23,8 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Nameless Werewolf: the horned, black-haired humanoid woman from Kaaatie's works.
- * Claws, heavy pickaxe and close-range strength drive her combat. Fear pulses,
- * howl shockwaves and ground-pick spikes are retained mod-original interpretations.
+ * Claws, heavy pickaxe and close-range strength drive her combat. Fear pulses
+ * and howl shockwaves are retained mod-original interpretations.
  * Animation strike ticks are authored in tools/bbgen/chars/wild_wolf.py.
  */
 public class WildWolf extends FpeEntity {
@@ -106,10 +106,16 @@ public class WildWolf extends FpeEntity {
                 snd(e, SoundEvents.TRIDENT_THROW, 1.2f, 0.5f);
             }
         }));
-        out.add(Ability.of("ground_pick", 46, 85).range(3, 14).weight(3).faceUntil(16).tick((e, t, tk) -> {
-            if (tk >= 19 && tk < 35 && tk % 2 == 1) {
-                int i = (tk - 19) / 2;
-                FpeUtil.fx(e, FpeFx.Kind.SPIKE, e.position().add(FpeUtil.forward(e).scale(2.4 + i * 1.5)), 6, 28, 1f, e.dmg(1.1f)).param(1.3f);
+        // Commit to a short, physical thrust; the old ground-spike attack is removed.
+        out.add(Ability.of("pick_thrust", 36, 85).range(2, 7).weight(3).closer().faceUntil(13).tick((e, t, tk) -> {
+            if (tk == 14) {
+                e.dashForward(0.85, 0.05);
+                snd(e, SoundEvents.PLAYER_ATTACK_SWEEP, 0.9f, 0.65f);
+            }
+            if (tk == 18) {
+                FpeUtil.hitLine(e, FpeUtil.ahead(e, 0.7, 1.65), FpeUtil.ahead(e, 3.9, 1.65),
+                        0.65, e.dmg(1.5f), 1.1, 0.15);
+                snd(e, SoundEvents.TRIDENT_HIT, 1.1f, 0.6f);
             }
         }));
         out.add(Ability.of("rampage", 66, 190).range(0, 12).weight(6).moving().when(FpeEntity::isEnraged).faceUntil(6).tick((e, t, tk) -> {
@@ -151,6 +157,15 @@ public class WildWolf extends FpeEntity {
                 FpeUtil.particles(e, ParticleTypes.CAMPFIRE_COSY_SMOKE, FpeUtil.ahead(e, 1.4, 0.1), 8, 0.6, 0.1, 0.6, 0.01);
                 snd(e, SoundEvents.IRON_GOLEM_STEP, 1.6f, 0.6f);
             }
+        }));
+        out.add(Ability.of("claw_retreat", 34, 70).range(0, 3.8).weight(2).faceUntil(10).tick((e, t, tk) -> {
+            if (tk == 13) {
+                FpeUtil.hitCone(e, 3.6, 60, e.dmg(1.1f), 0.4, 0.1);
+                FpeCombat.slashArc(e, 3.6f, 120, -25, 0, 1.7, 0xB0464C58);
+                snd(e, SoundEvents.PLAYER_ATTACK_SWEEP, 1f, 0.65f);
+            }
+            // A short backward step after the slash creates space for the pickaxe.
+            if (tk == 15) e.dashForward(-0.75, 0.08);
         }));
     }
 }

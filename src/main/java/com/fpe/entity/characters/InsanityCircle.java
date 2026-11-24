@@ -33,7 +33,7 @@ public class InsanityCircle extends FpeEntity {
 
     public InsanityCircle(EntityType<? extends FpeEntity> type, Level level) { super(type, level); }
 
-    @Override public Faction faction() { return Faction.MISS; }
+    @Override public Faction faction() { return Faction.INSANITY; }
 
     public static AttributeSupplier.Builder attributes() { return baseAttributes(240, 10, 0.32, 6, 0.7); }
 

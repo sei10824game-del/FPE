@@ -8,6 +8,7 @@ import java.util.Set;
 
 import com.fpe.entity.Ability;
 import com.fpe.entity.FpeEntity;
+import com.fpe.entity.FpeFx;
 import com.fpe.entity.characters.CrazyOne;
 import com.fpe.entity.characters.WildWolf;
 import com.fpe.registry.ModEntities;
@@ -87,6 +88,63 @@ public final class WildCharacterGameTests {
         wolf.tick();
         h.assertTrue(target.getHealth() < before, "Pick smash must strike at tick 21");
         h.assertTrue(ally.getHealth() == allyBefore, "Pick smash must protect allied Crazie");
+        h.succeed();
+    }
+
+    @GameTest(template = "combat_empty")
+    public static void werewolfPhysicalAttacks(GameTestHelper h) {
+        var wolf = stationary(h, ModEntities.WILD_WOLF.get(), 5, 2);
+        var ally = stationary(h, ModEntities.CRAZY_ONE.get(), 5, 4);
+        var target = stationary(h, EntityType.ZOMBIE, 5, 5);
+        target.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(100);
+        target.setHealth(100);
+        wolf.setTarget(target);
+        float allyBefore = ally.getHealth();
+        h.assertTrue(!wolf.forceAbility("ground_pick"), "Removed ground spikes must not be selectable");
+        h.assertTrue(wolf.forceAbility("pick_thrust"), "Physical pick thrust must replace ground spikes");
+        float before = target.getHealth();
+        wolf.animTime = 17;
+        wolf.tick();
+        h.assertTrue(target.getHealth() == before, "Thrust must not hit during anticipation");
+        wolf.tick();
+        h.assertTrue(target.getHealth() < before, "Thrust must connect at tick 18");
+        wolf.cancelAbility();
+        target.invulnerableTime = 0;
+        before = target.getHealth();
+        h.assertTrue(wolf.forceAbility("claw_retreat"), "Retreating claw must be selectable");
+        wolf.animTime = 12;
+        wolf.tick();
+        h.assertTrue(target.getHealth() == before, "Retreating claw must telegraph its strike");
+        wolf.tick();
+        h.assertTrue(target.getHealth() < before, "Retreating claw must connect at tick 13");
+        wolf.animTime = 15;
+        wolf.tick();
+        h.assertTrue(wolf.getDeltaMovement().dot(com.fpe.entity.FpeUtil.forward(wolf)) < 0,
+                "Retreat must move away after contact");
+        h.assertTrue(ally.getHealth() == allyBefore, "New physical attacks must protect Crazie");
+        h.succeed();
+    }
+
+    @GameTest(template = "combat_empty")
+    public static void werewolfNeverSummonsGroundLimbs(GameTestHelper h) {
+        var wolf = stationary(h, ModEntities.WILD_WOLF.get(), 5, 2);
+        var target = stationary(h, EntityType.ZOMBIE, 5, 6);
+        target.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(2000);
+        target.setHealth(2000);
+        wolf.setTarget(target);
+        var start = wolf.position();
+        for (Ability ability : wolf.abilities()) {
+            wolf.cancelAbility();
+            h.assertTrue(wolf.forceAbility(ability.id), "Ability must be available: " + ability.id);
+            for (int tick = 0; tick < ability.duration; tick++) {
+                wolf.setPos(start);
+                wolf.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+                wolf.tick();
+            }
+        }
+        h.assertTrue(h.getLevel().getEntitiesOfClass(FpeFx.class, wolf.getBoundingBox().inflate(64),
+                fx -> fx.getOwner() == wolf && (fx.kind() == FpeFx.Kind.SPIKE || fx.kind() == FpeFx.Kind.TENTACLE)).isEmpty(),
+                "No werewolf ability may summon ground spikes or tentacles");
         h.succeed();
     }
 

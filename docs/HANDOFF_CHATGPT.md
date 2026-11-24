@@ -54,8 +54,8 @@ Resolve by keeping BOTH sides. Past crash: duplicate `e.put(X.get(), ...)` in `M
 | infected_zip | InfectedZip | INFECTED | 1.5x2.94 | 18 | bbmodel |
 | danger_alice | DangerAlice | DANGER_ALICE | 0.7x2.51 | 10 | bbmodel |
 | crazy_one | CrazyOne | WILD | 0.6x1.9 | 12 | bbmodel |
-| wild_wolf | WildWolf | WILD | 1.1x3.0 | 12 | bbmodel |
-| insanity_circle | InsanityCircle | MISS | 0.75x2.57 | 18 | procedural |
+| wild_wolf | WildWolf | WILD | 1.1x3.0 | 13 | bbmodel |
+| insanity_circle | InsanityCircle | INSANITY | 0.75x2.57 | 18 | procedural |
 | fen | Fen | STUDENT | 1.0x3.2 | 26 | bbmodel |
 | aiden | Aiden | STUDENT | 0.6x1.64 | 16 | bbmodel |
 | mutant_claire | MutantClaire | MUTANT | 0.6x1.53 | 17 | bbmodel |
@@ -101,3 +101,5 @@ Blockbench can open and edit the generated `.bbmodel` files by hand; keep bone n
 > You are taking over a Minecraft 1.20.1 Forge mod repo (https://github.com/sei10824game-del/FPE, branch main). Read docs/HANDOFF_CHATGPT.md, docs/HANDOFF.md and
 > docs/CHARACTER_GUIDE.md first. Work in small commits, build with ./gradlew build, check animations with ./gradlew preview -Pspec=<id>, and never leave an ability without
 > a same-named animation in the character's .bbmodel. Answer the user (Japanese speaker) briefly. Ask before big redesigns.
+
+2026-11-19: [Combat and expression update](QUALITY_2026_11_19.md). Werewolf ground_pick replaced by pick_thrust; claw_retreat added. INSANITY fights normal/Danger/Green teachers and retains its previous non-teacher feuds.

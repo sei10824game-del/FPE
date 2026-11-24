@@ -115,16 +115,16 @@ def grin(F):
     pts_l = [(x, H - 1.2 - (H - 4) * (((x - W / 2) / (W / 2)) ** 2)) for x in range(W, -1, -2)]
     F.poly([(x, 3.6 - 3.0 * ((x - W / 2) / (W / 2)) ** 2) for x in range(0, W + 1, 2)] + pts_l, MOUTH)
     # teeth: upper row pointing down, lower row pointing up
-    n = 9
+    n = 7
     for i in range(n):
         x0 = 2 + i * (W - 4) / n
         x1 = x0 + (W - 4) / n
         u = ((x0 + x1) / 2 - W / 2) / (W / 2)
         yt = 3.6 - 3.0 * u * u
         yb = H - 1.2 - (H - 4) * u * u
-        F.poly([(x0, yt), (x1, yt), ((x0 + x1) / 2, yt + (yb - yt) * 0.45)], TOOTH)
+        F.poly([(x0 + .35, yt), (x1 - .35, yt), ((x0 + x1) / 2, yt + (yb - yt) * 0.38)], TOOTH)
         if 0 < i < n - 1:
-            F.poly([(x0 + 1, yb), (x1 + 1, yb), ((x0 + x1) / 2 + 1, yb - (yb - yt) * 0.42)], TOOTH)
+            F.poly([(x0 + 1.35, yb), (x1 + .65, yb), ((x0 + x1) / 2 + 1, yb - (yb - yt) * 0.32)], TOOTH)
     F.line(0, 0.5, 2, 3, INK, 1)
     F.line(W - 1, 0.5, W - 3, 3, INK, 1)
 
