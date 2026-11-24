@@ -286,7 +286,7 @@ public class DangerAlice extends FpeEntity {
                 Vec3 s = a.position().add(0, 1.3, 0), b = s.add(chest(t).subtract(s).normalize().scale(9));
                 a.line(ParticleTypes.WHITE_ASH, s, b, 0.3);
                 a.sound(SoundEvents.FISHING_BOBBER_THROW, 1.2f, 0.6f);
-                if (FpeUtil.hitLine(a, s, b, 0.7, a.dmg(0.4f), 0, 0) > 0 && t.distanceTo(a) < 10) a.holding = true;
+                if (FpeUtil.hitLineVictims(a, s, b, 0.7, a.dmg(0.4f), 0, 0).contains(t) && t.distanceTo(a) < 10) a.holding = true;
             }
             if (a.holding && tk > 12 && tk < 24) holdAt(t, FpeUtil.ahead(a, 1.4, 0.1));
             if (tk == 25) {

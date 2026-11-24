@@ -20,6 +20,63 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public final class AbilityGameTests {
     @GameTest(template = "combat_empty")
+    public static void pliersCannotGrabDodgedVictimThroughBystander(GameTestHelper h) {
+        var aiden = h.spawn(ModEntities.AIDEN.get(), 5, 2, 2);
+        aiden.setNoAi(true);
+        aiden.setNoGravity(true);
+        Zombie victim = target(h, 5, 7), bystander = target(h, 5, 5);
+        aiden.setTarget(victim);
+        aiden.forceAbility("pliers");
+        aiden.animTime = 10;
+        aiden.tick(); // Last tracking tick: let the committed victim dodge after this.
+        victim.setPos(victim.position().add(3, 0, 0));
+        Vec3 untouched = victim.position();
+        float before = bystander.getHealth();
+        aiden.tick();
+        h.assertTrue(bystander.getHealth() < before, "Pliers must really hit the bystander on the old line");
+        aiden.tick();
+        h.assertTrue(victim.position().equals(untouched) && victim.getDeltaMovement().equals(Vec3.ZERO)
+                && !victim.hasEffect(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN),
+                "Dodged victim must not be grabbed because somebody else was hit");
+        h.succeed();
+    }
+
+    @GameTest(template = "combat_empty")
+    public static void snareRequiresDamageToItsOwnVictim(GameTestHelper h) {
+        var alice = h.spawn(ModEntities.DANGER_ALICE.get(), 5, 2, 2);
+        alice.setNoAi(true);
+        alice.setNoGravity(true);
+        Zombie victim = target(h, 5, 7), bystander = target(h, 5, 5);
+        victim.setInvulnerable(true);
+        Vec3 untouched = victim.position();
+        alice.setTarget(victim);
+        alice.forceAbility("bandage_snare");
+        alice.animTime = 12;
+        float before = bystander.getHealth();
+        alice.tick();
+        h.assertTrue(bystander.getHealth() < before, "Snare line must actually damage another mob");
+        alice.tick();
+        h.assertTrue(victim.position().equals(untouched), "Protected victim must not be teleported when only a bystander was hit");
+        h.succeed();
+    }
+
+    @GameTest(template = "combat_empty")
+    public static void pliersStillGrabActualVictim(GameTestHelper h) {
+        var aiden = h.spawn(ModEntities.AIDEN.get(), 5, 2, 2);
+        aiden.setNoAi(true);
+        aiden.setNoGravity(true);
+        Zombie victim = target(h, 5, 6);
+        aiden.setTarget(victim);
+        aiden.forceAbility("pliers");
+        aiden.animTime = 11;
+        aiden.tick();
+        aiden.tick();
+        h.assertTrue(victim.hasEffect(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN)
+                && victim.getDeltaMovement().lengthSqr() > 0, "Direct pliers contact must still reel the struck victim in");
+        h.succeed();
+    }
+
+    @GameTest(template = "combat_empty")
     public static void grabDoesNotTransferWithAggro(GameTestHelper h) {
         var grabber = h.spawn(ModEntities.DANIEL_BARREL.get(), 5, 2, 5);
         grabber.setNoAi(true);

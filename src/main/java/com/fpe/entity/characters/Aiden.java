@@ -140,7 +140,7 @@ public class Aiden extends FpeEntity {
                         Vec3 to = from.add(FpeUtil.forward(this).scale(7));
                         FpeUtil.particles(this, ParticleTypes.CRIT, from.lerp(to, 0.5), 8, 1.2, 0.05, 1.2, 0.05);
                         FpeUtil.sound(this, SoundEvents.CHAIN_BREAK, 1f, 1.4f);
-                        if (FpeUtil.hitLine(this, from, to, 0.7, dmg(0.5f), 0, 0) > 0 && distanceTo(t) < 7.5) {
+                        if (FpeUtil.hitLineVictims(this, from, to, 0.7, dmg(0.5f), 0, 0).contains(t) && distanceTo(t) < 7.5) {
                             grabbed = t;
                             t.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 3));
                         }

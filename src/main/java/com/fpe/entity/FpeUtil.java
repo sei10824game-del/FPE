@@ -1,5 +1,6 @@
 package com.fpe.entity;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fpe.registry.ModEntities;
@@ -100,13 +101,18 @@ public final class FpeUtil {
 
     /** damage along a segment (beam / thrust / bullet). radius = beam half-width. */
     public static int hitLine(FpeEntity src, Vec3 from, Vec3 to, double radius, float damage, double knock, double up) {
-        int n = 0;
+        return hitLineVictims(src, from, to, radius, damage, knock, up).size();
+    }
+
+    /** Actual damaged recipients, so grabs cannot latch onto a different target after hitting a bystander. */
+    public static List<LivingEntity> hitLineVictims(FpeEntity src, Vec3 from, Vec3 to, double radius, float damage, double knock, double up) {
+        List<LivingEntity> victims = new ArrayList<>();
         AABB box = new AABB(from, to).inflate(radius + 1);
         for (LivingEntity v : src.level().getEntitiesOfClass(LivingEntity.class, box, x -> canHurt(src, x))) {
             AABB bb = v.getBoundingBox().inflate(radius);
-            if (bb.clip(from, to).isPresent() || bb.contains(from)) { if (hit(src, v, damage, knock, up)) n++; }
+            if ((bb.clip(from, to).isPresent() || bb.contains(from)) && hit(src, v, damage, knock, up)) victims.add(v);
         }
-        return n;
+        return victims;
     }
 
     // ----------------------------------------------------------------- effects
@@ -134,7 +140,7 @@ public final class FpeUtil {
         p.setKind(kind);
         p.setDamage(damage);
         p.setPos(pos);
-        p.setDeltaMovement(vel);
+        p.setLaunchVelocity(vel);
         owner.level().addFreshEntity(p);
         return p;
     }

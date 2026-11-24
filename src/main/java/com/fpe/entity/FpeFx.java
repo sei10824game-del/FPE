@@ -23,6 +23,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.network.NetworkHooks;
 
 /**
@@ -147,6 +148,29 @@ public class FpeFx extends Entity {
     }
 
     @Override public boolean isPickable() { return false; }
+
+    /** Render the visible rim even when the effect's tiny collision box is outside the camera. */
+    @Override
+    public AABB getBoundingBoxForCulling() {
+        double horizontal, below, above;
+        double scale = param() > 0 ? param() : 1;
+        switch (kind()) {
+            case RING_TRAP, RING_SHOCK -> { horizontal = Math.max(0.5, radius()); below = 0.1; above = 0.1; }
+            case ARC -> { horizontal = Math.max(0.5, radius() * 1.05); below = horizontal; above = horizontal; }
+            case SPIKE -> {
+                horizontal = Math.max(1.2, 0.45 * (1 + (scale - 1) * 0.4));
+                below = 0.45 * scale; above = 2.5 * scale;
+            }
+            case TENTACLE -> {
+                // Eight articulated segments and the tip can sway in every direction.
+                horizontal = Math.max(1.5, 4 * scale); below = horizontal; above = horizontal;
+            }
+            default -> { return super.getBoundingBoxForCulling(); }
+        }
+        return new AABB(getX() - horizontal, getY() - below, getZ() - horizontal,
+                getX() + horizontal, getY() + above, getZ() + horizontal);
+    }
+
     @Override public boolean shouldRenderAtSqrDistance(double d) { return d < 160 * 160; }
 
     @Override

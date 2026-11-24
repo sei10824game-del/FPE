@@ -54,6 +54,7 @@ public class FpeProjectile extends Projectile {
     }
 
     private static final EntityDataAccessor<Integer> KIND = SynchedEntityData.defineId(FpeProjectile.class, EntityDataSerializers.INT);
+    private static final float ENTITY_HIT_PADDING = 0.3f; // ProjectileUtil's swept hitbox margin
 
     private float damage = 4f;
     private int age;
@@ -68,6 +69,13 @@ public class FpeProjectile extends Projectile {
     public void setKind(Kind k) { entityData.set(KIND, k.ordinal()); }
     public void setDamage(float d) { damage = d; }
     public int ageTicks() { return age; }
+
+    public void setLaunchVelocity(Vec3 velocity) {
+        setDeltaMovement(velocity);
+        orientToVelocity(kind(), velocity);
+        yRotO = getYRot();
+        xRotO = getXRot();
+    }
 
     @Override
     protected void defineSynchedData() { entityData.define(KIND, 0); }
@@ -115,20 +123,29 @@ public class FpeProjectile extends Projectile {
             if (k.fuse > 0 && age >= k.fuse) { detonate(null); return; }
             if (age > k.life) { if (k.explodeRadius > 0 && k.fuse == 0 && k != Kind.ROCKET) detonate(null); discard(); return; }
             if (k.boomerang && --rehit <= 0) { rehit = 6; hitSet.clear(); }
-        }
 
-        HitResult hit = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
-        if (hit.getType() == HitResult.Type.ENTITY) onHitEntity((EntityHitResult) hit);
-        else if (hit.getType() == HitResult.Type.BLOCK) onHitBlock((BlockHitResult) hit);
+            HitResult hit = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
+            if (hit.getType() == HitResult.Type.BLOCK) {
+                onHitBlock((BlockHitResult) hit);
+                if (!isRemoved()) orientToVelocity(k, getDeltaMovement());
+                return;
+            }
+            if (hit instanceof EntityHitResult entity) {
+                onHitEntity(entity);
+                if (isRemoved()) return;
+            }
+        }
 
         Vec3 d = getDeltaMovement();
         setPos(getX() + d.x, getY() + d.y, getZ() + d.z);
-        if (k.spin == 0f && d.lengthSqr() > 1.0E-5) {
-            double h = Math.sqrt(d.x * d.x + d.z * d.z);
-            setYRot((float) Math.toDegrees(Math.atan2(-d.x, d.z)));
-            setXRot((float) Math.toDegrees(Math.atan2(-d.y, h)));
-            yRotO = getYRot(); xRotO = getXRot();
-        }
+        orientToVelocity(k, d);
+    }
+
+    private void orientToVelocity(Kind kind, Vec3 velocity) {
+        if (velocity.lengthSqr() <= 1.0E-5) return;
+        double horizontal = velocity.horizontalDistance();
+        if (horizontal > 1.0E-5) setYRot((float) Math.toDegrees(Math.atan2(-velocity.x, velocity.z)));
+        if (kind.spin == 0f) setXRot((float) Math.toDegrees(Math.atan2(-velocity.y, horizontal)));
     }
 
     @Override
@@ -138,7 +155,15 @@ public class FpeProjectile extends Projectile {
         Entity e = r.getEntity();
         if (!(e instanceof LivingEntity l)) return;
         Entity o = getOwner();
-        if (k.explodeRadius > 0 && !k.pierce) { detonate(l); return; }
+        if (k.explodeRadius > 0 && !k.pierce) {
+            // The movement raycast returns the victim's position, so recover the swept contact.
+            Vec3 start = position();
+            Vec3 impact = e.getBoundingBox().inflate(ENTITY_HIT_PADDING)
+                    .clip(start, start.add(getDeltaMovement())).orElse(r.getLocation());
+            setPos(impact);
+            detonate(l);
+            return;
+        }
         if (k == Kind.BULLET || k == Kind.PENCIL || k == Kind.KNIFE || k == Kind.DIAMOND) l.invulnerableTime = 0;   // rapid-fire shots must not be eaten by i-frames
         if (l.hurt(damageSources().thrown(this, o == null ? this : o), damage)) {
             if (o != null) FpeUtil.knock(l, position().subtract(getDeltaMovement()), 0.5, 0.15);
@@ -149,19 +174,19 @@ public class FpeProjectile extends Projectile {
 
     @Override
     protected void onHitBlock(BlockHitResult r) {
-        Kind k = kind();
         if (level().isClientSide) return;
-        if (k == Kind.GRENADE || k == Kind.BOMBLET || k == Kind.ABC_BLOCK && age < 30) { // bounce
+        Kind k = kind();
+        Vec3 normal = Vec3.atLowerCornerOf(r.getDirection().getNormal());
+        setPos(r.getLocation().add(normal.scale(0.1)));
+        boolean bounce = k == Kind.GRENADE || k == Kind.BOMBLET || (k == Kind.ABC_BLOCK && age < 30);
+        if (bounce || k.boomerang) {
             Vec3 v = getDeltaMovement();
-            Vec3 n = Vec3.atLowerCornerOf(r.getDirection().getNormal());
-            Vec3 refl = v.subtract(n.scale(2 * v.dot(n))).scale(0.55);
-            setDeltaMovement(refl);
-            setPos(r.getLocation().add(n.scale(0.1)));
-            playSound(SoundEvents.STONE_HIT, 0.5f, 1.4f);
+            setDeltaMovement(v.subtract(normal.scale(2 * v.dot(normal))).scale(0.55));
+            if (k.boomerang) returning = true;
+            if (bounce) playSound(SoundEvents.STONE_HIT, 0.5f, 1.4f);
             return;
         }
         if (k.explodeRadius > 0) { detonate(null); return; }
-        if (k.boomerang) { returning = true; return; }
         if (k == Kind.BULLET) ((ServerLevel) level()).sendParticles(ParticleTypes.CRIT, getX(), getY(), getZ(), 3, 0.05, 0.05, 0.05, 0.1);
         discard();
     }
@@ -175,14 +200,20 @@ public class FpeProjectile extends Projectile {
         s.sendParticles(ParticleTypes.LARGE_SMOKE, getX(), getY(), getZ(), 12, r * 0.25, r * 0.25, r * 0.25, 0.02);
         if (k == Kind.FIREBALL) s.sendParticles(ParticleTypes.FLAME, getX(), getY(), getZ(), 25, r * 0.3, r * 0.3, r * 0.3, 0.05);
         s.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE, net.minecraft.sounds.SoundSource.HOSTILE, Math.min(1.5f, r * 0.5f), 1.1f);
+        if (direct != null && FpeUtil.canHurt(this, direct)) damageExplosionVictim(direct, k, o);
         for (LivingEntity v : FpeUtil.enemiesInRadius(this, position(), r, r, r)) {
-            double f = 1.0 - Math.min(1.0, v.position().add(0, v.getBbHeight() / 2, 0).distanceTo(position()) / (r + 0.01)) * 0.6;
-            if (v.hurt(damageSources().explosion(this, o == null ? this : o), (float) (damage * f))) {
-                FpeUtil.knock(v, position(), 1.1 * f, 0.4);
-                if (k == Kind.FIREBALL) v.setSecondsOnFire(5);
-            }
+            if (v != direct) damageExplosionVictim(v, k, o);
         }
         discard();
+    }
+
+    private void damageExplosionVictim(LivingEntity victim, Kind kind, @Nullable Entity owner) {
+        double distance = victim.position().add(0, victim.getBbHeight() / 2, 0).distanceTo(position());
+        double factor = 1.0 - Math.min(1.0, distance / (kind.explodeRadius + 0.01)) * 0.6;
+        if (victim.hurt(damageSources().explosion(this, owner == null ? this : owner), (float) (damage * factor))) {
+            FpeUtil.knock(victim, position(), 1.1 * factor, 0.4);
+            if (kind == Kind.FIREBALL) victim.setSecondsOnFire(5);
+        }
     }
 
     private void clientTrail(Kind k) {

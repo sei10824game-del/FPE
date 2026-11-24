@@ -103,3 +103,5 @@ Blockbench can open and edit the generated `.bbmodel` files by hand; keep bone n
 > a same-named animation in the character's .bbmodel. Answer the user (Japanese speaker) briefly. Ask before big redesigns.
 
 2026-11-19: [Combat and expression update](QUALITY_2026_11_19.md). Werewolf ground_pick replaced by pick_thrust; claw_retreat added. INSANITY fights normal/Danger/Green teachers and retains its previous non-teacher feuds.
+
+2026-11-24: [Shared combat and display fixes](QUALITY_2026_11_24.md). Projectile collisions resolve at contact without a second move; grabs must match the actual damaged victim (`hitLineVictims`); FX render bounds cover the visible geometry independently of collision bounds.

@@ -36,11 +36,10 @@ public class FpeProjectileRenderer extends EntityRenderer<FpeProjectile> {
         ps.pushPose();
         ps.translate(0, e.getBbHeight() / 2, 0);
         float spin = (e.ageTicks() + pt) * k.spin;
+        ps.mulPose(Axis.YP.rotationDegrees(180f - Mth.rotLerp(pt, e.yRotO, e.getYRot())));
         if (k.spin == 0f) {
-            ps.mulPose(Axis.YP.rotationDegrees(180f - Mth.lerp(pt, e.yRotO, e.getYRot())));
             ps.mulPose(Axis.XP.rotationDegrees(-Mth.lerp(pt, e.xRotO, e.getXRot())));
         } else {
-            ps.mulPose(Axis.YP.rotationDegrees(180f - Mth.lerp(pt, e.yRotO, e.getYRot())));
             switch (k) {
                 case COMPASS, DIAMOND, SHADOW_ORB -> ps.mulPose(Axis.YP.rotationDegrees(spin));
                 case ABC_BLOCK -> { ps.mulPose(Axis.XP.rotationDegrees(spin)); ps.mulPose(Axis.ZP.rotationDegrees(spin * 0.6f)); }
