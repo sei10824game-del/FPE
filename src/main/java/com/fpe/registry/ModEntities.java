@@ -58,6 +58,17 @@ public final class ModEntities {
 
     public static final RegistryObject<EntityType<Riley>> RILEY = chara("riley", Riley::new, 0.6f, 1.94f);
     public static final RegistryObject<EntityType<DanielBarrel>> DANIEL_BARREL = chara("daniel_barrel", DanielBarrel::new, 0.75f, 2.58f);
+    public static final RegistryObject<EntityType<Paperblight>> PAPERBLIGHT = chara("paperblight", Paperblight::new, 0.8f, 2.2f);
+    public static final RegistryObject<EntityType<PaperblightHost>> HOST_LANA = host("host_lana", PaperblightHost.Role.LANA, .7f, 2.1f);
+    public static final RegistryObject<EntityType<PaperblightHost>> HOST_EDWARD = host("host_edward", PaperblightHost.Role.EDWARD, .7f, 2.2f);
+    public static final RegistryObject<EntityType<PaperblightHost>> HOST_OLIVER = host("host_oliver", PaperblightHost.Role.OLIVER, .7f, 2.3f);
+    public static final RegistryObject<EntityType<PaperblightHost>> HOST_THAVEL = host("host_thavel", PaperblightHost.Role.THAVEL, .8f, 2.7f);
+    public static final RegistryObject<EntityType<PaperblightHost>> PAPERBLIGHT_CLAIRE = host("paperblight_claire", PaperblightHost.Role.CLAIRE, .6f, 1.8f);
+    public static final RegistryObject<EntityType<PaperblightHost>> HOST_ZIP = host("host_zip", PaperblightHost.Role.ZIP, .7f, 2.2f);
+
+    private static RegistryObject<EntityType<PaperblightHost>> host(String id, PaperblightHost.Role role, float width, float height) {
+        return chara(id, (type, level) -> new PaperblightHost(type, level, role), width, height);
+    }
 
     public static final RegistryObject<EntityType<FpeProjectile>> PROJECTILE = ENTITIES.register("projectile", () ->
             EntityType.Builder.<FpeProjectile>of(FpeProjectile::new, MobCategory.MISC).sized(0.4f, 0.4f).clientTrackingRange(8).updateInterval(1).build(FpeMod.MODID + ":projectile"));
@@ -68,7 +79,8 @@ public final class ModEntities {
     @SuppressWarnings("unchecked")
     public static java.util.List<RegistryObject<? extends EntityType<? extends FpeEntity>>> characters() {
         return java.util.List.of(MISS_CIRCLE, MISS_THAVEL, MISS_BLOOMIE, ALICE, RED_CIRCLE, DANGER_THAVEL, DANGER_BLOOMIE, INFECTED_BLOOMIE, INFECTED_ZIP, DANGER_ALICE, INSANITY_CIRCLE, WILD_WOLF, CRAZY_ONE, FEN, AIDEN,
-                MUTANT_CLAIRE, MUTANT_ENGEL, MUTANT_BUBBLE, MUTANT_LANA, MUTANT_ABBIE, GREEN_CIRCLE, HANSEL_JUVENILE, LORD_HANSEL, GREEN_THAVEL, GREEN_BLOOMIE, GREEN_ALICE, RILEY, DANIEL_BARREL);
+                MUTANT_CLAIRE, MUTANT_ENGEL, MUTANT_BUBBLE, MUTANT_LANA, MUTANT_ABBIE, GREEN_CIRCLE, HANSEL_JUVENILE, LORD_HANSEL, GREEN_THAVEL, GREEN_BLOOMIE, GREEN_ALICE, RILEY, DANIEL_BARREL, PAPERBLIGHT,
+                HOST_LANA, HOST_EDWARD, HOST_OLIVER, HOST_THAVEL, PAPERBLIGHT_CLAIRE, HOST_ZIP);
     }
 
     public static final class Events {
@@ -91,6 +103,13 @@ public final class ModEntities {
             e.put(AIDEN.get(), Aiden.attributes().build());
             e.put(RILEY.get(), Riley.attributes().build());
             e.put(DANIEL_BARREL.get(), DanielBarrel.attributes().build());
+            e.put(PAPERBLIGHT.get(), Paperblight.attributes().build());
+            e.put(HOST_LANA.get(), PaperblightHost.attributes(PaperblightHost.Role.LANA).build());
+            e.put(HOST_EDWARD.get(), PaperblightHost.attributes(PaperblightHost.Role.EDWARD).build());
+            e.put(HOST_OLIVER.get(), PaperblightHost.attributes(PaperblightHost.Role.OLIVER).build());
+            e.put(HOST_THAVEL.get(), PaperblightHost.attributes(PaperblightHost.Role.THAVEL).build());
+            e.put(PAPERBLIGHT_CLAIRE.get(), PaperblightHost.attributes(PaperblightHost.Role.CLAIRE).build());
+            e.put(HOST_ZIP.get(), PaperblightHost.attributes(PaperblightHost.Role.ZIP).build());
             e.put(GREEN_CIRCLE.get(), GreenCircle.attributes().build());
             e.put(HANSEL_JUVENILE.get(), HanselJuvenile.attributes().build());
             e.put(LORD_HANSEL.get(), LordHansel.attributes().build());

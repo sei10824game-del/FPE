@@ -58,5 +58,19 @@
  "item.fpe.wild_wolf_spawn_egg": "Nameless Werewolf Spawn Egg",
  "entity.fpe.crazy_one": "Crazie",
  "item.fpe.crazy_one_spawn_egg": "Crazie Spawn Egg",
- "effect.fpe.rooted": "Rooted"
+ "effect.fpe.rooted": "Rooted",
+ "entity.fpe.paperblight": "Paperblight",
+ "item.fpe.paperblight_spawn_egg": "Paperblight Spawn Egg",
+ "entity.fpe.host_lana": "Host Lana",
+ "item.fpe.host_lana_spawn_egg": "Host Lana Spawn Egg",
+ "entity.fpe.host_edward": "Host Edward",
+ "item.fpe.host_edward_spawn_egg": "Host Edward Spawn Egg",
+ "entity.fpe.host_oliver": "Host Oliver",
+ "item.fpe.host_oliver_spawn_egg": "Host Oliver Spawn Egg",
+ "entity.fpe.host_thavel": "Host Thavel",
+ "item.fpe.host_thavel_spawn_egg": "Host Thavel Spawn Egg",
+ "entity.fpe.paperblight_claire": "Claire (Paperblight AU)",
+ "item.fpe.paperblight_claire_spawn_egg": "Claire (Paperblight AU) Spawn Egg",
+ "entity.fpe.host_zip": "Host Zip",
+ "item.fpe.host_zip_spawn_egg": "Host Zip Spawn Egg"
 }

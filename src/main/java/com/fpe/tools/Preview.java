@@ -59,15 +59,19 @@ public final class Preview {
             "alice", Alice.class, "alice_boss", Alice.class, "red_circle", RedCircle.class,
             "danger_thavel", DangerThavel.class, "danger_bloomie", DangerBloomie.class,  "fen", Fen.class, "aiden", Aiden.class));
 
-    static { ENTITY.put("insanity_circle", InsanityCircle.class); ENTITY.put("wild_wolf", WildWolf.class); ENTITY.put("crazy_one", CrazyOne.class); ENTITY.put("riley", Riley.class); ENTITY.put("daniel_barrel", DanielBarrel.class); ENTITY.put("daniel_barrel_cyborg", DanielBarrel.class); ENTITY.put("green_circle", GreenCircle.class); ENTITY.put("hansel_juvenile", HanselJuvenile.class); ENTITY.put("lord_hansel", LordHansel.class); ENTITY.put("lord_hansel_premature", LordHansel.class); ENTITY.put("lord_hansel_true", LordHansel.class); ENTITY.put("mutant_claire", MutantClaire.class); ENTITY.put("mutant_engel", MutantEngel.class); ENTITY.put("mutant_bubble", MutantBubble.class); ENTITY.put("mutant_lana", MutantLana.class); ENTITY.put("mutant_abbie", MutantAbbie.class); ENTITY.put("green_thavel", GreenThavel.class); ENTITY.put("green_bloomie", GreenBloomie.class); ENTITY.put("green_alice", GreenAlice.class); ENTITY.put("green_alice_boss", GreenAlice.class); ENTITY.put("danger_alice_boss", DangerAlice.class); ENTITY.put("infected_bloomie", InfectedBloomie.class); ENTITY.put("infected_zip", InfectedZip.class); ENTITY.put("danger_alice", DangerAlice.class); }
+    static { ENTITY.put("host_lana", PaperblightHost.class); ENTITY.put("host_edward", PaperblightHost.class); ENTITY.put("host_oliver", PaperblightHost.class); ENTITY.put("host_thavel", PaperblightHost.class); ENTITY.put("paperblight_claire", PaperblightHost.class); ENTITY.put("host_zip", PaperblightHost.class); ENTITY.put("paperblight", Paperblight.class); ENTITY.put("paperblight_phase2", Paperblight.class); ENTITY.put("paperblight_phase3", Paperblight.class); ENTITY.put("insanity_circle", InsanityCircle.class); ENTITY.put("wild_wolf", WildWolf.class); ENTITY.put("crazy_one", CrazyOne.class); ENTITY.put("riley", Riley.class); ENTITY.put("daniel_barrel", DanielBarrel.class); ENTITY.put("daniel_barrel_cyborg", DanielBarrel.class); ENTITY.put("green_circle", GreenCircle.class); ENTITY.put("hansel_juvenile", HanselJuvenile.class); ENTITY.put("lord_hansel", LordHansel.class); ENTITY.put("lord_hansel_premature", LordHansel.class); ENTITY.put("lord_hansel_true", LordHansel.class); ENTITY.put("mutant_claire", MutantClaire.class); ENTITY.put("mutant_engel", MutantEngel.class); ENTITY.put("mutant_bubble", MutantBubble.class); ENTITY.put("mutant_lana", MutantLana.class); ENTITY.put("mutant_abbie", MutantAbbie.class); ENTITY.put("green_thavel", GreenThavel.class); ENTITY.put("green_bloomie", GreenBloomie.class); ENTITY.put("green_alice", GreenAlice.class); ENTITY.put("green_alice_boss", GreenAlice.class); ENTITY.put("danger_alice_boss", DangerAlice.class); ENTITY.put("infected_bloomie", InfectedBloomie.class); ENTITY.put("infected_zip", InfectedZip.class); ENTITY.put("danger_alice", DangerAlice.class); }
 
     @SuppressWarnings("unchecked")
-    static List<Ability> abilitiesOf(Class<? extends FpeEntity> c) throws Exception {
+    static List<Ability> abilitiesOf(Class<? extends FpeEntity> c, String name) throws Exception {
         Field uf = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
         uf.setAccessible(true);
         Object unsafe = uf.get(null);
         Method alloc = unsafe.getClass().getMethod("allocateInstance", Class.class);
         Object e = alloc.invoke(unsafe, c);
+        if (c == PaperblightHost.class) {
+            Field role = c.getDeclaredField("role"); role.setAccessible(true);
+            role.set(e, PaperblightHost.Role.valueOf(name.equals("paperblight_claire") ? "CLAIRE" : name.substring(5).toUpperCase(java.util.Locale.ROOT)));
+        }
         Method m = FpeEntity.class.getDeclaredMethod("abilities");
         m.setAccessible(true);
         return (List<Ability>) m.invoke(e);
@@ -78,8 +82,9 @@ public final class Preview {
         String which = args.length > 0 ? args[0] : "all";
         File out = new File(args.length > 1 ? args[1] : "build/preview");
         out.mkdirs();
+        java.util.Set<String> requested = new java.util.HashSet<>(java.util.Arrays.asList(which.split(",")));
         List<ModelSpec> specs = new ArrayList<>();
-        for (ModelSpec s : Specs.all()) if (which.equals("all") || s.name.equals(which) || (which.equals("proj") && s.name.startsWith("proj_")) || (which.equals("fx") && s.name.startsWith("fx_"))) specs.add(s);
+        for (ModelSpec s : Specs.all()) if (which.equals("all") || requested.contains(s.name) || (which.equals("proj") && s.name.startsWith("proj_")) || (which.equals("fx") && s.name.startsWith("fx_"))) specs.add(s);
         if (specs.isEmpty()) { System.err.println("no spec " + which); return; }
         for (ModelSpec s : specs) {
             s.bake();
@@ -106,14 +111,14 @@ public final class Preview {
         ModelPart root = s.layerDefinition().bakeRoot();
         ModelParts parts = new ModelParts(root, s);
         Class<? extends FpeEntity> ec = ENTITY.get(s.name);
-        List<Ability> abil = ec == null ? List.of() : abilitiesOf(ec);
+        List<Ability> abil = ec == null ? List.of() : abilitiesOf(ec, s.name);
         if (s.name.startsWith("lord_hansel")) abil = onlyAnimated(s.name, abil); // 3 forms share one class: show each form's own abilities
-        int variant = s.name.equals("alice_boss") || s.name.equals("danger_alice_boss") || s.name.equals("green_alice_boss") || s.name.equals("daniel_barrel_cyborg") || Integer.getInteger("fpe.variant", 0) == 1 ? 1 : 0;
+        int variant = s.name.equals("paperblight_phase3") ? 2 : s.name.equals("paperblight_phase2") || s.name.equals("alice_boss") || s.name.equals("danger_alice_boss") || s.name.equals("green_alice_boss") || s.name.equals("daniel_barrel_cyborg") || Integer.getInteger("fpe.variant", 0) == 1 ? 1 : 0;
 
         // framing from idle pose
         float[] bb = bounds(root, parts, s, 0, 0, null);
         float height = Math.max(24f, bb[3] - bb[2]); System.out.println("HEIGHT " + s.name + " minY=" + bb[2] + " maxY=" + bb[3] + " w=" + (bb[1]-bb[0]));
-        float scale = (FH - 40) / (height * 1.15f);
+        float scale = Math.min((FH - 40) / (height * 1.15f), (FW - 16) / (Math.max(8f, bb[1] - bb[0]) * 1.15f));
         float groundY = FH - 22;
 
         List<String> labels = new ArrayList<>();

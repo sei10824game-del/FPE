@@ -152,11 +152,18 @@ public final class FpeUtil {
     }
 
     public static FpeFx fx(FpeEntity owner, FpeFx.Kind kind, Vec3 pos, int warmup, int life, float radius, float damage) {
+        return fx(owner, kind, pos, warmup, life, radius, damage, effect -> {});
+    }
+
+    /** Configure orientation and visual parameters before the initial spawn packet is sent. */
+    public static FpeFx fx(FpeEntity owner, FpeFx.Kind kind, Vec3 pos, int warmup, int life, float radius, float damage,
+                           java.util.function.Consumer<FpeFx> configure) {
         FpeFx f = new FpeFx(ModEntities.FX.get(), owner.level());
         f.setOwner(owner);
         f.setup(kind, warmup, life, radius, damage);
         f.setPos(pos);
         f.setYRot(owner.getYRot());
+        configure.accept(f);
         owner.level().addFreshEntity(f);
         return f;
     }

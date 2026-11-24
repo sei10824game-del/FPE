@@ -49,6 +49,7 @@ public class FpeFxRenderer extends EntityRenderer<FpeFx> {
             case RING_TRAP -> ring(e, ps, buf, age);
             case RING_SHOCK -> shock(e, ps, buf, age);
             case ARC -> arc(e, ps, buf, age, pt);
+            case BEAM -> beam(e, ps, buf, age);
         }
     }
 
@@ -146,6 +147,40 @@ public class FpeFxRenderer extends EntityRenderer<FpeFx> {
             sector(ps, c, R * 0.85f, R * 1.05f, a0, a1, 0.01f, alpha(0xFFFFFFFF, fade * 0.8f), 18);
         }
         ps.popPose();
+    }
+
+    private void beam(FpeFx e, PoseStack ps, MultiBufferSource buf, float age) {
+        float length = Math.max(0, e.param());
+        float radius = Math.max(.025f, e.radius());
+        float fade = 1 - Mth.clamp(age / Math.max(1, e.life()), 0, 1) * .5f;
+        ps.pushPose();
+        ps.mulPose(Axis.YP.rotationDegrees(-e.getYRot()));
+        ps.mulPose(Axis.XP.rotationDegrees(e.getXRot()));
+        beamTube(ps, vc(buf), length, radius, alpha(e.color(), fade));
+        beamTube(ps, vc(buf), length, radius * .35f, alpha(0xFFFFFFFF, fade));
+        ps.popPose();
+    }
+
+    private static void beamTube(PoseStack ps, VertexConsumer c, float length, float radius, int color) {
+        float[][] corners = {{-radius, -radius}, {radius, -radius}, {radius, radius}, {-radius, radius}};
+        Matrix4f pose = ps.last().pose();
+        Matrix3f normal = ps.last().normal();
+        for (int side = 0; side < 4; side++) {
+            float[] a = corners[side], b = corners[(side + 1) % 4];
+            float[][] points = {{a[0], a[1], 0}, {b[0], b[1], 0}, {b[0], b[1], length}, {a[0], a[1], length}};
+            for (int i : new int[] {0, 1, 2, 3, 3, 2, 1, 0}) {
+                float[] p = points[i];
+                c.vertex(pose, p[0], p[1], p[2]).color(color >> 16 & 255, color >> 8 & 255, color & 255, color >>> 24)
+                        .uv(.5f, .5f).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(0xF000F0).normal(normal, 0, 1, 0).endVertex();
+            }
+        }
+        for (float z : new float[] {0, length}) {
+            for (int i : new int[] {0, 1, 2, 3, 3, 2, 1, 0}) {
+                float[] p = corners[i];
+                c.vertex(pose, p[0], p[1], z).color(color >> 16 & 255, color >> 8 & 255, color & 255, color >>> 24)
+                        .uv(.5f, .5f).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(0xF000F0).normal(normal, 0, 0, 1).endVertex();
+            }
+        }
     }
 
     @Override public ResourceLocation getTextureLocation(FpeFx e) { return FxSpecs.WHITE; }

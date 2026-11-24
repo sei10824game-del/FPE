@@ -16,6 +16,9 @@ public final class Specs {
                 MutantClaireSpec.SPEC, MutantEngelSpec.SPEC, MutantBubbleSpec.SPEC, MutantLanaSpec.SPEC, MutantAbbieSpec.SPEC, GreenThavelSpec.SPEC, GreenBloomieSpec.SPEC, GreenAliceSpec.PHASE1, GreenAliceSpec.PHASE2,
                 GreenCircleSpec.SPEC, HanselJuvenileSpec.SPEC, LordHanselSpec.MATURED, LordHanselSpec.PREMATURE, LordHanselSpec.TRUE_FORM,
                 RileySpec.SPEC, DanielBarrelSpec.PHASE1, DanielBarrelSpec.PHASE2,
+                PaperblightSpec.FIRST, PaperblightSpec.SECOND, PaperblightSpec.THIRD,
+                PaperblightHostsSpec.LANA, PaperblightHostsSpec.EDWARD, PaperblightHostsSpec.OLIVER,
+                PaperblightHostsSpec.THAVEL, PaperblightHostsSpec.CLAIRE, PaperblightHostsSpec.ZIP,
                 FxSpecs.SPIKE, FxSpecs.TENTACLE));
         ProjectileSpecs.all().forEach(l::add);
         return l;

@@ -53,6 +53,13 @@ public final class ModItems {
     public static final RegistryObject<Item> LORD_HANSEL = egg("lord_hansel", ModEntities.LORD_HANSEL, 0xE8DCC0, 0xB01818);
     public static final RegistryObject<Item> RILEY = egg("riley", ModEntities.RILEY, 0xE8E8EA, 0x20202A);
     public static final RegistryObject<Item> DANIEL_BARREL = egg("daniel_barrel", ModEntities.DANIEL_BARREL, 0xB8BCC0, 0x2A2630);
+    public static final RegistryObject<Item> PAPERBLIGHT = egg("paperblight", ModEntities.PAPERBLIGHT, 0x39334F, 0xE0E2DD);
+    public static final RegistryObject<Item> HOST_LANA = egg("host_lana", ModEntities.HOST_LANA, 0xB6BAC3, 0x39334F);
+    public static final RegistryObject<Item> HOST_EDWARD = egg("host_edward", ModEntities.HOST_EDWARD, 0xB4B7C3, 0x641F32);
+    public static final RegistryObject<Item> HOST_OLIVER = egg("host_oliver", ModEntities.HOST_OLIVER, 0xD9DEE0, 0x22202C);
+    public static final RegistryObject<Item> HOST_THAVEL = egg("host_thavel", ModEntities.HOST_THAVEL, 0xE4DEE5, 0x753349);
+    public static final RegistryObject<Item> PAPERBLIGHT_CLAIRE = egg("paperblight_claire", ModEntities.PAPERBLIGHT_CLAIRE, 0xF0F0EE, 0xB7BACA);
+    public static final RegistryObject<Item> HOST_ZIP = egg("host_zip", ModEntities.HOST_ZIP, 0xE7E5DD, 0x493A59);
 
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.fpe"))

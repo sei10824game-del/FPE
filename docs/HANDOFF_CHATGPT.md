@@ -71,6 +71,13 @@ Resolve by keeping BOTH sides. Past crash: duplicate `e.put(X.get(), ...)` in `M
 | lord_hansel | LordHansel | OUTSIDER | 0.8x2.9 | 8 | bbmodel |
 | riley | Riley | STUDENT | 0.6x1.94 | 19 | bbmodel |
 | daniel_barrel | DanielBarrel | OUTSIDER | 0.75x2.58 | 4 | bbmodel |
+| paperblight | Paperblight | PAPERBLIGHT | 0.8x2.2 / 1.35x3.6 / 2.2x4.8 | 12 + 2 transforms | 3 bbmodels |
+| host_lana | PaperblightHost LANA | PAPERBLIGHT | 0.7x2.1 | 12 | bbmodel |
+| host_edward | PaperblightHost EDWARD | PAPERBLIGHT | 0.7x2.2 | 12 | bbmodel |
+| host_oliver | PaperblightHost OLIVER | PAPERBLIGHT | 0.7x2.3 | 12 | bbmodel |
+| host_thavel | PaperblightHost THAVEL | PAPERBLIGHT | 0.8x2.7 | 12 | bbmodel |
+| paperblight_claire | PaperblightHost CLAIRE | PAPERBLIGHT_CLAIRE | 0.6x1.8 | 12 | bbmodel |
+| host_zip | PaperblightHost ZIP | PAPERBLIGHT | 0.7x2.2 | 12 | bbmodel |
 
 Reference art the user confirmed: `docs/ref/confirmed/*` (older `docs/ref/*.png` are partly WRONG). Heights: `docs/HEIGHTS.md`.
 

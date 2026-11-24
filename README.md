@@ -60,3 +60,5 @@ Crazie / Nameless Werewolf: [外見・召喚方法・実装方針](docs/CRAZIE_W
 [戦闘・表情の調整（2026-11-19）](docs/QUALITY_2026_11_19.md)
 
 [共通戦闘・表示の改善（2026-11-24）](docs/QUALITY_2026_11_24.md)
+
+Paperblight AU：[本体の3形態](docs/PAPERBLIGHT.md) / [ホスト5体とクレア](docs/PAPERBLIGHT_HOSTS.md)

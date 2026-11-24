@@ -58,5 +58,19 @@
  "item.fpe.wild_wolf_spawn_egg": "名もなき人狼 スポーンエッグ",
  "entity.fpe.crazy_one": "クレイジー",
  "item.fpe.crazy_one_spawn_egg": "クレイジー スポーンエッグ",
- "effect.fpe.rooted": "拘束"
+ "effect.fpe.rooted": "拘束",
+ "entity.fpe.paperblight": "ペーパーブライト",
+ "item.fpe.paperblight_spawn_egg": "ペーパーブライトのスポーンエッグ",
+ "entity.fpe.host_lana": "ホストラナ",
+ "item.fpe.host_lana_spawn_egg": "ホストラナのスポーンエッグ",
+ "entity.fpe.host_edward": "ホストエドワード",
+ "item.fpe.host_edward_spawn_egg": "ホストエドワードのスポーンエッグ",
+ "entity.fpe.host_oliver": "ホストオリバー",
+ "item.fpe.host_oliver_spawn_egg": "ホストオリバーのスポーンエッグ",
+ "entity.fpe.host_thavel": "ホストタベル",
+ "item.fpe.host_thavel_spawn_egg": "ホストタベルのスポーンエッグ",
+ "entity.fpe.paperblight_claire": "クレア（Paperblight AU）",
+ "item.fpe.paperblight_claire_spawn_egg": "クレア（Paperblight AU）のスポーンエッグ",
+ "entity.fpe.host_zip": "ホストジップ",
+ "item.fpe.host_zip_spawn_egg": "ホストジップのスポーンエッグ"
 }

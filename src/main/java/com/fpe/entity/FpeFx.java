@@ -37,7 +37,7 @@ import net.minecraftforge.network.NetworkHooks;
  *  ARC        visual-only crescent slash (radius = outer radius, param = sweep degrees, color = ARGB, entity xRot = tilt).
  */
 public class FpeFx extends Entity {
-    public enum Kind { SPIKE, TENTACLE, RING_TRAP, RING_SHOCK, ARC }
+    public enum Kind { SPIKE, TENTACLE, RING_TRAP, RING_SHOCK, ARC, BEAM }
 
     private static final EntityDataAccessor<Integer> KIND = SynchedEntityData.defineId(FpeFx.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> WARM = SynchedEntityData.defineId(FpeFx.class, EntityDataSerializers.INT);
@@ -121,7 +121,7 @@ public class FpeFx extends Entity {
                 }
                 if (t % 2 == 0) FpeUtil.arc(this, ParticleTypes.CLOUD, position().add(0, 0.1, 0), 0, 180, cur, (int) Math.min(40, 8 + cur * 6));
             }
-            case ARC -> { }
+            case ARC, BEAM -> { }
         }
     }
 
@@ -155,6 +155,10 @@ public class FpeFx extends Entity {
         double horizontal, below, above;
         double scale = param() > 0 ? param() : 1;
         switch (kind()) {
+            case BEAM -> {
+                Vec3 end = position().add(Vec3.directionFromRotation(getXRot(), getYRot()).scale(Math.max(0, param())));
+                return new AABB(position(), end).inflate(Math.max(0.025, radius()) * 1.5 + 0.05);
+            }
             case RING_TRAP, RING_SHOCK -> { horizontal = Math.max(0.5, radius()); below = 0.1; above = 0.1; }
             case ARC -> { horizontal = Math.max(0.5, radius() * 1.05); below = horizontal; above = horizontal; }
             case SPIKE -> {

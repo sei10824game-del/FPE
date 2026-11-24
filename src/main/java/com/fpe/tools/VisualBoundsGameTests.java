@@ -12,6 +12,20 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public final class VisualBoundsGameTests {
     @GameTest(template = "combat_empty")
+    public static void beamBoundsFollowAimAndLength(GameTestHelper h) {
+        FpeFx beam = new FpeFx(ModEntities.FX.get(), h.getLevel());
+        beam.setPos(h.absoluteVec(new Vec3(5, 3, 5)));
+        beam.setup(FpeFx.Kind.BEAM, 0, 4, .15f, 0);
+        beam.param(18);
+        beam.setYRot(90);
+        beam.setXRot(-30);
+        Vec3 tip = beam.position().add(Vec3.directionFromRotation(-30, 90).scale(18));
+        h.assertTrue(beam.getBoundingBoxForCulling().contains(tip), "Beam tip must stay visible when its eye origin leaves the camera");
+        h.assertTrue(beam.getBoundingBox().getXsize() < 1, "Laser visuals must not create a large physical collision box");
+        h.succeed();
+    }
+
+    @GameTest(template = "combat_empty")
     public static void effectBoundsContainVisibleGeometry(GameTestHelper h) {
         FpeFx fx = new FpeFx(ModEntities.FX.get(), h.getLevel());
         fx.setPos(h.absoluteVec(new Vec3(5, 2, 5)));

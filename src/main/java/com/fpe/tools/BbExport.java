@@ -119,7 +119,7 @@ public final class BbExport {
         parts.resetAll();
         Map<String, float[]> rest = pose(s, parts);
         JsonArray anims = new JsonArray();
-        List<Ability> abil = Preview.ENTITY.containsKey(s.name) ? Preview.abilitiesOf(Preview.ENTITY.get(s.name)) : List.of();
+        List<Ability> abil = Preview.ENTITY.containsKey(s.name) ? Preview.abilitiesOf(Preview.ENTITY.get(s.name), s.name) : List.of();
         if (s.animator != null) {
             anims.add(animation(s, parts, groups, rest, "idle", 80, true, (c, t) -> c.age = t));
             anims.add(animation(s, parts, groups, rest, "walk", 40, true, (c, t) -> { c.limbSwing = t / 40f * WALK_CYCLE; c.limbAmt = 0.625f; c.age = 0; }));

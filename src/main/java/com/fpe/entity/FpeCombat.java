@@ -59,9 +59,11 @@ public final class FpeCombat {
     }
 
     public static void slashArc(FpeEntity e, float radius, float sweep, float tilt, float yawOff, double y, int color) {
-        FpeFx f = FpeUtil.fx(e, FpeFx.Kind.ARC, e.position().add(0, y, 0), 0, 7, radius, 0).param(sweep).color(color);
-        f.setYRot(e.getYRot() + yawOff);
-        f.setXRot(tilt);
+        FpeUtil.fx(e, FpeFx.Kind.ARC, e.position().add(0, y, 0), 0, 7, radius, 0, effect -> {
+            effect.param(sweep).color(color);
+            effect.setYRot(e.getYRot() + yawOff);
+            effect.setXRot(tilt);
+        });
     }
 
     public static Vec3 rotY(Vec3 v, double deg) {

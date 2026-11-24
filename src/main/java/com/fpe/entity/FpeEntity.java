@@ -39,7 +39,7 @@ public abstract class FpeEntity extends Monster {
     public static final int DEATH_TICKS = 40;
 
     /** Which side a character is on; see {@link #hostile}. FPE characters fight members of hostile factions. */
-    public enum Faction { MISS, DANGER, INFECTED, ALICE, DANGER_ALICE, STUDENT, GREEN_TEACHER, MUTANT, OUTSIDER, WILD, INSANITY }
+    public enum Faction { MISS, DANGER, INFECTED, ALICE, DANGER_ALICE, STUDENT, GREEN_TEACHER, MUTANT, OUTSIDER, WILD, INSANITY, PAPERBLIGHT, PAPERBLIGHT_CLAIRE }
 
     private static final Faction[][] FEUDS = {
             {Faction.MISS, Faction.INFECTED}, {Faction.MISS, Faction.DANGER}, {Faction.MISS, Faction.DANGER_ALICE},
@@ -55,6 +55,8 @@ public abstract class FpeEntity extends Monster {
             {Faction.WILD, Faction.INFECTED}, {Faction.WILD, Faction.GREEN_TEACHER}, {Faction.WILD, Faction.MUTANT}, {Faction.WILD, Faction.OUTSIDER}};
 
     public static boolean hostile(Faction a, Faction b) {
+        if (a == Faction.PAPERBLIGHT_CLAIRE || b == Faction.PAPERBLIGHT_CLAIRE) return a != b;
+        if (a == Faction.PAPERBLIGHT || b == Faction.PAPERBLIGHT) return a != b;
         // Insanity Circle keeps the original teachers' feuds, but fights teachers
         // from the normal, Danger and Green groups in both directions.
         if ((a == Faction.INSANITY && isTeacher(b)) || (b == Faction.INSANITY && isTeacher(a))) return true;

@@ -60,10 +60,9 @@ public final class HostilityGameTests {
             actor.setNoGravity(true);
             actor.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED).setBaseValue(0);
         }
-        h.runAtTickTime(25, () -> {
+        h.succeedWhen(() -> {
             h.assertTrue(insanity.getTarget() == circle, "Insanity AI must select Circle without provocation");
             h.assertTrue(circle.getTarget() == insanity, "Circle AI must select Insanity without provocation");
-            h.succeed();
         });
     }
 
