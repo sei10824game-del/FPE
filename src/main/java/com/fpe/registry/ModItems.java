@@ -61,6 +61,11 @@ public final class ModItems {
     public static final RegistryObject<Item> PAPERBLIGHT_CLAIRE = egg("paperblight_claire", ModEntities.PAPERBLIGHT_CLAIRE, 0xF0F0EE, 0xB7BACA);
     public static final RegistryObject<Item> HOST_ZIP = egg("host_zip", ModEntities.HOST_ZIP, 0xE7E5DD, 0x493A59);
 
+    public static final java.util.Map<com.fpe.entity.characters.ZombieAuCharacter.Role, RegistryObject<Item>> ZOMBIE_AU = new java.util.LinkedHashMap<>();
+    static {
+        ModEntities.ZOMBIE_AU.forEach((role, type) -> ZOMBIE_AU.put(role, egg(role.id, type, role.survivor()?0xCDD6C6:0x202C2B, role.survivor()?0x435D51:0x91EF42)));
+    }
+
     public static final RegistryObject<CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.fpe"))
             .icon(() -> new ItemStack(MISS_CIRCLE.get()))

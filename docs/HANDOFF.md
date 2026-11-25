@@ -45,3 +45,10 @@ Red/orange-toned sheets = the DANGER AU versions; black-and-white sheets = the n
 - Tools: tools/bbgen/chars/*.py (model+animation generators), tools/bbgen/connectivity.py (detached-cube check), tools/run_agent.sh (opus sub-agent per character),
   ./gradlew preview -Pspec=<name>, ./gradlew runClient -Pshots=a,b,c (dev screenshots, needs the local-only src/main/java/com/fpe/dev/DevShot.java).
 - Known: Windows report of single-colour rendering with the GitHub jar could not be reproduced on macOS (dev + production Forge). Startup now logs "FPE texture <name> WxH glow=.. glError=..".
+
+
+## FPE Zombie AU (2026-11-25)
+- User confirmed the supplied two character sheets are FPE Zombie AU and the unlabeled medical figure is Survivor Bubble.
+- Approved additions: twelve survivors + nine zombies; see FPE_ZOMBIE_AU.md for exact roster. Do not add Survivor Zip, Engel, Claire, Chip, Emily or Edward from those sheets.
+- Existing Paperblight AU characters remain separate. The user corrected the winged Paperblight body reference to phase 3 (not phase 4).
+- New survivor faction protects players, zombie faction fights other factions. Original mod-specific combat; no unsupported canonical-power claims.

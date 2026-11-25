@@ -70,6 +70,12 @@ public final class ModEntities {
         return chara(id, (type, level) -> new PaperblightHost(type, level, role), width, height);
     }
 
+    public static final java.util.Map<ZombieAuCharacter.Role, RegistryObject<EntityType<ZombieAuCharacter>>> ZOMBIE_AU = new java.util.LinkedHashMap<>();
+    static {
+        for (var role : ZombieAuCharacter.Role.values())
+            ZOMBIE_AU.put(role, chara(role.id, (type, level) -> new ZombieAuCharacter(type, level, role), role.height > 3 ? 1.1f : .65f, role.height));
+    }
+
     public static final RegistryObject<EntityType<FpeProjectile>> PROJECTILE = ENTITIES.register("projectile", () ->
             EntityType.Builder.<FpeProjectile>of(FpeProjectile::new, MobCategory.MISC).sized(0.4f, 0.4f).clientTrackingRange(8).updateInterval(1).build(FpeMod.MODID + ":projectile"));
     public static final RegistryObject<EntityType<FpeFx>> FX = ENTITIES.register("fx", () ->
@@ -78,14 +84,17 @@ public final class ModEntities {
     /** all character types (for eggs, spawns, attributes) */
     @SuppressWarnings("unchecked")
     public static java.util.List<RegistryObject<? extends EntityType<? extends FpeEntity>>> characters() {
-        return java.util.List.of(MISS_CIRCLE, MISS_THAVEL, MISS_BLOOMIE, ALICE, RED_CIRCLE, DANGER_THAVEL, DANGER_BLOOMIE, INFECTED_BLOOMIE, INFECTED_ZIP, DANGER_ALICE, INSANITY_CIRCLE, WILD_WOLF, CRAZY_ONE, FEN, AIDEN,
+        var result = new java.util.ArrayList<RegistryObject<? extends EntityType<? extends FpeEntity>>>(java.util.List.of(MISS_CIRCLE, MISS_THAVEL, MISS_BLOOMIE, ALICE, RED_CIRCLE, DANGER_THAVEL, DANGER_BLOOMIE, INFECTED_BLOOMIE, INFECTED_ZIP, DANGER_ALICE, INSANITY_CIRCLE, WILD_WOLF, CRAZY_ONE, FEN, AIDEN,
                 MUTANT_CLAIRE, MUTANT_ENGEL, MUTANT_BUBBLE, MUTANT_LANA, MUTANT_ABBIE, GREEN_CIRCLE, HANSEL_JUVENILE, LORD_HANSEL, GREEN_THAVEL, GREEN_BLOOMIE, GREEN_ALICE, RILEY, DANIEL_BARREL, PAPERBLIGHT,
-                HOST_LANA, HOST_EDWARD, HOST_OLIVER, HOST_THAVEL, PAPERBLIGHT_CLAIRE, HOST_ZIP);
+                HOST_LANA, HOST_EDWARD, HOST_OLIVER, HOST_THAVEL, PAPERBLIGHT_CLAIRE, HOST_ZIP));
+        result.addAll(ZOMBIE_AU.values());
+        return result;
     }
 
     public static final class Events {
         @SubscribeEvent
         public static void attributes(EntityAttributeCreationEvent e) {
+            ZOMBIE_AU.forEach((role, type) -> e.put(type.get(), ZombieAuCharacter.attributes(role).build()));
             e.put(MISS_CIRCLE.get(), MissCircle.attributes().build());
             e.put(MISS_THAVEL.get(), MissThavel.attributes().build());
             e.put(MISS_BLOOMIE.get(), MissBloomie.attributes().build());

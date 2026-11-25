@@ -20,6 +20,9 @@ public final class ProjectileSpecs {
     private static ModelSpec spec(Kind k) { ModelSpec s = new ModelSpec("proj_" + k.name().toLowerCase()); s.shadow(0f); MAP.put(k, s); s.group("root", null, 0, 0, 0); return s; }
 
     static {
+        ModelSpec bile = spec(Kind.BILE);
+        bile.part("core", "root", 0,0,0,-1.5f,-1.5f,-2,3,3,4,0x91EF42).glow();
+        bile.part("shell", "root", 0,0,0,-2,-2,-1,4,4,2,0x345F31).rot(0,0,30);
         // compass: two long steel legs joined by a hinge, drawn as a V, spins like a boomerang
         ModelSpec s = spec(Kind.COMPASS);
         s.part("hinge", "root", 0, 0, 0, -1.5f, -1.5f, -1.5f, 3, 3, 3, 0x6E7480);

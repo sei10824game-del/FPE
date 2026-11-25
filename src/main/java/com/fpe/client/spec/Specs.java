@@ -20,6 +20,7 @@ public final class Specs {
                 PaperblightHostsSpec.LANA, PaperblightHostsSpec.EDWARD, PaperblightHostsSpec.OLIVER,
                 PaperblightHostsSpec.THAVEL, PaperblightHostsSpec.CLAIRE, PaperblightHostsSpec.ZIP,
                 FxSpecs.SPIKE, FxSpecs.TENTACLE));
+        l.addAll(ZombieAuSpec.MODELS.values());
         ProjectileSpecs.all().forEach(l::add);
         return l;
     }

@@ -39,7 +39,7 @@ public abstract class FpeEntity extends Monster {
     public static final int DEATH_TICKS = 40;
 
     /** Which side a character is on; see {@link #hostile}. FPE characters fight members of hostile factions. */
-    public enum Faction { MISS, DANGER, INFECTED, ALICE, DANGER_ALICE, STUDENT, GREEN_TEACHER, MUTANT, OUTSIDER, WILD, INSANITY, PAPERBLIGHT, PAPERBLIGHT_CLAIRE }
+    public enum Faction { MISS, DANGER, INFECTED, ALICE, DANGER_ALICE, STUDENT, GREEN_TEACHER, MUTANT, OUTSIDER, WILD, INSANITY, PAPERBLIGHT, PAPERBLIGHT_CLAIRE, SURVIVOR, ZOMBIE_AU }
 
     private static final Faction[][] FEUDS = {
             {Faction.MISS, Faction.INFECTED}, {Faction.MISS, Faction.DANGER}, {Faction.MISS, Faction.DANGER_ALICE},
@@ -57,6 +57,12 @@ public abstract class FpeEntity extends Monster {
     public static boolean hostile(Faction a, Faction b) {
         if (a == Faction.PAPERBLIGHT_CLAIRE || b == Faction.PAPERBLIGHT_CLAIRE) return a != b;
         if (a == Faction.PAPERBLIGHT || b == Faction.PAPERBLIGHT) return a != b;
+        if (a == Faction.ZOMBIE_AU || b == Faction.ZOMBIE_AU) return a != b;
+        if (a == Faction.SURVIVOR || b == Faction.SURVIVOR) {
+            Faction other = a == Faction.SURVIVOR ? b : a;
+            return other == Faction.INFECTED || other == Faction.MUTANT || other == Faction.DANGER
+                    || other == Faction.DANGER_ALICE || other == Faction.INSANITY || other == Faction.WILD;
+        }
         // Insanity Circle keeps the original teachers' feuds, but fights teachers
         // from the normal, Danger and Green groups in both directions.
         if ((a == Faction.INSANITY && isTeacher(b)) || (b == Faction.INSANITY && isTeacher(a))) return true;
@@ -69,6 +75,8 @@ public abstract class FpeEntity extends Monster {
     private static boolean isTeacher(Faction faction) {
         return faction == Faction.MISS || faction == Faction.DANGER || faction == Faction.GREEN_TEACHER;
     }
+
+    public boolean protectsPlayer(Player player) { return false; }
 
     public Faction faction() { return Faction.MISS; }
 
@@ -362,7 +370,7 @@ public abstract class FpeEntity extends Monster {
         return super.hurt(s, amount);
     }
 
-    @Override public boolean canAttack(LivingEntity t) { return (!(t instanceof FpeEntity f) || hostile(faction(), f.faction())) && super.canAttack(t); }
+    @Override public boolean canAttack(LivingEntity t) { return (!(t instanceof Player p) || !protectsPlayer(p)) && (!(t instanceof FpeEntity f) || hostile(faction(), f.faction())) && super.canAttack(t); }
 
     @Override
     public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); t.putInt("FpeVariant", getVariant()); t.putInt("FpeStance", getStance()); }

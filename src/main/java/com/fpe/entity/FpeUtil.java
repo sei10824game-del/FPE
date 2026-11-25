@@ -33,6 +33,7 @@ public final class FpeUtil {
             Entity owner = f.getOwner();
             return owner == null ? b instanceof FpeEntity : isAlly(owner, b);
         }
+        if (a instanceof FpeEntity fa && b instanceof Player p && fa.protectsPlayer(p)) return true;
         if (!(b instanceof FpeEntity fb)) return false;
         return a instanceof FpeEntity fa && !FpeEntity.hostile(fa.faction(), fb.faction());
     }

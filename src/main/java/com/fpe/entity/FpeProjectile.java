@@ -43,7 +43,8 @@ public class FpeProjectile extends Projectile {
         KNIFE       (0.03f, 0.99f, false, false, 0f,   0,  50, 0f,  0f),
         ABC_BLOCK   (0.05f, 0.99f, false, false, 1.4f, 0,  70, 15f, 0f),   // bouncy letter block, small blast
         BLADE_WAVE  (0.00f, 1.00f, true,  false, 0f,   0,  25, 0f,  0f),   // flat crescent slash wave (pierces)
-        FIREBALL    (0.00f, 1.00f, false, false, 1.5f, 0,  60, 0f,  0f);   // pyromaniac fireball
+        FIREBALL    (0.00f, 1.00f, false, false, 1.5f, 0,  60, 0f,  0f),   // pyromaniac fireball
+        BILE        (0.025f, 0.99f, false, false, 0f, 0, 45, 7f, 0f);
 
         public final float gravity, drag, explodeRadius, spin, homing;
         public final boolean pierce, boomerang;
@@ -166,6 +167,7 @@ public class FpeProjectile extends Projectile {
         }
         if (k == Kind.BULLET || k == Kind.PENCIL || k == Kind.KNIFE || k == Kind.DIAMOND) l.invulnerableTime = 0;   // rapid-fire shots must not be eaten by i-frames
         if (l.hurt(damageSources().thrown(this, o == null ? this : o), damage)) {
+            if (k == Kind.BILE) l.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.POISON, 60, 0), o);
             if (o != null) FpeUtil.knock(l, position().subtract(getDeltaMovement()), 0.5, 0.15);
         }
         hitSet.add(e.getUUID());
@@ -220,6 +222,7 @@ public class FpeProjectile extends Projectile {
         switch (k) {
             case GRENADE, BOMBLET -> { if (age % 2 == 0) level().addParticle(ParticleTypes.SMOKE, getX(), getY() + 0.2, getZ(), 0, 0.02, 0); }
             case ROCKET -> level().addParticle(ParticleTypes.FLAME, getX(), getY(), getZ(), 0, 0, 0);
+            case BILE -> level().addParticle(ParticleTypes.SPORE_BLOSSOM_AIR, getX(), getY(), getZ(), 0, 0, 0);
             case FIREBALL -> { level().addParticle(ParticleTypes.FLAME, getX(), getY(), getZ(), 0, 0.01, 0); level().addParticle(ParticleTypes.SMOKE, getX(), getY(), getZ(), 0, 0.02, 0); }
             case SHADOW_ORB -> { level().addParticle(ParticleTypes.SQUID_INK, getX(), getY(), getZ(), 0, 0, 0); level().addParticle(ParticleTypes.SMOKE, getX(), getY(), getZ(), 0, 0, 0); }
             case BULLET -> level().addParticle(ParticleTypes.CRIT, getX(), getY(), getZ(), 0, 0, 0);

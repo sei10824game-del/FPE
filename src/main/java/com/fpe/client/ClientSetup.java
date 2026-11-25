@@ -64,6 +64,7 @@ public final class ClientSetup {
         e.registerEntityRenderer(ModEntities.HOST_OLIVER.get(), c -> new FpeRenderer<>(c, PaperblightHostsSpec.OLIVER));
         e.registerEntityRenderer(ModEntities.HOST_THAVEL.get(), c -> new FpeRenderer<>(c, PaperblightHostsSpec.THAVEL));
         e.registerEntityRenderer(ModEntities.PAPERBLIGHT_CLAIRE.get(), c -> new FpeRenderer<>(c, PaperblightHostsSpec.CLAIRE));
+        ModEntities.ZOMBIE_AU.forEach((role, type) -> e.registerEntityRenderer(type.get(), c -> new FpeRenderer<>(c, ZombieAuSpec.MODELS.get(role))));
         e.registerEntityRenderer(ModEntities.HOST_ZIP.get(), c -> new FpeRenderer<>(c, PaperblightHostsSpec.ZIP));
         e.registerEntityRenderer(ModEntities.PROJECTILE.get(), FpeProjectileRenderer::new);
         e.registerEntityRenderer(ModEntities.FX.get(), FpeFxRenderer::new);

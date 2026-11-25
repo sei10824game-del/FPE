@@ -44,7 +44,7 @@ public final class HostilityGameTests {
         for (var faction : FpeEntity.Faction.values()) {
             h.assertTrue(FpeEntity.hostile(FpeEntity.Faction.INSANITY, faction)
                     == FpeEntity.hostile(faction, FpeEntity.Faction.INSANITY), "Insanity feud must be symmetric");
-            if (faction != FpeEntity.Faction.MISS && faction != FpeEntity.Faction.GREEN_TEACHER && faction != FpeEntity.Faction.INSANITY)
+            if (faction != FpeEntity.Faction.MISS && faction != FpeEntity.Faction.GREEN_TEACHER && faction != FpeEntity.Faction.INSANITY && faction != FpeEntity.Faction.SURVIVOR)
                 h.assertTrue(FpeEntity.hostile(FpeEntity.Faction.INSANITY, faction)
                         == FpeEntity.hostile(FpeEntity.Faction.MISS, faction), "Existing non-teacher relationships must remain stable");
         }
