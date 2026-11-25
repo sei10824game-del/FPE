@@ -50,6 +50,31 @@ class Rig(Model):
 
 def cube(m,*a,**k):return m.cube(*a,**k)
 
+def inverse_rotation(v,rotation):
+    """Inverse of Blockbench/ModelPart Rz*Ry*Rx, without external packages."""
+    x,y,z=[math.radians(-a) for a in rotation];px,py,pz=v
+    px,py=px*math.cos(z)-py*math.sin(z),px*math.sin(z)+py*math.cos(z)
+    px,pz=px*math.cos(y)+pz*math.sin(y),-px*math.sin(y)+pz*math.cos(y)
+    py,pz=py*math.cos(x)-pz*math.sin(x),py*math.sin(x)+pz*math.cos(x)
+    return px,py,pz
+
+def aim_weapon(pose,axis=(0,0,-1)):
+    """Counter-rotate the actual barrel axis to entity forward (-Z).
+
+    Grace's upward rest barrel and Lizzy's forward rest barrel have different
+    local axes. Invert the entire animated parent chain rather than guessing a
+    wrist angle; torso turns and forearm bend are included in the solution.
+    """
+    d=(0,0,-1)
+    for b in ('root','body','chest','arm_r','fore_r','hand_r'):
+        d=inverse_rotation(d,pose.get(b,(0,0,0)))
+    dx,dy,dz=d;dy=max(-1,min(1,dy))
+    if tuple(axis)==(0,1,0):
+        return (-math.degrees(math.acos(dy)),math.degrees(math.atan2(-dx,-dz)),0)
+    if tuple(axis)==(0,0,-1):
+        return (math.degrees(math.asin(dy)),math.degrees(math.atan2(-dx,-dz)),0)
+    raise ValueError('gun_axis must be up (0,1,0) or forward (0,0,-1)')
+
 def rib(m,name,bone,a,b,width,depth,color,**kw):
     dx,dy,dz=(v-u for u,v in zip(a,b));length=math.dist(a,b)
     if length<.001:raise ValueError(name+' has zero length')
@@ -138,6 +163,8 @@ def author_animations(m,height=None,style='claw'):
         if ability=='backstep':p.update(chest=(-16 if hit else 15,-14,0),arm_l=(65 if hit else 35,0,42),fore_l=(-100,0,-15),leg_r=(-32,0,0),leg_l=(29,0,0))
         if ability=='grab':p['arm_l']=(105 if hit else 27,20,-15);p['hand_l']=(35 if hit else -20,0,0)
         if ability=='rally' and style!='medic':p.update(arm_l=(-20,0,45),fore_l=(-120,0,-30),head=(12,0,0),body=(8,0,0))
+        if style=='gun' and ability in ('volley','signature'):
+            p['weapon']=aim_weapon(p,getattr(m,'gun_axis',(0,0,-1)))
         return p
     def make(name,ticks,frames,loop=False):
         tracks={}

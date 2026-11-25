@@ -75,7 +75,8 @@ def bubble():
     return m.finish()
 
 def lizzy():
-    m=Rig('survivor_lizzy',1.9,'gun');limbs(m,INK,INK,BLACK,PAPER,4.4);head(m)
+    m=Rig('survivor_lizzy',1.9,'gun');m.gun_axis=(0,0,-1)
+    limbs(m,INK,INK,BLACK,PAPER,4.4);head(m)
     box(m,'long_hair','hair',(-3,19.5,.4),(3.1,30,2),INK)
     spikes(m,INK,.25)
     poly(m,'beret','hair',[(-3.7,30),(-2.7,32),(1.8,32.2),(3.5,30.1)],0,MINT,3.6)

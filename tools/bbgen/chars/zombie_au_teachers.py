@@ -60,6 +60,7 @@ def medkit(m,b='hand_l',x=-4,y=11):
 
 def grace():
     m=Rig('survivor_grace',2.4,'gun');limbs(m,shirt=DARK,pants=INK,boots=INK)
+    m.gun_axis=(0,1,0)  # Raised barrel in the authored rest geometry.
     head(m);face(m,bandage=True);hair(m,GREY,length=22.5,spiky=True)
     # Leave room for the officer cap above the sharp fringe.
     for e in m.cubes:
