@@ -21,9 +21,12 @@ def spikes(m,color=PAPER,length=1):
         poly(m,'fringe_'+str(j),'hair',[(x,30.5),(x+1.4,30.2),(x+.7,27.6),(x-.15,28.5)],-1.72,color,.55)
 
 def eye(m,x,y=27.8,color=INK,r=.38):
+    # Nested lenses/pupils need real depth separation, otherwise coplanar faces flicker.
+    layers=getattr(m,'_eye_layers',{});key=(round(x,3),round(y,3));layer=layers.get(key,0)
+    layers[key]=layer+1;m._eye_layers=layers;z=-2.10-.028*layer
     for j in range(5):
         w=r*math.sqrt(1-((j+.5)/2.5-1)**2)
-        box(m,'eye','head',(x-w,y-r+j*2*r/5,-2.10),(x+w,y-r+(j+1)*2*r/5,-1.98),color)
+        box(m,'eye','head',(x-w,y-r+j*2*r/5,z),(x+w,y-r+(j+1)*2*r/5,z+.12),color)
 
 def stitches(m,y=26.2):
     rib(m,'mouth_seam','head',(-1.35,y,-1.9),(1.35,y+.1,-1.9),.12,.12,INK)
@@ -54,6 +57,13 @@ def riley():
 
 def bubble():
     m=Rig('survivor_bubble',1.8,'medic');limbs(m,PAPER,INK,BLACK,PAPER,2.5);head(m)
+    # White puffed sleeves and a tilted medical tag in the curled crown.
+    for side,sgn in [('r',1),('l',-1)]:
+        poly(m,'puff_sleeve_'+side,'arm_'+side,[(sgn*2.4,23.4),(sgn*4.4,23.0),(sgn*5.0,20.8),(sgn*3.3,20.3)],0,PAPER,2.0)
+        for j in range(3):
+            box(m,'side_curl','hair_'+side,(sgn*2.7-.6,25.2+j*.9,-.8),(sgn*2.7+.6,26.4+j*.9,1.6),PAPER)
+    box(m,'medical_hair_tag','hair',(-1.7,30.4,-1.45),(1.5,32,-1.05),GREY)
+    for j in range(3):rib(m,'tag_mark','hair',(-1.2,30.7+j*.35,-1.52),(.7,30.7+j*.35,-1.52),.1,.07,DARK)
     # Puffy curls, rather than the angular locks worn by the other students.
     for j,(x,y) in enumerate([(-3.3,28),(-3.0,30),(-1.8,31.2),(0,31.5),(1.9,31.1),(3,29.6),(3.3,27.5)]):
         for k in range(5):
@@ -131,7 +141,8 @@ def oliver(zombie=False):
             for j in range(3):rib(m,'infected_finger','hand_'+side,(s*(3.35+j*.65),13.3,-.2),(s*(3.2+j*.85),10.6,-.5),.35,.45,GREEN)
     else:
         box(m,'face_bandage','head',(-2.3,25.8,-1.9),(2.3,27.5,-1.65),BLACK)
-        eye(m,1.05,28.0,INK,.34)
+        eye(m,1.05,28.0,PAPER,.58);eye(m,1.05,28.0,INK,.20)
+        rib(m,'angry_upper_lid','head',(.35,28.4,-2.25),(1.65,28.6,-2.25),.14,.12,INK)
         for s in (-1,1):
             poly(m,'green_bow','chest',[(s*.2,23),(s*1.5,23.7),(s*1.3,21.8)],-1.5,GREEN,.3)
             box(m,'boot_green_stripe','foot_r' if s>0 else 'foot_l',(s*1.25-.94,3.6,-1.56),(s*1.25+.94,4,-1.4),GREEN)

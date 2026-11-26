@@ -108,7 +108,7 @@ def head(m,color=PAPER,y=25,width=5,height=5.6,depth=3):
 
 def face(m,bandage=False,eyes=INK,angry=False):
     for s in [-1,1]:
-        m.cube('eye_'+str(s),'head',(s*1.05-.32,27.6,-1.62),(s*1.05+.32,28.15,-1.49),eyes,grain=0)
+        m.cube('eye_'+str(s),'head',(s*1.05-.32,27.6,-1.94),(s*1.05+.32,28.15,-1.80),eyes,grain=0)
         if angry:rib(m,'brow_'+str(s),'head',(s*.45,28.5,-1.67),(s*1.5,28.8,-1.67),.20,.12,INK)
     rib(m,'mouth','head',(-.6,26.4,-1.64),(.65,26.5,-1.64),.13,.14,INK)
     if bandage:
@@ -167,7 +167,8 @@ def author_animations(m,height=None,style='claw'):
         if ability=='rally' and style!='medic':p.update(arm_l=(-20,0,45),fore_l=(-120,0,-30),head=(12,0,0),body=(8,0,0))
         if style=='gun' and ability in ('volley','signature'):
             p['weapon']=aim_weapon(p,getattr(m,'gun_axis',(0,0,-1)))
-        if m.name=='survivor_bloomie':
+        if m.name in ('survivor_bloomie','survivor_thavel'):
+            # Main tool/claw is on the reference's left arm.
             # Blade replaces the LEFT forearm; give it the authored strike.
             for a,b in [('arm_r','arm_l'),('fore_r','fore_l'),('hand_r','hand_l')]:
                 right,left=p[a],p[b]
@@ -204,10 +205,12 @@ def author_animations(m,height=None,style='claw'):
                  leg_r=(-5,0,-2),leg_l=(-3,0,2),shin_r=(8,0,0),shin_l=(6,0,0),foot_r=(-3,0,1),foot_l=(-3,0,-1),_pos=(0,-.15+.045*w,0))
         if style=='gun':q.update(arm_r=(12,0,-12),fore_r=(-36,0,-4),arm_l=(2,0,8),fore_l=(-18,0,0))
         if style=='medic':q.update(arm_r=(2,0,-9),fore_r=(-24,0,0),arm_l=(8,0,10),fore_l=(-30,0,0))
+        if m.name=='survivor_sasha':q.update(arm_r=(18,-18,-24),fore_r=(78,0,-60),arm_l=(26,16,24),fore_l=(76,0,60),head=(-6,7,-2))
+        if m.name=='survivor_thavel':q.update(arm_l=(88,-7,24),fore_l=(90,0,8),hand_l=(-12,0,0),arm_r=(0,0,-11),fore_r=(-22,0,0))
         if m.name=='survivor_riley':q.update(body=(7,0,-3),head=(-5,-7,3),fore_r=(-24,0,0))
         if m.name=='survivor_oliver':q.update(arm_l=(0,0,19),fore_l=(-55,0,-18),body=(1,-3,-2))
         if m.name=='survivor_bloomie':q.update(arm_l=(9,-9,17),fore_l=(-18,0,-7),weapon_l=(0,0,-12))
-        if style=='chainsaw':q.update(body=(5,-3,-2),arm_l=(12,0,14),fore_l=(-22,0,0),arm_r=(3,0,-10),fore_r=(-16,0,0))
+        if style=='chainsaw':q.update(body=(5,-3,-2),arm_l=(12,0,14),fore_l=(-22,0,0),arm_r=(65,0,18),fore_r=(90,0,-8))
         if m.name=='zombie_abbie':q.update(body=(7,0,2),chest=(7,0,-2),head=(-8,4,-3),fore_r=(-7,0,0),fore_l=(-11,0,0))
         return q
     rest=standing()

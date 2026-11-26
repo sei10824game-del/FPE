@@ -62,6 +62,15 @@ def grace():
     m=Rig('survivor_grace',2.65,'gun');limbs(m,shirt=DARK,pants=INK,boots=INK)
     m.gun_axis=(0,1,0)  # Raised barrel in the authored rest geometry.
     head(m);face(m,bandage=True);hair(m,GREY,length=22.5,spiky=True)
+    # Wide lateral grey locks and the asymmetric gold cheek badge identify Grace.
+    for e in m.cubes:
+        if e['name'].startswith(('side_hair_','hair_spike_','pointed_fringe_')):
+            for key in ('from','to','origin'):e[key][0]*=1.16
+    remove={e['uuid'] for e in m.cubes if e['name'] in ('facial_bandage_2','facial_bandage_3','bandage_seam_2','bandage_seam_3')}
+    m.cubes[:]=[e for e in m.cubes if e['uuid'] not in remove]
+    for g in m.groups.values():g['children'][:]=[v for v in g['children'] if not isinstance(v,str) or v not in remove]
+    poly(m,'gold_cheek_badge','head',[(1.7,28.5),(3.0,27.0),(1.7,26.1)],-1.91,.28,GOLD)
+    poly(m,'badge_inner_triangle','head',[(1.95,27.9),(2.58,27.1),(1.95,26.7)],-2.09,.10,DARK)
     # Leave room for the officer cap above the sharp fringe.
     for e in m.cubes:
         if e['name'].startswith('hair_spike_'):
@@ -99,7 +108,7 @@ def grace():
 
 def demi():
     m=Rig('survivor_demi',2.5,'medic');limbs(m,shirt=PAPER,pants=INK,boots=INK)
-    head(m);face(m);hair(m,PAPER,length=24,spiky=True);coat(m,PAPER,7.4,4)
+    head(m);face(m);hair(m,PAPER,length=23.8,spiky=True);coat(m,PAPER,7.4,4)
     for e in m.cubes:
         if e['name'].startswith('hair_spike_'):
             for key in ['from','to','origin']:e[key][1]-=.8*m.unit
@@ -113,7 +122,18 @@ def demi():
         poly(m,'hair_rod_'+str(s),'head',[(s*.9,30.3),(s*2.3,32),(s*2.6,32),(s*1.2,30.2)],.1,.45,GREY)
         rib(m,'hair_rod_cross_'+str(s),'head',(s*1.6,30.7,-.15),(s*2.3,31.4,.5),.35,.35,PAPER)
     m.cube('glasses_bridge','head',(-.25,27.9,-1.92),(.25,28.06,-1.7),GOLD,grain=0)
-    m.cube('doctor_face_mask','head',(-1.65,25.7,-1.82),(1.65,27,-1.61),MINT,grain=.015)
+    # Broad angular GOLD mask, visible in the enlarged source rather than mint gauze.
+    poly(m,'doctor_face_mask','head',[(-2.15,27.5),(0,26.7),(2.1,27.5),(1.7,25.8),(-1.75,25.8)],-1.91,.30,GOLD)
+    for side,sgn in [('r',1),('l',-1)]:
+        poly(m,'wide_white_sidehair_'+side,'hair_'+side,[(sgn*1.5,30),(sgn*3.0,30.4),(sgn*4.5,28.8),(sgn*3.5,29.0),(sgn*4.4,25),(sgn*2.8,24),(sgn*2.3,27)],.45,2.7,PAPER)
+        a=(sgn*1.15,30.5,0);b=(sgn*2.6,33.2,0)
+        rib(m,'syringe_barrel_'+side,'head',a,b,.42,.58,GREY)
+        rib(m,'syringe_needle_'+side,'head',b,(sgn*2.93,33.85,0),.12,.17,INK)
+        rib(m,'syringe_plunger_'+side,'head',(sgn*.9,30.1,0),(sgn*1.2,30.65,0),.24,.35,INK)
+        for j in range(4):
+            x=sgn*(1.3+j*.3);y=30.8+j*.55
+            seam(m,'syringe_mark_'+side+str(j),'head',(x-.18,y,-.34),(x+.18,y,-.34),DARK,.08)
+    poly(m,'gold_neck_wrap','chest',[(-1.5,25.2),(1.5,25.2),(1.4,23.1),(0,22.4),(-1.4,23.2)],-.9,1.5,GOLD)
     for i in range(3):seam(m,'mask_pleat_'+str(i),'head',(-1.45,25.9+i*.35,-1.9),(1.45,25.9+i*.35,-1.9),GREY,.06)
     medkit(m);wrap(m,'fore_r',4,18.2,2.8,1.55)
     cross(m,'coat_medical_mark','chest',1.5,21,-1.3,MINT,.42)
@@ -138,7 +158,16 @@ def sasha():
         for j in range(3):
             m.cube('armour_plate_'+side+str(j),'shin_'+side,(x-.78,1.3+j*1.9,-.94),(x+.78,2.9+j*1.9,-.75),MINT,grain=.01)
         for xx in [x-.83,x+.68]:m.cube('boot_vertical_trim_'+str(xx),'shin_'+side,(xx,.7,-.99),(xx+.15,7.5,-.83),DARK,grain=0)
-    medkit(m,x=-4,y=11.5)
+    # Reference Sasha folds both arms across a large angular chest wrap.
+    for j,(pts,col) in enumerate([
+        ([(-2.2,23),(0,24),(2.3,22),(0,20)],PAPER),
+        ([(-2.3,21.8),(0,22.9),(2.4,20.8),(0,18.6)],GREY),
+        ([(-2.1,20),(0,21.4),(2,19.5),(0,17.9)],PAPER)]):
+        poly(m,'folded_chest_wrap_'+str(j),'chest',pts,-1.55-.03*j,.35,col)
+        for a,b in zip(pts,pts[1:]+pts[:1]):seam(m,'wrap_edge_'+str(j),'chest',(*a,-1.79-.03*j),(*b,-1.79-.03*j),DARK,.08)
+    # Short asymmetrical bob with a swept upper lock and a long back curl.
+    poly(m,'sasha_swept_bang','hair',[(-2.8,30.5),(.8,30.6),(3.9,28.9),(1.1,29),(-.3,27.5),(-2.7,27.6)],-1.8,.65,INK)
+    poly(m,'sasha_back_curl','hair',[(-2.0,30),(-3.9,29),(-3.8,24),(-4.7,23),(-2.4,22),(-1.8,25)],1.1,2.3,INK)
     return m
 
 def thavel():
@@ -162,6 +191,23 @@ def thavel():
     rib(m,'claw_thumb','hand_r',(5.8,15.8,0),(7,14.3,-.5),.85,.85,INK)
     rib(m,'claw_thumb_hook','hand_r',(7,14.3,-.5),(6.6,12.7,-1),.5,.55,INK)
     wrap(m,'fore_r',4,20,4.7,1.85);wrap(m,'fore_l',-4,18.5,3.6,1.55)
+    # Smaller dark claw on the free right hand is also visible in the source.
+    remove={e['uuid'] for e in m.cubes if e['name']=='hand_r'}
+    m.cubes[:]=[e for e in m.cubes if e['uuid'] not in remove]
+    for g in m.groups.values():g['children'][:]=[v for v in g['children'] if not isinstance(v,str) or v not in remove]
+    m.cube('free_dark_palm','hand_r',(3.2,13.2,-.8),(4.8,15.0,.8),INK)
+    for j in range(3):rib(m,'free_claw_'+str(j),'hand_r',(3.4+j*.5,13.6,-.2),(3.2+j*.65,11.9,-.6),.32,.38,INK)
+    # Beige round cap over the bandages; the source is not a pointed hood.
+    for j in range(7):
+        y=29.4+j*.38;w=2.75*(1-(j/8)**2)**.5
+        m.cube('beige_cap_dome_'+str(j),'head',(-w,y,-1.55),(w,y+.4,1.6),0xB5B7A3,grain=.015)
+    for y in (29.6,30.3):seam(m,'cap_band','head',(-2.7,y,-1.63),(2.7,y,-1.63),GREY,.14)
+    # The raised huge claw is on her LEFT. Mirror only this hand's solid anatomy.
+    for e in m.cubes:
+        if e['name'].startswith(('giant_claw_','claw_digit_','claw_hook_','claw_thumb')):
+            old=m.groups['hand_r']['children'];old.remove(e['uuid']);m.groups['hand_l']['children'].append(e['uuid'])
+            e['from'][0],e['to'][0]=-e['to'][0],-e['from'][0];e['origin'][0]*=-1
+            e['rotation'][1]*=-1;e['rotation'][2]*=-1
     return m
 
 def circle():
@@ -174,6 +220,13 @@ def circle():
     for s in [-1,1]:
         poly(m,'wolf_ear_'+str(s),'head',[(s*.9,29.8),(s*2.25,32),(s*2.6,29.2)],.3,2.15,INK)
         poly(m,'ear_inner_'+str(s),'head',[(s*1.45,30),(s*2.16,31.5),(s*2.32,29.8)],-.86,.15,PAPER)
+    for side,sgn in [('r',1),('l',-1)]:
+        x=sgn*1.18
+        m.cube('goggle_frame_'+side,'head',(x-1.13,28.6,-2.13),(x+1.13,29.7,-1.68),GREY,grain=0)
+        m.cube('goggle_lens_'+side,'head',(x-.87,28.8,-2.23),(x+.87,29.5,-2.12),MINT,grain=0)
+        seam(m,'goggle_reflection_'+side,'head',(x-.55,28.9,-2.27),(x-.15,29.4,-2.27),PAPER,.10)
+        poly(m,'tall_ear_inner_'+side,'head',[(sgn*1.35,29.7),(sgn*2.05,31.8),(sgn*2.35,29.6)],-.94,.18,PAPER)
+    m.cube('goggle_bridge','head',(-.3,28.95,-2.2),(.3,29.25,-1.98),DARK,grain=0)
     m.cube('mint_scarf_collar','chest',(-2.3,23.3,-1.6),(2.3,25.2,1.4),MINT,grain=.015)
     poly(m,'scarf_front','chest',[(-2.1,24),(2,24),(1.4,20.4),(-.3,21),(-1.7,22)],-1.68,.6,MINT)
     poly(m,'scarf_tail','coat',[(1.1,24),(2.6,23),(3.5,17.5),(1.8,18.3)],-.2,1,MINT)
@@ -196,6 +249,8 @@ def circle():
     rib(m,'chainsaw_front_handle','weapon',(3.4,17.8,-.2),(6.5,17.8,-.2),.42,.46,INK)
     rib(m,'chainsaw_rear_handle','weapon',(3.45,16.5,.5),(2.9,18.4,.5),.5,.5,INK)
     m.cube('chainsaw_rivet','weapon',(4.6,15.4,-1.32),(5.1,15.9,-1.15),GOLD,grain=0)
+    for j in range(3):
+        rib(m,'free_hand_black_nail_'+str(j),'hand_r',(3.5+j*.48,13.5,-.25),(3.35+j*.6,12.2,-.6),.22,.3,INK)
     # Reference handedness: the saw replaces her LEFT forearm, rather than
     # being carried in an extra right hand. Mirror the complete machine rig.
     removed={e['uuid'] for e in m.cubes if e['name'] in ('forearm_l','hand_l')}
@@ -222,6 +277,13 @@ def bloomie():
     m=Rig('survivor_bloomie',2.55,'claw');limbs(m,shirt=MINT,pants=PAPER,boots=INK,skin=PAPER)
     head(m);face(m,bandage=True);hair(m,INK,length=25.5,spiky=True);collar(m,PAPER)
     coat(m,PAPER,11.2,3.5)
+    # Bloomie's visible triangular scarf replaces a generic school necktie.
+    remove={e['uuid'] for e in m.cubes if e['name'] in ('black_necktie','tie_tip')}
+    m.cubes[:]=[e for e in m.cubes if e['uuid'] not in remove]
+    for g in m.groups.values():g['children'][:]=[v for v in g['children'] if not isinstance(v,str) or v not in remove]
+    poly(m,'bloomie_triangular_scarf','chest',[(-2.4,24.2),(2.2,24.2),(1.8,21.2),(.1,19.5),(-1.8,21.3)],-1.6,.7,MINT)
+    for a,b in [((-2.1,23.8),(.1,21.1)),((2,23.8),(.1,21.1))]:seam(m,'scarf_fold','chest',(*a,-2.01),(*b,-2.01),GREY,.12)
+    poly(m,'bloomie_heavy_fringe','hair',[(-3.2,30.8),(1.4,31.9),(4.2,30.9),(1.7,29.5),(.8,26.5),(-.4,28.2),(-1.8,26.3),(-3.2,28)],-1.86,.6,INK)
     m.cube('mint_shirt_waist','body',(-2.5,14.4,-1.2),(2.5,16,1.25),MINT,grain=.015)
     # The reference's weapon is the LEFT forearm itself. Remove the ordinary
     # left forearm/hand beneath it, instead of leaving a hidden duplicate limb.
