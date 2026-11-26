@@ -110,5 +110,25 @@
     "name": "fpe:miss_circle/death"
    }
   ]
+ },
+ "zombie_au.chainsaw_engine": {
+  "subtitle": "subtitles.fpe.chainsaw_engine",
+  "sounds": [
+   {
+    "name": "fpe:zombie_au/chainsaw_engine",
+    "volume": 0.85,
+    "pitch": 1.0
+   }
+  ]
+ },
+ "zombie_au.chainsaw_cut": {
+  "subtitle": "subtitles.fpe.chainsaw_cut",
+  "sounds": [
+   {
+    "name": "fpe:zombie_au/chainsaw_cut",
+    "volume": 0.85,
+    "pitch": 1.0
+   }
+  ]
  }
 }

@@ -119,6 +119,13 @@ def oliver(zombie=False):
             eye(m,s*1.05,27.8,INK,.9);eye(m,s*1.05,27.8,GREEN,.68)
             rib(m,'eye_drip','head',(s*1.05,27.2,-1.93),(s*1.3,25.9,-1.93),.27,.16,GREEN)
         stitches(m,25.8)
+        # The infected Oliver wears shorts with exposed/bandaged shins.
+        for e in m.cubes:
+            if e['name'].startswith('trouser_'):
+                e['from'][1]=12.5*m.unit
+        for side,sgn in [('r',1),('l',-1)]:
+            box(m,'exposed_thigh','leg_'+side,(sgn*1.25-.74,7.3,-.7),(sgn*1.25+.74,12.7,.75),PAPER)
+            for j in range(3):box(m,'shin_wrap','shin_'+side,(sgn*1.25-.77,5.5+j*.8,-.82),(sgn*1.25+.77,5.9+j*.8,.81),GREY)
         for side,s in [('r',1),('l',-1)]:
             box(m,'mutant_palm','hand_'+side,(s*4-1,12.7,-.9),(s*4+1,15,.9),GREEN)
             for j in range(3):rib(m,'infected_finger','hand_'+side,(s*(3.35+j*.65),13.3,-.2),(s*(3.2+j*.85),10.6,-.5),.35,.45,GREEN)
@@ -129,6 +136,12 @@ def oliver(zombie=False):
             poly(m,'green_bow','chest',[(s*.2,23),(s*1.5,23.7),(s*1.3,21.8)],-1.5,GREEN,.3)
             box(m,'boot_green_stripe','foot_r' if s>0 else 'foot_l',(s*1.25-.94,3.6,-1.56),(s*1.25+.94,4,-1.4),GREEN)
         dagger(m)
+        # Reference has long swept hair behind the shoulder, not just a short crown.
+        for x,bone in [(1.9,'hair_l'),(2.7,'hair_l')]:
+            poly(m,'long_swept_lock',bone,[(x,29),(x+1.3,26),(x+1.2,18),(x+.4,15),(x-.3,21)],1.5,PAPER,1.4)
+        # Belt loops and glove cuffs make the trousers/hand joins readable in 3D.
+        for side,sgn in [('r',1),('l',-1)]:
+            box(m,'glove_cuff','hand_'+side,(sgn*4-.77,14.4,-.85),(sgn*4+.77,15.3,.85),BLACK)
         for s,side in [(1,'r'),(-1,'l')]:
             box(m,'cargo_pocket','leg_'+side,(s*1.25-.7,9.6,-.99),(s*1.25+.7,12,-.77),PAPER)
             box(m,'pocket_flap','leg_'+side,(s*1.25-.74,11.6,-1.07),(s*1.25+.74,12.05,-.94),GREY)
@@ -157,9 +170,12 @@ def zip_zombie():
     for s,b in [(1,'coat_r'),(-1,'coat_l')]:poly(m,'torn_tunic',b,[(s*.3,23),(s*2.8,22),(s*4,12),(s*2.9,13),(s*2.7,10.3),(s*1,11)],0,PAPER,2.5)
     # Ragged black bat membranes attach to articulated wing bones.
     for s,b in [(1,'wing_r'),(-1,'wing_l')]:
-        poly(m,'infected_wing',b,[(s*2.1,23),(s*8.5,25),(s*7,19),(s*9,15),(s*5.5,16),(s*5,11),(s*2.2,17)],1.6,INK,.6)
-        for ex,ey in [(8.4,25),(7,19),(9,15),(5,11)]:rib(m,'wing_bone',b,(s*2.2,22,1.7),(s*ex,ey,1.7),.22,.35,DARK)
+        poly(m,'infected_wing',b,[(s*2.1,23),(s*6.8,23.5),(s*6.4,16),(s*8.0,1),(s*5.3,2.8),(s*4.8,.7),(s*3.5,7),(s*2.2,14)],1.6,INK,.6)
+        for ex,ey in [(6.8,23.5),(6.4,16),(8,1),(4.8,.7)]:rib(m,'wing_bone',b,(s*2.2,22,1.7),(s*ex,ey,1.7),.22,.35,DARK)
     poly(m,'long_tail','tail',[(0,15),(2,11),(4,6),(6,3),(9,5),(7,1),(4,1),(1,7),(-1,12)],1.3,INK,.7)
+    for side,sgn in [('r',1),('l',-1)]:
+        for j in range(3):
+            rib(m,'elongated_claw','hand_'+side,(sgn*(3.4+j*.6),13.7,-.3),(sgn*(3+j*.95),9.6,-.5),.3,.4,GREY if sgn<0 else INK)
     # Spiral antenna above the left half.
     pts=[(-1,30),(-1.3,33),(-3.5,33.5),(-3.8,31.8),(-2.3,31.5),(-2.2,32.4),(-3,32.4)]
     for a,b in zip(pts,pts[1:]):rib(m,'antenna','hair',(*a,.6),(*b,.6),.22,.3,INK)

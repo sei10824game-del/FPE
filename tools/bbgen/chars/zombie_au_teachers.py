@@ -59,7 +59,7 @@ def medkit(m,b='hand_l',x=-4,y=11):
     for s in [-1,1]:m.cube('case_latch_'+str(s),b,(x+s*1.05-.12,y+.8,-1.04),(x+s*1.05+.12,y+1.2,-.88),DARK,grain=0)
 
 def grace():
-    m=Rig('survivor_grace',2.4,'gun');limbs(m,shirt=DARK,pants=INK,boots=INK)
+    m=Rig('survivor_grace',2.65,'gun');limbs(m,shirt=DARK,pants=INK,boots=INK)
     m.gun_axis=(0,1,0)  # Raised barrel in the authored rest geometry.
     head(m);face(m,bandage=True);hair(m,GREY,length=22.5,spiky=True)
     # Leave room for the officer cap above the sharp fringe.
@@ -70,7 +70,7 @@ def grace():
     for s in [-1,1]:
         poly(m,'jacket_lapel_'+str(s),'chest',[(s*.4,24.3),(s*2.9,23.5),(s*2.2,18.1),(s*.5,19.8)],-1.36,.50,GREY)
         poly(m,'shoulder_panel_'+str(s),'arm_r' if s>0 else 'arm_l',[(s*2.5,23.8),(s*4.3,22.9),(s*4.6,20),(s*3.1,20.5)],0,2.1,GREY)
-    coat(m,DARK,7,4.1);collar(m,PAPER)
+    coat(m,GREY,7,4.1);collar(m,PAPER)
     for x,y in [(1.7,22),(-3.45,21)]:
         poly(m,'gold_authority_badge_'+str(x),'chest' if x>0 else 'arm_l',[(x-.6,y+.8),(x+.7,y+.5),(x+.35,y-.9),(x-.55,y-.5)],-1.75,.25,GOLD)
         seam(m,'badge_ink_'+str(x),'chest' if x>0 else 'arm_l',(x,y-.45,-1.94),(x,y+.48,-1.94),DARK,.12)
@@ -79,24 +79,26 @@ def grace():
     m.cube('hat_band','head',(-2.2,30.95,-1.49),(2.2,31.35,-1.34),MINT,grain=.01)
     poly(m,'hat_badge','head',[(-.5,31.9),(.5,31.9),(.3,31.3),(0,31.1),(-.3,31.3)],-1.57,.2,GREY)
     # Solid pistol: receiver, thick barrel, sight, trigger guard and grip.
-    m.cube('pistol_grip','weapon',(3.5,14.2,-.6),(4.4,16.6,.55),INK,rot=(0,0,-12),origin=(4,15,0),grain=.015)
-    m.cube('pistol_receiver','weapon',(3.25,16,-1),(4.65,18.8,.65),DARK,grain=.012)
-    m.cube('pistol_barrel','weapon',(3.65,18.4,-.75),(4.25,21.7,.1),MINT,grain=.01)
-    m.cube('barrel_muzzle','weapon',(3.78,21.68,-.62),(4.12,21.85,-.02),INK,grain=0)
-    m.cube('pistol_front_sight','weapon',(3.8,21,-.98),(4.1,21.5,-.7),INK,grain=0)
-    for x in [3.1,4.55]:m.cube('trigger_guard_'+str(x),'weapon',(x,15.8,-1.25),(x+.25,17,-.9),INK,grain=0)
-    m.cube('trigger_guard_base','weapon',(3.1,15.7,-1.25),(4.8,16,-.9),INK,grain=0)
+    m.cube('pistol_grip','weapon',(3.55,14.2,-.45),(4.35,16,.55),INK,rot=(0,0,-12),origin=(4,15,0),grain=.015)
+    m.cube('pistol_receiver','weapon',(3.35,15.8,-.65),(4.55,17.2,.6),DARK,grain=.012)
+    m.cube('pistol_slide','weapon',(3.5,16.15,-.83),(4.35,18.5,.35),GREY,grain=.01)
+    m.cube('pistol_barrel','weapon',(3.65,17.1,-.60),(4.2,18.7,.10),DARK,grain=.01)
+    m.cube('barrel_muzzle','weapon',(3.76,18.68,-.49),(4.10,18.82,-.08),INK,grain=0)
+    m.cube('pistol_front_sight','weapon',(3.72,18.2,-.99),(4.02,18.6,-.75),INK,grain=0)
+    for x in [3.1,4.4]:m.cube('trigger_guard_'+str(x),'weapon',(x,15.35,-.90),(x+.2,16.3,-.65),INK,grain=0)
+    m.cube('trigger_guard_base','weapon',(3.1,15.25,-.90),(4.6,15.45,-.65),INK,grain=0)
+    m.cube('trigger','weapon',(3.7,15.6,-.94),(3.9,16.15,-.7),GREY,grain=0)
     # Present the gun outside the forearm silhouette, connected to the hand.
     weapon_ids=set(m.groups['weapon']['children'])
     for e in m.cubes:
         if e['uuid'] in weapon_ids:
             for key in ['from','to','origin']:
-                e[key][0]+=1.7*m.unit;e[key][2]-=.5*m.unit
-    rib(m,'pistol_grip_bridge','weapon',(4,14.6,-.2),(5.7,15.1,-.5),.8,1.05,INK)
+                e[key][0]+=.9*m.unit;e[key][2]-=.5*m.unit
+    rib(m,'pistol_grip_bridge','weapon',(4,14.6,-.2),(4.9,15.1,-.5),.8,1.05,INK)
     return m
 
 def demi():
-    m=Rig('survivor_demi',2.1,'medic');limbs(m,shirt=PAPER,pants=INK,boots=INK)
+    m=Rig('survivor_demi',2.5,'medic');limbs(m,shirt=PAPER,pants=INK,boots=INK)
     head(m);face(m);hair(m,PAPER,length=24,spiky=True);coat(m,PAPER,7.4,4)
     for e in m.cubes:
         if e['name'].startswith('hair_spike_'):
@@ -118,7 +120,7 @@ def demi():
     return m
 
 def sasha():
-    m=Rig('survivor_sasha',2,'medic');limbs(m,shirt=GREY,pants=INK,boots=GREY,boot_height=7.4)
+    m=Rig('survivor_sasha',2.45,'medic');limbs(m,shirt=GREY,pants=INK,boots=GREY,boot_height=7.4)
     head(m);face(m);hair(m,INK,length=24,spiky=False)
     collar(m,PAPER);buttons(m,c=DARK)
     m.cube('medical_waistband','body',(-2.6,14.8,-1.25),(2.6,15.5,1.3),MINT,grain=.01)
@@ -140,7 +142,7 @@ def sasha():
     return m
 
 def thavel():
-    m=Rig('survivor_thavel',2.6,'claw');limbs(m,shirt=GREY,pants=INK,boots=INK,skin=PAPER)
+    m=Rig('survivor_thavel',2.75,'claw');limbs(m,shirt=GREY,pants=INK,boots=INK,skin=PAPER)
     head(m);face(m,bandage=True);hair(m,INK,length=24,spiky=True)
     # Grey hood/eye mask and a wide mint-grey poncho over a ragged skirt.
     m.cube('eye_mask','head',(-2.2,27,-1.87),(2.2,28.55,-1.65),DARK,grain=.012)
@@ -163,7 +165,7 @@ def thavel():
     return m
 
 def circle():
-    m=Rig('survivor_circle',3,'chainsaw');limbs(m,shirt=PAPER,pants=PAPER,boots=INK,skin=PAPER,boot_height=3.3)
+    m=Rig('survivor_circle',3.1,'chainsaw');limbs(m,shirt=PAPER,pants=PAPER,boots=INK,skin=PAPER,boot_height=3.3)
     head(m);face(m,bandage=True);coat(m,PAPER,8.6,4.7);collar(m,GREY)
     # Long, saw-tooth black mane is a thick rear volume with separate layered locks.
     mane=[(-1.7,31),(-3,30.1),(-4.5,28.6),(-3.6,27.4),(-5.4,25.4),(-4.2,25.2),(-6.1,22.1),(-4.6,22.6),(-6.4,18.3),(-4.8,19),(-6.1,14.9),(-4.3,15.2),(-5.4,11),(-3.8,11.5),(-4.3,7.4),(-1.8,8.4),(0,10.2),(1.8,8.4),(4.3,7.4),(3.8,11.5),(5.4,11),(4.3,15.2),(6.1,14.9),(4.8,19),(6.4,18.3),(4.6,22.6),(6.1,22.1),(4.2,25.2),(5.4,25.4),(3.6,27.4),(4.5,28.6),(3,30.1),(1.7,31)]
@@ -175,7 +177,7 @@ def circle():
     m.cube('mint_scarf_collar','chest',(-2.3,23.3,-1.6),(2.3,25.2,1.4),MINT,grain=.015)
     poly(m,'scarf_front','chest',[(-2.1,24),(2,24),(1.4,20.4),(-.3,21),(-1.7,22)],-1.68,.6,MINT)
     poly(m,'scarf_tail','coat',[(1.1,24),(2.6,23),(3.5,17.5),(1.8,18.3)],-.2,1,MINT)
-    wrap(m,'fore_l',-4,18.4,3.4,1.5)
+    wrap(m,'fore_r',4,18.4,3.4,1.5)
     # A real vertical chainsaw: thick central steel guide, dark rim, 30 teeth,
     # powered housing and forward/side handles. It replaces the right hand.
     m.cube('chainsaw_power_housing','weapon',(3.45,14,-1),(6.4,18.3,1.4),DARK,grain=.02)
@@ -184,34 +186,60 @@ def circle():
     poly(m,'chain_outer_track','weapon',[(3.7,15),(6.1,15),(6.1,2),(5.75,.6),(4.9,.25),(4.05,.6),(3.7,2)],.1,1.5,INK)
     poly(m,'steel_guide_bar','weapon',[(4.08,14.7),(5.72,14.7),(5.72,2.2),(5.5,1.05),(4.9,.75),(4.3,1.05),(4.08,2.2)],-.05,1.6,GREY)
     m.cube('guide_centre','weapon',(4.65,1.5,-.92),(5.1,14.9,-.78),MINT,grain=.01)
+    m.group('chain_teeth_a',(4.9,8,.1),parent='weapon')
+    m.group('chain_teeth_b',(4.9,8,.1),parent='weapon')
     for j in range(15):
         y=1.25+j*.88
         for s in [-1,1]:
             x=4.9+s*1.24
-            poly(m,'chain_tooth_'+str(s)+'_'+str(j),'weapon',[(x-s*.22,y-.26),(x+s*.36,y+.02),(x-s*.22,y+.42)],.1,1.7,PAPER)
+            poly(m,'chain_tooth_'+str(s)+'_'+str(j),'chain_teeth_a' if s>0 else 'chain_teeth_b',[(x-s*.22,y-.26),(x+s*.36,y+.02),(x-s*.22,y+.42)],.1,1.7,PAPER)
     rib(m,'chainsaw_front_handle','weapon',(3.4,17.8,-.2),(6.5,17.8,-.2),.42,.46,INK)
     rib(m,'chainsaw_rear_handle','weapon',(3.45,16.5,.5),(2.9,18.4,.5),.5,.5,INK)
     m.cube('chainsaw_rivet','weapon',(4.6,15.4,-1.32),(5.1,15.9,-1.15),GOLD,grain=0)
+    # Reference handedness: the saw replaces her LEFT forearm, rather than
+    # being carried in an extra right hand. Mirror the complete machine rig.
+    removed={e['uuid'] for e in m.cubes if e['name'] in ('forearm_l','hand_l')}
+    m.cubes[:]=[e for e in m.cubes if e['uuid'] not in removed]
+    for g in m.groups.values():g['children'][:]=[c for c in g['children'] if not isinstance(c,str) or c not in removed]
+    weapon=m.groups['weapon']
+    m.groups['hand_r']['children'].remove(weapon)
+    m.groups['hand_l']['children'].append(weapon)
+    def mirror_weapon(node):
+        node['origin'][0]*=-1
+        node['rotation'][1]*=-1;node['rotation'][2]*=-1
+        for c in node['children']:
+            if isinstance(c,dict):mirror_weapon(c)
+            else:
+                e=next(e for e in m.cubes if e['uuid']==c)
+                e['from'][0],e['to'][0]=-e['to'][0],-e['from'][0]
+                e['origin'][0]*=-1
+                e['rotation'][1]*=-1;e['rotation'][2]*=-1
+    mirror_weapon(weapon)
     for side,s in [('r',1),('l',-1)]:wrap(m,'shin_'+side,s*1.25,5.3,2.4,1.7)
     return m
 
 def bloomie():
-    m=Rig('survivor_bloomie',2.25,'claw');limbs(m,shirt=MINT,pants=PAPER,boots=INK,skin=PAPER)
+    m=Rig('survivor_bloomie',2.55,'claw');limbs(m,shirt=MINT,pants=PAPER,boots=INK,skin=PAPER)
     head(m);face(m,bandage=True);hair(m,INK,length=25.5,spiky=True);collar(m,PAPER)
     coat(m,PAPER,11.2,3.5)
     m.cube('mint_shirt_waist','body',(-2.5,14.4,-1.2),(2.5,16,1.25),MINT,grain=.015)
-    # Heavy cleaver arm, with a broad curved steel blade and deep dark tang.
-    m.cube('cleaver_arm_socket','fore_r',(3.2,14,-.85),(5.25,19.5,.85),INK,grain=.012)
-    poly(m,'massive_cleaver_blade','weapon',[(4.1,17),(7,18),(8.65,21.4),(8.3,26.4),(6.5,29),(5.7,25.5),(5,21)],.1,1.0,GREY)
-    poly(m,'cleaver_polished_edge','weapon',[(7,18),(8.65,21.4),(8.3,26.4),(7.9,25.8),(8.05,21.6),(6.6,18.6)],-.47,.16,PAPER)
-    seam(m,'cleaver_spine','weapon',(5,21,-.49),(6.5,29,-.49),DARK,.18)
-    for j in range(3):m.cube('cleaver_rivet_'+str(j),'weapon',(4.1,17.1+j*.7,-.99),(4.45,17.45+j*.7,-.85),GOLD,grain=0)
-    m.cube('cut_blade_hole','weapon',(7.08,25.2,-.55),(7.62,25.8,-.49),INK,grain=0)
-    wrap(m,'fore_l',-4,18,3.5,1.5)
+    # The reference's weapon is the LEFT forearm itself. Remove the ordinary
+    # left forearm/hand beneath it, instead of leaving a hidden duplicate limb.
+    removed={e['uuid'] for e in m.cubes if e['name'] in ('forearm_l','hand_l')}
+    m.cubes[:]=[e for e in m.cubes if e['uuid'] not in removed]
+    for g in m.groups.values():g['children'][:]=[c for c in g['children'] if not isinstance(c,str) or c not in removed]
+    m.group('weapon_l',(-4,18.5,0),parent='fore_l')
+    m.cube('cleaver_elbow_mount','weapon_l',(-5.1,17.2,-1),(-3.15,20.3,1),INK,grain=.012)
+    poly(m,'massive_cleaver_blade','weapon_l',[(-4.1,18),(-6.2,18.8),(-8.1,23.2),(-8.05,27),(-6.7,29),(-5.9,26),(-5.1,22)],.1,1.0,GREY)
+    poly(m,'cleaver_polished_edge','weapon_l',[(-6.2,18.8),(-8.1,23.2),(-8.05,27),(-6.7,29),(-7.45,26.5),(-7.5,23.4),(-5.8,19.4)],-.47,.16,PAPER)
+    seam(m,'cleaver_spine','weapon_l',(-5.1,22,-.49),(-6.7,29,-.49),DARK,.18)
+    for j in range(3):m.cube('cleaver_rivet_'+str(j),'weapon_l',(-4.65,18+j*.7,-1.06),(-4.25,18.4+j*.7,-.89),GOLD,grain=0)
+    m.cube('cut_blade_hole','weapon_l',(-7.3,25.2,-.57),(-6.7,25.8,-.48),INK,grain=0)
+    wrap(m,'fore_r',4,18,3.5,1.5)
     return m
 
 def alice():
-    m=Rig('survivor_alice',2.5,'claw');limbs(m,shirt=PAPER,pants=INK,boots=INK,skin=GREY)
+    m=Rig('survivor_alice',2.2,'claw');limbs(m,shirt=PAPER,pants=INK,boots=INK,skin=GREY)
     head(m,GREY);face(m,eyes=0xD85B65,angry=True);hair(m,0x704E53,length=22.8,spiky=True)
     coat(m,PAPER,6.5,4.3);collar(m,PAPER);buttons(m,c=DARK)
     m.cube('shadow_face','head',(-1.8,26.7,-1.7),(1.8,28.9,-1.55),INK,grain=.01)

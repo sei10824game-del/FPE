@@ -58,7 +58,7 @@ def inverse_rotation(v,rotation):
     py,pz=py*math.cos(x)-pz*math.sin(x),py*math.sin(x)+pz*math.cos(x)
     return px,py,pz
 
-def aim_weapon(pose,axis=(0,0,-1)):
+def aim_weapon(pose,axis=(0,0,-1),side='r'):
     """Counter-rotate the actual barrel axis to entity forward (-Z).
 
     Grace's upward rest barrel and Lizzy's forward rest barrel have different
@@ -66,11 +66,13 @@ def aim_weapon(pose,axis=(0,0,-1)):
     wrist angle; torso turns and forearm bend are included in the solution.
     """
     d=(0,0,-1)
-    for b in ('root','body','chest','arm_r','fore_r','hand_r'):
+    for b in ('root','body','chest','arm_'+side,'fore_'+side,'hand_'+side):
         d=inverse_rotation(d,pose.get(b,(0,0,0)))
     dx,dy,dz=d;dy=max(-1,min(1,dy))
     if tuple(axis)==(0,1,0):
         return (-math.degrees(math.acos(dy)),math.degrees(math.atan2(-dx,-dz)),0)
+    if tuple(axis)==(0,-1,0):
+        return (math.degrees(math.acos(-dy)),math.degrees(math.atan2(-dx,-dz)),0)
     if tuple(axis)==(0,0,-1):
         return (math.degrees(math.asin(dy)),math.degrees(math.atan2(-dx,-dz)),0)
     raise ValueError('gun_axis must be up (0,1,0) or forward (0,0,-1)')
@@ -141,7 +143,7 @@ def author_animations(m,height=None,style='claw'):
     """
     if m.anims:return
     unit=getattr(m,'unit',(height or 2)/2)
-    bones=[n for n in m.groups if n in ('root','body','chest','head','hair','hair_r','hair_l','coat','coat_r','coat_l','arm_r','arm_l','fore_r','fore_l','hand_r','hand_l','leg_r','leg_l','shin_r','shin_l','foot_r','foot_l','weapon','tail','wing_r','wing_l')]
+    bones=[n for n in m.groups if n in ('root','body','chest','head','hair','hair_r','hair_l','coat','coat_r','coat_l','arm_r','arm_l','fore_r','fore_l','hand_r','hand_l','leg_r','leg_l','shin_r','shin_l','foot_r','foot_l','weapon','weapon_l','chain_teeth','chain_teeth_a','chain_teeth_b','tail','wing_r','wing_l')]
     def pose(kind,strength=1,direction=1):
         d=direction;s=strength
         p={b:(0,0,0) for b in bones}
@@ -165,6 +167,12 @@ def author_animations(m,height=None,style='claw'):
         if ability=='rally' and style!='medic':p.update(arm_l=(-20,0,45),fore_l=(-120,0,-30),head=(12,0,0),body=(8,0,0))
         if style=='gun' and ability in ('volley','signature'):
             p['weapon']=aim_weapon(p,getattr(m,'gun_axis',(0,0,-1)))
+        if m.name=='survivor_bloomie':
+            # Blade replaces the LEFT forearm; give it the authored strike.
+            for a,b in [('arm_r','arm_l'),('fore_r','fore_l'),('hand_r','hand_l')]:
+                right,left=p[a],p[b]
+                p[b]=(right[0],-right[1],-right[2]);p[a]=(left[0],-left[1],-left[2])
+            p['weapon_l']=(0,0,-8 if hit else 5)
         return p
     def make(name,ticks,frames,loop=False):
         tracks={}
@@ -179,19 +187,37 @@ def author_animations(m,height=None,style='claw'):
             if b in tracks:
                 tracks[b]['rotation']=[(min(ticks,t+1.5)/20,p.get('chest',(0,0,0))[0]*factor,p.get('chest',(0,0,0))[1]*factor, p.get('chest',(0,0,0))[2]*factor) for t,p in frames]
                 tracks[b]['rotation'][0]=(0,0,0,0)
+        if style=='chainsaw' and name!='death':
+            for bone,sign in [('chain_teeth',1),('chain_teeth_a',1),('chain_teeth_b',-1)]:
+                if bone in tracks:
+                    running=name not in ('idle','walk')
+                    tracks[bone]['position']=[(k/20,0,sign*(.09 if running else .025)*unit*(1 if k%4<2 else -1),0) for k in range(0,ticks+1,2)]
         m.anim(name,ticks/20,tracks,loop)
         # Fast strikes use linear interpolation for exact readable contacts.
         for a in m.anims[-1]['animators'].values():
             for k in a['keyframes']:k['interpolation']='linear'
-    rest={b:(0,0,0) for b in bones}
-    idle=[]
-    for i in range(9):
-        t=i*10;q=dict(rest);wave=math.sin(i*math.pi/4)
-        q.update(chest=(1.6*wave,0,0),head=(-1.2*wave,1.2*wave,0),arm_r=(1.8*wave,0,1),arm_l=(-1.8*wave,0,-1),_pos=(0,.12*wave,0));idle.append((t,q))
-    make('idle',80,idle,True)
+    def standing(t=0):
+        q={b:(0,0,0) for b in bones};w=math.sin(t*math.tau/80);shift=math.sin(t*math.tau/160)
+        monster=style=='monster';lean=9 if monster else 2
+        q.update(body=(lean,1.8*shift,-1.2),chest=(4+1.2*w,-2,1.2+.6*shift),head=(-lean-2-.8*w,1.8*shift,-1),
+                 arm_r=(5+1.2*w,0,-5),arm_l=(-3-1.2*w,0,7),fore_r=(-13,0,0),fore_l=(-9,0,0),
+                 leg_r=(-5,0,-2),leg_l=(-3,0,2),shin_r=(8,0,0),shin_l=(6,0,0),foot_r=(-3,0,1),foot_l=(-3,0,-1),_pos=(0,-.15+.045*w,0))
+        if style=='gun':q.update(arm_r=(12,0,-12),fore_r=(-36,0,-4),arm_l=(2,0,8),fore_l=(-18,0,0))
+        if style=='medic':q.update(arm_r=(2,0,-9),fore_r=(-24,0,0),arm_l=(8,0,10),fore_l=(-30,0,0))
+        if m.name=='survivor_riley':q.update(body=(7,0,-3),head=(-5,-7,3),fore_r=(-24,0,0))
+        if m.name=='survivor_oliver':q.update(arm_l=(0,0,19),fore_l=(-55,0,-18),body=(1,-3,-2))
+        if m.name=='survivor_bloomie':q.update(arm_l=(9,-9,17),fore_l=(-18,0,-7),weapon_l=(0,0,-12))
+        if style=='chainsaw':q.update(body=(5,-3,-2),arm_l=(12,0,14),fore_l=(-22,0,0),arm_r=(3,0,-10),fore_r=(-16,0,0))
+        if m.name=='zombie_abbie':q.update(body=(7,0,2),chest=(7,0,-2),head=(-8,4,-3),fore_r=(-7,0,0),fore_l=(-11,0,0))
+        return q
+    rest=standing()
+    make('idle',160,[(t,standing(t)) for t in range(0,161,10)],True)
     walk=[]
     for i in range(9):
-        q=dict(rest);v=math.sin(i*math.pi/4);q.update(body=(3,0,2*v),chest=(-2,3*v,0),head=(-2,-3*v,-v),leg_r=(28*v,0,0),leg_l=(-28*v,0,0),shin_r=(max(0,-v)*35,0,0),shin_l=(max(0,v)*35,0,0),foot_r=(-max(0,v)*15,0,0),foot_l=(-max(0,-v)*15,0,0),arm_r=(-18*v,0,-5),arm_l=(18*v,0,5),fore_r=(-10-8*max(0,v),0,0),fore_l=(-10-8*max(0,-v),0,0),_pos=(0,.25*abs(v),0));walk.append((i*3,q))
+        q=standing(i*10);v=math.sin(i*math.pi/4)
+        q.update(body=(10 if style=='monster' else 6,0,2*v),chest=(-1,3*v,0),head=(-5,-3*v,-v),leg_r=(26*v-4,0,-2),leg_l=(-26*v-4,0,2),shin_r=(8+max(0,-v)*32,0,0),shin_l=(8+max(0,v)*32,0,0),foot_r=(-4-max(0,v)*13,0,0),foot_l=(-4-max(0,-v)*13,0,0),arm_r=(-13*v+4,0,-7),arm_l=(13*v-2,0,8),fore_r=(-16-7*max(0,v),0,0),fore_l=(-16-7*max(0,-v),0,0),_pos=(0,-.10+.18*abs(v),0))
+        if style=='chainsaw':q.update(arm_l=(10,0,14),fore_l=(-24,0,0))
+        walk.append((i*3,q))
     make('walk',24,walk,True)
     for index,(name,(duration,contacts)) in enumerate(ABILITY_CONTRACT.items()):
         frames=[(0,rest)]
@@ -212,6 +238,46 @@ def author_animations(m,height=None,style='claw'):
             retreat=apply_style(pose('wind',.65),name,'wind');retreat['_pos']=(0,-.3,1.5);frames.extend([(16,retreat),(24,retreat)])
         frames.extend([(duration-4,pose('wind',.22)),(duration,rest)])
         frames=sorted({t:p for t,p in frames}.items())
+        if style=='chainsaw' and name=='grab':
+            # The RIGHT free hand catches/pulls; the LEFT saw braces for the finish.
+            corrected=[]
+            for tick,p in frames:
+                q=dict(p)
+                if tick not in (0,duration):
+                    q['arm_r']=p.get('arm_l',(80,0,0));q['fore_r']=p.get('fore_l',(-40,0,0))
+                    q['arm_l']=(55,-8,8);q['fore_l']=(-20,0,-6);q['hand_l']=(0,0,0)
+                    q['weapon']=aim_weapon(q,(0,-1,0),'l')
+                corrected.append((tick,q))
+            frames=corrected
+        if style=='chainsaw' and name not in ('rally','grab'):
+            saw_contacts={
+                'volley':[18,24,30], 'sweep':[14,18,22], 'double_strike':[12,16,20,26,30,34],
+                'lunge':[16,20,24,28], 'slam':[22,26,30], 'uppercut':[14,18,22],
+                'backstep':[12,16,20], 'leap':[26,30,34],
+                'signature':[24,28,32,36,40], 'frenzy':[14,18,22,30,34,38,46,50,54]}.get(name,contacts)
+            ready=dict(rest);ready.update(body=(9,0,-2),chest=(8,-7,1),head=(-12,5,0),arm_l=(62,-8,8),fore_l=(-17,0,-6),hand_l=(0,0,0),arm_r=(32,0,-20),fore_r=(-66,0,0),weapon=(-28,0,-6),_pos=(0,-.4,-.3))
+            ready['weapon']=aim_weapon(ready,(0,-1,0),'l')
+            frames=[(0,rest),(8,ready)]
+            for t in saw_contacts:
+                press=dict(ready);press.update(body=(12,0,-2),chest=(11,-7,1),arm_l=(68,-8,8),weapon=(-35,0,-6),_pos=(0,-.55,-.6))
+                press['weapon']=aim_weapon(press,(0,-1,0),'l')
+                frames.extend([(t-1,ready),(t,press),(min(t+2,duration-3),ready)])
+            if name=='lunge':frames.append((10,ready))
+            if name=='signature':frames.append((18,ready))
+            frames.extend([(duration-3,ready),(duration,rest)])
+            frames=sorted({t:p for t,p in frames}.items())
+        if style=='chainsaw' and name in ('lunge','signature'):
+            start,stop=(10,28) if name=='lunge' else (18,40)
+            keys=dict(frames)
+            for tick in sorted(set(keys)|set(range(start,stop+1,2))):
+                if start<=tick<=stop:
+                    previous=max(k for k in keys if k<=tick)
+                    q=dict(keys[previous]);stride=math.sin((tick-start)*math.tau/12)
+                    q.update(leg_r=(-5+29*stride,0,-3),leg_l=(-5-29*stride,0,3),
+                             shin_r=(8+max(0,-stride)*34,0,0),shin_l=(8+max(0,stride)*34,0,0),
+                             foot_r=(-4-max(0,stride)*14,0,0),foot_l=(-4-max(0,-stride)*14,0,0))
+                    keys[tick]=q
+            frames=sorted(keys.items())
         make(name,duration,frames)
     fall=pose('hit',.6);fall.update(body=(35,12,18),chest=(37,-8,12),head=(28,0,15),arm_l=(35,0,42),arm_r=(60,0,-25),leg_l=(-40,0,-12),shin_l=(70,0,0),_pos=(0,-5,0))
     down=dict(fall);down.update(root=(0,0,78),body=(38,0,12),head=(24,0,18),_pos=(0,-10,0))

@@ -114,5 +114,7 @@
  "entity.fpe.zombie_petunia": "Zombie Petunia (FPE Zombie AU)",
  "item.fpe.zombie_petunia_spawn_egg": "Zombie Petunia Spawn Egg",
  "entity.fpe.zombie_cubbie": "Zombie Cubbie (FPE Zombie AU)",
- "item.fpe.zombie_cubbie_spawn_egg": "Zombie Cubbie Spawn Egg"
+ "item.fpe.zombie_cubbie_spawn_egg": "Zombie Cubbie Spawn Egg",
+ "subtitles.fpe.chainsaw_engine": "Chainsaw engine revs",
+ "subtitles.fpe.chainsaw_cut": "Chainsaw blade grinds"
 }

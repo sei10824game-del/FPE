@@ -114,5 +114,7 @@
  "entity.fpe.zombie_petunia": "ゾンビペチュニア (FPE Zombie AU)",
  "item.fpe.zombie_petunia_spawn_egg": "ゾンビペチュニアのスポーンエッグ",
  "entity.fpe.zombie_cubbie": "ゾンビカビー (FPE Zombie AU)",
- "item.fpe.zombie_cubbie_spawn_egg": "ゾンビカビーのスポーンエッグ"
+ "item.fpe.zombie_cubbie_spawn_egg": "ゾンビカビーのスポーンエッグ",
+ "subtitles.fpe.chainsaw_engine": "チェーンソーが唸る",
+ "subtitles.fpe.chainsaw_cut": "チェーンソーの刃が食い込む"
 }

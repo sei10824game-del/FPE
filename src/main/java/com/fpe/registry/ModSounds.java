@@ -16,6 +16,11 @@ public final class ModSounds {
     private ModSounds() {}
 
     public static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, FpeMod.MODID);
+    public static final RegistryObject<SoundEvent> CHAINSAW_ENGINE = sound("zombie_au.chainsaw_engine");
+    public static final RegistryObject<SoundEvent> CHAINSAW_CUT = sound("zombie_au.chainsaw_cut");
+    private static RegistryObject<SoundEvent> sound(String id) {
+        return SOUNDS.register(id, () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(FpeMod.MODID,id)));
+    }
     private static final Map<String, RegistryObject<SoundEvent>> MISS_CIRCLE = new LinkedHashMap<>();
 
     static {

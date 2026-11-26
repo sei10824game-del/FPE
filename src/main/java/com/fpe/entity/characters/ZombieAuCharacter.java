@@ -2,6 +2,7 @@ package com.fpe.entity.characters;
 
 import java.util.List;
 import com.fpe.entity.*;
+import com.fpe.registry.ModSounds;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -10,19 +11,20 @@ import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /** Image-based Zombie AU roster. Combat moves are original to this mod. */
 public final class ZombieAuCharacter extends FpeEntity {
     public enum Role {
-        SURVIVOR_GRACE("survivor_grace", 2.4f, 180, 8, "gun"),
-        SURVIVOR_DEMI("survivor_demi", 2.1f, 130, 5, "medic"),
-        SURVIVOR_SASHA("survivor_sasha", 2f, 130, 5, "medic"),
-        SURVIVOR_THAVEL("survivor_thavel", 2.6f, 240, 11, "claw"),
-        SURVIVOR_CIRCLE("survivor_circle", 3f, 300, 13, "chainsaw"),
-        SURVIVOR_BLOOMIE("survivor_bloomie", 2.25f, 190, 10, "cleaver"),
-        SURVIVOR_ALICE("survivor_alice", 2.5f, 250, 12, "claw"),
+        SURVIVOR_GRACE("survivor_grace", 2.65f, 180, 8, "gun"),
+        SURVIVOR_DEMI("survivor_demi", 2.5f, 130, 5, "medic"),
+        SURVIVOR_SASHA("survivor_sasha", 2.45f, 130, 5, "medic"),
+        SURVIVOR_THAVEL("survivor_thavel", 2.75f, 240, 11, "claw"),
+        SURVIVOR_CIRCLE("survivor_circle", 3.1f, 300, 13, "chainsaw"),
+        SURVIVOR_BLOOMIE("survivor_bloomie", 2.55f, 190, 10, "cleaver"),
+        SURVIVOR_ALICE("survivor_alice", 2.2f, 250, 12, "claw"),
         SURVIVOR_RILEY("survivor_riley", 1.75f, 120, 7, "knife"),
         SURVIVOR_BUBBLE("survivor_bubble", 1.8f, 120, 5, "medic"),
         SURVIVOR_LIZZY("survivor_lizzy", 1.9f, 130, 7, "gun"),
@@ -55,6 +57,9 @@ public final class ZombieAuCharacter extends FpeEntity {
     public static AttributeSupplier.Builder attributes(Role role) {
         return baseAttributes(role.health, role.damage, role == Role.ZOMBIE_ROBBY ? .36 : .29, role.survivor()?4:2, role.height>3?.5:.2);
     }
+    @Override protected float getStandingEyeHeight(Pose pose, EntityDimensions dimensions) {
+        return dimensions.height * .87f;
+    }
     @Override public Faction faction() { return role.survivor()?Faction.SURVIVOR:Faction.ZOMBIE_AU; }
     @Override public boolean protectsPlayer(Player player) { return role.survivor(); }
     @Override public double preferredDistance() { return role.style.equals("gun")?7:2; }
@@ -62,6 +67,7 @@ public final class ZombieAuCharacter extends FpeEntity {
     @Override public AABB getBoundingBoxForCulling() { return super.getBoundingBoxForCulling().inflate(role==Role.ZOMBIE_SKELL?3:1.8,1,1.8); }
     private double reach() { return role.height>3?4:3; }
     @Override protected void registerAbilities(List<Ability> out) {
+        if (role == Role.SURVIVOR_CIRCLE) { registerChainsawAbilities(out); return; }
         out.add(Ability.of("sweep",34,48).range(0,reach()+1).weight(4).faceUntil(10).tick((e,t,k)->{if(k==14)cut(1,75,.5,.1);}));
         out.add(Ability.of("double_strike",42,72).range(0,reach()+1).weight(3).faceUntil(9).tick((e,t,k)->{if(k==12||k==26)cut(.8f,65,.3,.1);}));
         out.add(Ability.of("lunge",36,85).range(2,9).weight(3).closer().faceUntil(10).tick((e,t,k)->{if(k==10)dashForward(Math.min(1.1,distanceTo(t)*.16),.1); if(k==16)cut(1.2f,45,.7,.1);}));
@@ -82,7 +88,80 @@ public final class ZombieAuCharacter extends FpeEntity {
         out.add(Ability.of("frenzy",66,180).range(0,reach()+1).weight(4).faceUntil(9).when(FpeEntity::isEnraged).tick((e,t,k)->{if(k==14||k==30||k==46)cut(1.05f,100,.5,.2);}));
     }
     @Override public void cancelAbility() { held=null; super.cancelAbility(); }
-    @Override protected void onAbilityStart(Ability ability, LivingEntity target) { held=null; }
+    @Override protected void onAbilityStart(Ability ability, LivingEntity target) {
+        held=null;
+        if (role == Role.SURVIVOR_CIRCLE) engineSound();
+    }
+    @Override public void tick() {
+        super.tick();
+        if (!level().isClientSide && role == Role.SURVIVOR_CIRCLE && isAlive() && isBusy() && animTime > 0 && animTime % 12 == 0)
+            engineSound();
+    }
+    private void engineSound() {
+        // Short repeating engine samples are bounded by the active ability; no persistent client loop survives cancellation.
+        FpeUtil.sound(this, ModSounds.CHAINSAW_ENGINE.get(), .65f, 1.0f);
+    }
+
+    private void registerChainsawAbilities(List<Ability> out) {
+        out.add(Ability.of("sweep",34,60).range(0,4).weight(4).faceUntil(10)
+                .tick((e,t,k)->{ if (sawBeat(k,14,22)) sawContact(.34f, .06); }));
+        out.add(Ability.of("double_strike",42,90).range(0,4).weight(3).faceUntil(9)
+                .tick((e,t,k)->{ if (sawBeat(k,12,20) || sawBeat(k,26,34)) sawContact(.28f,.04); }));
+        out.add(Ability.of("lunge",36,100).range(2,10).weight(5).closer().faceUntil(10)
+                .tick((e,t,k)->{
+                    if (sawBeat(k,10,22)) sawAdvance(t,.7);
+                    if (sawBeat(k,16,28)) sawContact(.34f,.04);
+                }));
+        out.add(Ability.of("grab",42,145).range(0,4).weight(2).faceUntil(10)
+                .end((e,t,k)->held=null).tick((e,t,k)->grab(t,k)));
+        out.add(Ability.of("slam",44,110).range(0,4).weight(3).faceUntil(15)
+                .tick((e,t,k)->{ if (sawBeat(k,22,30)) sawContact(.4f,.07); }));
+        out.add(Ability.of("uppercut",32,80).range(0,4).weight(3).faceUntil(10)
+                .tick((e,t,k)->{ if (sawBeat(k,14,22)) sawContact(.34f,.06); }));
+        out.add(Ability.of("backstep",36,90).range(0,4).weight(2).faceUntil(10)
+                .tick((e,t,k)->{ if (sawBeat(k,12,20)) sawContact(.28f,.04); if (k==20) dashForward(-.55,.1); }));
+        out.add(Ability.of("leap",46,135).range(3,11).weight(2).closer().faceUntil(12)
+                .tick((e,t,k)->{ if(k==12)dashForward(Math.min(.9,distanceTo(t)*.12),.35); if(sawBeat(k,26,34))sawContact(.4f,.08); }));
+        // Retain the shared animation ID while replacing a thrown knife with three close saw thrusts.
+        out.add(Ability.of("volley",42,110).range(0,6).weight(2).faceUntil(14)
+                .tick((e,t,k)->{ if(k==18||k==24||k==30){sawAdvance(t,.35);sawContact(.34f,.04);} }));
+        out.add(Ability.of("signature",54,200).range(0,10).weight(5).closer().faceUntil(18)
+                .tick((e,t,k)->{
+                    if(k==18||k==22)sawAdvance(t,.8);
+                    if(sawBeat(k,24,40))sawContact(.36f,.025);
+                }));
+        out.add(Ability.of("rally",44,220).range(0,8).weight(2).faceUntil(16)
+                .tick((e,t,k)->{if(k==20)rally();}));
+        out.add(Ability.of("frenzy",66,200).range(0,4).weight(4).faceUntil(9).when(FpeEntity::isEnraged)
+                .tick((e,t,k)->{if(sawBeat(k,14,22)||sawBeat(k,30,38)||sawBeat(k,46,54))sawContact(.3f,.04);}));
+    }
+    private static boolean sawBeat(int tick, int first, int last) {
+        return tick >= first && tick <= last && (tick-first)%4 == 0;
+    }
+    private void sawAdvance(LivingEntity target, double speed) {
+        // Ordinary mob movement resolves block collisions. Stop pushing once the blade is in contact range.
+        double gap = distanceTo(target);
+        if (hasLineOfSight(target) && gap > 2.2 && !horizontalCollision)
+            dashForward(Math.min(speed, Math.max(.2,(gap-2)*.18)), Math.max(0,getDeltaMovement().y));
+        else setDeltaMovement(getDeltaMovement().multiply(.25,1,.25));
+    }
+    private void sawContact(float multiplier, double knock) {
+        Vec3 from=position().add(0,getBbHeight()*.55,0);
+        Vec3 end=level().clip(new ClipContext(from,from.add(FpeUtil.forward(this).scale(3.25)),
+                ClipContext.Block.COLLIDER,ClipContext.Fluid.NONE,this)).getLocation();
+        boolean contacted=false;
+        for (LivingEntity victim:level().getEntitiesOfClass(LivingEntity.class,new AABB(from,end).inflate(.65),v->FpeUtil.canHurt(this,v))) {
+            AABB contact=victim.getBoundingBox().inflate(.35);
+            if (!hasLineOfSight(victim) || !(contact.contains(from)||contact.clip(from,end).isPresent())) continue;
+            // A moving chain deals bounded repeated contacts, but never clears cooldowns on a missed or allied entity.
+            victim.invulnerableTime=0;
+            contacted |= FpeUtil.hit(this,victim,dmg(multiplier),knock,.015);
+        }
+        if (contacted) {
+            FpeUtil.sound(this,ModSounds.CHAINSAW_CUT.get(),.5f,1.0f);
+            FpeUtil.particles(this,ParticleTypes.CRIT,from.lerp(end,.65),5,.15,.2,.15,.015);
+        }
+    }
     private void grab(LivingEntity target, int tick) {
         if(tick==12 && FpeCombat.cone(this,reach(),45).contains(target) && hasLineOfSight(target)
                 && FpeUtil.hit(this,target,dmg(.4f),0,0)) {
